@@ -39,6 +39,7 @@ import {
   uploadLimiter,
 } from "./rate-limit"
 import { backupDir } from "./backup"
+import { requestLogger } from "./logger"
 import { closePool, dbConfigInfo, pingDatabase } from "../mysql/pool"
 
 // Carrega mysql-api.env antes da primeira consulta ao banco (o pool é criado de
@@ -48,6 +49,16 @@ const envInfo = loadEnvFile()
 const app = express()
 app.set("trust proxy", 1)
 app.disable("x-powered-by")
+
+// ── Logs ────────────────────────────────────────────────────────────────────
+// Uma linha JSON por requisição (id, método, rota, status e latência) e o id
+// devolvido no header para correlacionar com o suporte. O nível vem de
+// LOG_LEVEL (padrão info).
+app.use(requestLogger)
+app.use((req, res, next) => {
+  res.setHeader("X-Request-Id", String(req.id ?? ""))
+  next()
+})
 
 // ── CORS ────────────────────────────────────────────────────────────────────
 // CORS_ORIGIN aceita uma lista separada por vírgula. Sem a variável, reflete a

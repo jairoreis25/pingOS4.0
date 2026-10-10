@@ -315,6 +315,7 @@ SELECT type, status, LEFT(error, 80) AS erro, FROM_UNIXTIME(sent_at/1000)
 | `ADMIN_USERNAME` / `ADMIN_PASSWORD` / `ADMIN_NAME` | —                       | primeiro administrador criado no boot                                |
 | `BOOTSTRAP_TOKEN`                                  | —                       | token exigido por `POST /api/auth/setup` (sem ele, aleatório no log) |
 | `RATE_LIMIT_ENABLED`                               | `true`                  | limites por IP em login, setup, chamado público, upload e OCR        |
+| `LOG_LEVEL`                                        | `info`                  | nível do log estruturado (pino); `silent` desliga tudo               |
 
 ### Frontend (`.env.local` no dev, `/config.js` no Docker)
 

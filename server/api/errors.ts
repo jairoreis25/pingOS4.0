@@ -6,6 +6,7 @@
  */
 
 import type { NextFunction, Request, RequestHandler, Response } from "express"
+import { logger, requestIdOf } from "./logger"
 
 export class ApiError extends Error {
   status: number
@@ -46,6 +47,8 @@ export function errorMiddleware(error: unknown, _req: Request, res: Response, _n
     return
   }
   const message = error instanceof Error ? error.message : "Erro interno do servidor."
-  console.error("[mysql-api] erro não tratado:", error)
+  // Erro não previsto: log estruturado com o id da requisição (o `requestLogger`
+  // já registra a linha da requisição; aqui vai o stack para depurar).
+  logger.error({ err: error, requestId: requestIdOf(res), status: 500 }, "erro não tratado na API")
   res.status(500).json({ message })
 }
