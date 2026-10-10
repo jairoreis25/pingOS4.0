@@ -80,6 +80,8 @@ import {
   buildTicketMessage,
 } from "@/lib/desc-fields"
 import { TICKET_CATEGORIES, TICKET_CATEGORY_EMPTY } from "@/lib/ticket-categories"
+import { filterTickets } from "@/lib/ticket-search"
+import { buildTicketPrintHtml } from "@/lib/ticket-print"
 
 /** Chamados por página no Kanban (`GET /api/tickets?limit=`). */
 const TICKETS_PAGE_SIZE = 200
@@ -362,61 +364,14 @@ function TicketDetailDialog({
       toast.error("Bloqueado pelo navegador. Permita pop-ups.")
       return
     }
-    printWindow.document.write(`<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>Chamado #${ticket.number}</title>
-<style>
-  @page { size: 80mm auto; margin: 2mm; }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { width: 76mm; font-family: 'Courier New', monospace; font-size: 11px; color: #000; padding: 2mm; }
-  .center { text-align: center; }
-  .bold { font-weight: bold; }
-  .line { border-top: 1px dashed #000; margin: 3mm 0; }
-  .label { font-size: 9px; color: #555; text-transform: uppercase; letter-spacing: 0.5px; }
-  .value { font-size: 11px; margin-top: 1mm; }
-  .big { font-size: 16px; font-weight: bold; }
-  table { width: 100%; border-collapse: collapse; }
-  td { padding: 1mm 0; vertical-align: top; }
-  .desc { white-space: pre-wrap; word-break: break-word; line-height: 1.4; }
-  img { max-width: 100%; margin-top: 2mm; }
-  .footer { margin-top: 4mm; text-align: center; font-size: 8px; color: #888; }
-</style></head><body>
-  <div class="center">
-    <div class="big">PINGOS</div>
-    <div class="label">Sistema de Chamados de TI</div>
-  </div>
-  <div class="line"></div>
-  <div class="center"><span class="big">#${ticket.number}</span></div>
-  <div class="line"></div>
-  <table>
-    <tr><td class="label">Status</td><td class="value bold">${statusLabel}</td></tr>
-    <tr><td class="label">Prioridade</td><td class="value bold">${priorityLabel}</td></tr>
-    ${ticket.os ? `<tr><td class="label">O.S</td><td class="value bold">${ticket.os}</td></tr>` : ""}
-    ${derivedValorTotal != null ? `<tr><td class="label">Valor</td><td class="value bold">${formatBRL(derivedValorTotal)}</td></tr>` : ""}
-    <tr><td class="label">Título</td><td class="value bold">${ticket.title ?? "Sem título"}</td></tr>
-  </table>
-  <div class="line"></div>
-  <div class="label">Descrição</div>
-  <div class="value desc">${ticket.description ?? "Sem descrição."}</div>
-  ${ticket.solucao ? `<div class="line"></div><div class="label">Solução</div><div class="value desc">${ticket.solucao}</div>` : ""}
-  ${ticket.orcamento ? `<div class="line"></div><div class="label">Orçamento</div><div class="value desc">${ticket.orcamento}</div>` : ""}
-  ${ticket.obs ? `<div class="line"></div><div class="label">Obs</div><div class="value desc">${ticket.obs}</div>` : ""}
-  ${ticket.statusEquipamento ? `<div class="line"></div><div class="label">Situação</div><div class="value desc">${ticket.statusEquipamento}</div>` : ""}
-  <div class="line"></div>
-  <table>
-    <tr><td class="label">Solicitante</td><td class="value">${ticket.creatorName}</td></tr>
-    ${ticket.guestContact ? `<tr><td class="label">Contato</td><td class="value">${ticket.guestContact}</td></tr>` : ""}
-    ${ticket.location ? `<tr><td class="label">Local</td><td class="value">${ticket.location}</td></tr>` : ""}
-    ${ticket.assigneeName ? `<tr><td class="label">Responsável</td><td class="value">${ticket.assigneeName}</td></tr>` : ""}
-  </table>
-  <div class="line"></div>
-  <div class="center" style="margin-top:2mm;">
-    <div class="label">Aberto em</div>
-    <div class="value">${new Date(ticket.createdAt).toLocaleString("pt-BR")}</div>
-  </div>
-  ${ticket.imageUrl ? `<div class="line"></div><div class="label">Imagem</div><img src="${ticket.imageUrl}" />` : ""}
-  <div class="footer">PingOS • ${new Date().toLocaleDateString("pt-BR")}</div>
-  <script>window.onload = () => { window.print(); }</script>
-</body></html>`)
+    // O HTML da via vive em `src/lib/ticket-print.ts` (puro e testado).
+    printWindow.document.write(
+      buildTicketPrintHtml(ticket, {
+        statusLabel,
+        priorityLabel,
+        valorTotal: derivedValorTotal != null ? formatBRL(derivedValorTotal) : null,
+      }),
+    )
     printWindow.document.close()
   }
 
@@ -1229,19 +1184,7 @@ export default function Dashboard() {
     setDragOverColumn(null)
   }, [])
 
-  const filteredTickets =
-    tickets?.filter((t) => {
-      if (!searchQuery.trim()) return true
-      const q = searchQuery.toLowerCase()
-      return (
-        t.title?.toLowerCase().includes(q) ||
-        t.description?.toLowerCase().includes(q) ||
-        String(t.number).includes(q) ||
-        t.os?.toLowerCase().includes(q) ||
-        t.guestContact?.toLowerCase().includes(q) ||
-        t.guestName?.toLowerCase().includes(q)
-      )
-    }) ?? []
+  const filteredTickets = filterTickets(tickets, searchQuery)
 
   const ticketsByStatus = (status: TicketStatus) =>
     filteredTickets.filter((t) => t.status === status)
