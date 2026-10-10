@@ -241,3 +241,10 @@ Nota de ambiente: no sandbox do DSH o `vitest` via `bun run` falha com `EPERM` a
 ### Ainda pendente na Semana 2-3
 
 Paginação por keyset em `/api/tickets` (o SSE já resolveu a revalidação constante; agora falta limitar o tamanho da primeira carga).
+
+Plano para o próximo passo:
+
+1. **Helper puro** `buildTicketPage({ limit, cursor })` devolvendo `WHERE`/`ORDER BY`/`LIMIT` e parâmetros, com teste unitário — a ordenação atual é só `created_at DESC`; keyset exige `created_at DESC, id DESC` para ser estável.
+2. **Handler** `GET /api/tickets` aceitando `limit` e `cursor` e devolvendo `X-Next-Cursor`; sem parâmetros, mantém a resposta atual (array completo) para não quebrar o cliente.
+3. **Cuidado conhecido**: o filtro de permissão (`canViewTicket`) roda em JS depois do `SELECT`, então uma página pode voltar com menos itens visíveis que o `limit`. O handler precisa seguir buscando páginas cruas até completar a página visível ou esgotar as linhas (laço com teto).
+4. **Cliente**: o painel pede a primeira página e mostra "Carregar mais chamados" enquanto houver cursor, em vez de baixar a base inteira.
