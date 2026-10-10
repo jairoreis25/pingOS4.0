@@ -198,3 +198,45 @@ Observação: `express.json()` roda antes dos roteadores, então um corpo JSON i
 | 7   | Acessibilidade: 22 `aria-label` em botões só-ícone (7 diálogos + cabeçalho do painel) e cartão do Kanban operável por teclado (`role="button"`, `tabIndex`, Enter/Espaço abrem o chamado, onde o status muda pelos botões do diálogo com `canMoveTo`) | commit da Semana 1 | `src/components/*.tsx`, `src/components/KanbanColumn.tsx`, `src/pages/Dashboard.tsx`         |
 
 `useQuery` continua devolvendo `T | undefined`, então os ~100 pontos de uso não mudaram — só as telas que querem tratar falha passaram a usar `useQueryState`.
+
+---
+
+## 11. Semana 2-3 — progresso
+
+| #   | Item                                                                                                                                                                                                            | Commit      | Evidência                                                                                     |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | --------------------------------------------------------------------------------------------- |
+| 8   | Logs estruturados: `pino` + `pino-http` (uma linha JSON por requisição com id, rota, status e latência), `LOG_LEVEL`, `Authorization`/`Cookie` redigidos, `X-Request-Id` na resposta, `/api/health` fora do log | `51cd674`   | `server/api/logger.ts`, `server/api/index.ts`, `server/api/errors.ts`                         |
+| 9   | Vazamentos internos (P1-1/P1-2): `/api/health` só devolve host/porta/usuário e arquivo de ambiente para admin; erro não tratado responde genérico, com o detalhe apenas no log                                  | `9e85b73`   | runtime: `{"status":"degraded","database":false}` e `{"message":"Erro interno do servidor."}` |
+| 10  | `GET_LOCK` nas migrações: `withNamedLock` no pool (lock numa conexão dedicada) e `runMigrations` segurando `pingos:migrate` por 30 s                                                                            | `8c55c4b`   | `server/mysql/pool.ts:114-145`, `server/mysql/migrate.ts`                                     |
+| 11  | Update otimista no Kanban: o card muda de coluna na hora e volta se a mutation falhar                                                                                                                           | `e1c3970`   | `src/pages/Dashboard.tsx`                                                                     |
+| 12  | Suíte inicial de testes: **10 arquivos / 200 casos**, sem banco e sem navegador                                                                                                                                 | este commit | `tests/`, `vitest.config.ts`, `bun run test`                                                  |
+
+### Cobertura da suíte
+
+| Arquivo                                                      | Casos | Foco                                                                               |
+| ------------------------------------------------------------ | ----- | ---------------------------------------------------------------------------------- |
+| `tests/permissions.test.ts`                                  | 38    | fonte única de permissões (`canMoveTo`, `canViewStatus`, restrições, `namesMatch`) |
+| `tests/currency.test.ts`                                     | 24    | formatação/máscara BRL e soma de itens                                             |
+| `tests/desc-fields.test.ts`                                  | 20    | descrição, rótulos e mensagem de WhatsApp                                          |
+| `tests/reports.test.ts`                                      | 30    | tabelas dos 5 relatórios, resumo e presets de período                              |
+| `tests/server-types.test.ts`                                 | 27    | normalizadores da API (nunca expõe `password_hash`)                                |
+| `tests/server-errors.test.ts`                                | 19    | `ApiError`, `asyncHandler`, 500 sem vazar mensagem + `logger.error`                |
+| `tests/ticket-ui.test.ts`                                    | 18    | colunas, prioridades, iniciais e `timeAgo`                                         |
+| `tests/ticket-categories.test.ts` + `tests/products.test.ts` | 16    | normalizadores compartilhados front/back                                           |
+| `tests/server-rate-limit.test.ts`                            | 8     | passthrough com `RATE_LIMIT_ENABLED=false` e 429 nos limites                       |
+
+Gate atual: `bun run verify` = typecheck + lint + **testes** (0 erros, 200 passando) · `build` verde · `format:check` verde.
+Nota de ambiente: no sandbox do DSH o `vitest` via `bun run` falha com `EPERM` ao criar pasta no `%TEMP%`; apontando `TEMP`/`TMP` para dentro do workspace (ou rodando num shell normal/CI) passa 200/200.
+
+### Achados da suíte (registrados, ainda não corrigidos)
+
+| #   | Achado                                                                                                         | Evidência                                    | Impacto                                                                      |
+| --- | -------------------------------------------------------------------------------------------------------------- | -------------------------------------------- | ---------------------------------------------------------------------------- |
+| 1   | `fromDateInput` aceita data impossível e ano < 100 é deslocado (rollover do `Date`)                            | `src/lib/reports.ts:927-935`                 | Filtro de relatório pode usar data errada silenciosamente                    |
+| 2   | Checagem de status roda antes do override de admin (admin com `tickets.view.<status>` explícito fica restrito) | `src/lib/permissions.ts:355-357`, `:390-393` | Latente (admin recebe `ALL_PERMISSIONS`); o comentário promete "poder total" |
+| 3   | `namesMatch("   ", " ")` devolve `true`                                                                        | `src/lib/permissions.ts:369-372`             | Sem impacto prático, mas é um falso positivo de identidade                   |
+| 4   | `RATE_LIMIT_ENABLED` é lido na importação (mudança exige restart) e o store é em memória                       | `server/api/rate-limit.ts:17`                | Operação: em múltiplas réplicas o limite não é global                        |
+
+### Ainda pendente na Semana 2-3
+
+SSE (`GET /api/events`) no lugar do poll global de 10 s e paginação por keyset em `/api/tickets`.

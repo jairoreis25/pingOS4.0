@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   qualidade:
-    name: typecheck · lint · format · build
+    name: typecheck · lint · test · format · build
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -29,6 +29,9 @@ jobs:
 
       - name: Lint
         run: bun run lint
+
+      - name: Testes
+        run: bun run test
 
       - name: Formatação
         run: bun run format:check
