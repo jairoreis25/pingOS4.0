@@ -42,6 +42,8 @@ import {
 import { backupDir } from "./backup"
 import { broadcastOnWrite, eventsRouter } from "./events"
 import { requestLogger } from "./logger"
+import { dispatchOutboxJob } from "./notify"
+import { startOutboxWorker, stopOutboxWorker } from "./outbox"
 import { closePool, dbConfigInfo, pingDatabase } from "../mysql/pool"
 
 // Carrega mysql-api.env antes da primeira consulta ao banco (o pool é criado de
@@ -186,12 +188,16 @@ const server = app.listen(PORT, () => {
       // Verifica os chamados parados de tempos em tempos (o mesmo que o botão
       // "verificar agora" em Configurações → Regras de inatividade dispara).
       startInactivityScheduler()
+      // Entrega os avisos enfileirados (e-mail/Telegram/WhatsApp) fora do
+      // caminho da requisição — ver server/api/outbox.ts.
+      startOutboxWorker(dispatchOutboxJob)
       console.log("")
     })
     .catch((error) => console.error("[mysql-api] falha no boot:", error))
 })
 
 const shutdown = () => {
+  stopOutboxWorker()
   server.close(() => {
     void closePool().finally(() => process.exit(0))
   })

@@ -271,6 +271,25 @@ O banco guardava o token de sessão **em claro** (`sessions.token`): um dump, um
 
 **Testes**: `tests/server-auth.test.ts` (6 casos) cobre determinismo, formato (64 hex), token ≠ hash, colisão entre tokens distintos e o vetor conhecido do SHA-256. A busca por hash, o upgrade da sessão antiga, a renovação e a rotação dependem de banco e **não têm teste automatizado** nesta máquina (sem MySQL) — o caminho foi validado por tipos, lint e revisão do SQL (`SELECT`/`UPDATE`/`DELETE` sempre por `sessions.token` = hash).
 
+### 16. Outbox de notificações (`este commit`)
+
+Criar ou mover um chamado enviava e-mail/Telegram/WhatsApp **dentro da requisição**: a resposta ficava presa até `NOTIFY_TIMEOUT_MS` (10 s por canal, em paralelo) e a falha de um terceiro atrasava o usuário que só queria abrir o chamado.
+
+| Peça                         | O que faz                                                                                                                                                                                                                                             |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tabela `notification_outbox` | `kind`, `payload`, `status` (`pending`/`sending`/`sent`/`failed`), `attempts`, `available_at`, `last_error` + índice `(status, available_at)`                                                                                                         |
+| `enqueueNotification`        | Grava a intenção na fila (rápido e durável) e dá um "empurrão" no worker 250 ms depois                                                                                                                                                                |
+| Worker                       | `startOutboxWorker(dispatchOutboxJob)` no boot; ciclo a cada 10 s, drenando até esvaziar (máx. 5 rodadas por ciclo)                                                                                                                                   |
+| Reivindicação                | Cada linha é pega com `UPDATE ... WHERE status = 'pending'`: com várias réplicas, só uma entrega                                                                                                                                                      |
+| Retentativa                  | Até 5 tentativas com backoff de 5 s → 5 min (teto); depois `failed` com o motivo em `last_error`                                                                                                                                                      |
+| Recuperação                  | Linha presa em `sending` (processo morto no meio do envio) volta para `pending` após 2 min                                                                                                                                                            |
+| Payload enxuto               | Guarda só assunto, corpo e destinatários — a imagem do chamado é recarregada pelo id na entrega (data URLs de centenas de KB não vão para a fila)                                                                                                     |
+| Escopo                       | O **sino in-app continua imediato** (INSERT local barato): assim uma retentativa não duplica o aviso dentro do app e a fila cobre exatamente o canal externo. O motor de inatividade segue inline (é agendado, não está no caminho de uma requisição) |
+
+**Testes**: `tests/outbox.test.ts` (10 casos) — backoff exponencial com teto, `MAX_ATTEMPTS` são, payload corrompido/JSON inválido/campos faltando são recusados, destinatários não-texto são descartados e o payload não carrega imagem. A entrega (claim, retry, `resetStuck`) depende de banco e fica sem teste automatizado aqui; o boot foi verificado em runtime (API sobe e o worker não é iniciado quando o MySQL não responde).
+
+**Próximo passo**: as linhas `sent`/`failed` são histórico — vale uma rotina de limpeza (apagar `sent` com mais de 30 dias) e um contador em `/api/metrics`.
+
 ### Pendente na Semana 4+
 
-Outbox de notificações · uploads em objeto · decomposição dos arquivos gigantes · PWA/push · i18n.
+Uploads em objeto · decomposição dos arquivos gigantes · PWA/push · i18n.

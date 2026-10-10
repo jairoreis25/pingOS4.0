@@ -18,6 +18,7 @@
  */
 
 import { execute, newId, query, queryOne } from "../mysql/pool"
+import { enqueueNotification, type OutboxPayload } from "./outbox"
 import { getEffectivePermissions } from "./permissions"
 import { parseJsonArray, toBool, type TicketRow, type UserRow } from "./types"
 
@@ -421,7 +422,7 @@ async function sendWhatsApp(
   return unique.length
 }
 
-/** Envia por todos os canais habilitados (usado por chamados e inatividade). */
+/** Envia por todos os canais habilitados (usado pelo worker do outbox e pela inatividade). */
 export async function dispatchExternal(params: {
   ticket: TicketRow
   subject: string
@@ -475,6 +476,29 @@ async function findUser(id: string | null): Promise<UserRow | null> {
   return queryOne<UserRow>("SELECT * FROM `users` WHERE `id` = ?", [id])
 }
 
+/**
+ * Entrega um job da fila (usado pelo worker do outbox).
+ *
+ * Recarrega o chamado pelo id: o payload guarda só assunto/corpo/destinatários,
+ * nunca a imagem (data URL de centenas de KB). Se o chamado foi apagado antes da
+ * entrega, não há o que avisar.
+ */
+export async function dispatchOutboxJob(payload: OutboxPayload): Promise<void> {
+  const ticket = await queryOne<TicketRow>("SELECT * FROM `tickets` WHERE `id` = ?", [
+    payload.ticketId,
+  ])
+  if (!ticket) return
+
+  await dispatchExternal({
+    ticket,
+    subject: payload.subject,
+    body: payload.body,
+    emailRecipients: payload.emailRecipients,
+    whatsappRecipients: payload.whatsappRecipients,
+    ruleId: payload.ruleId ?? null,
+  })
+}
+
 // ── Eventos ─────────────────────────────────────────────────────────────────
 /**
  * Novo chamado: avisa os usuários que veem chamados (sino) e dispara os canais
@@ -501,7 +525,8 @@ export async function notifyTicketCreated(
     }
 
     const { subject, body } = createdMessage(ticket)
-    await dispatchExternal({ ticket, subject, body })
+    // O envio externo sai da requisição: vai para a fila (ver server/api/outbox.ts).
+    await enqueueNotification({ kind: "external_dispatch", ticketId: ticket.id, subject, body })
   } catch (error) {
     console.error("[notify] falha ao notificar novo chamado:", error)
   }
@@ -539,7 +564,14 @@ export async function notifyTicketStatusChanged(
       (value): value is string => isPhone(value),
     )
 
-    await dispatchExternal({ ticket, subject, body, emailRecipients, whatsappRecipients })
+    await enqueueNotification({
+      kind: "external_dispatch",
+      ticketId: ticket.id,
+      subject,
+      body,
+      emailRecipients,
+      whatsappRecipients,
+    })
   } catch (error) {
     console.error("[notify] falha ao notificar mudança de status:", error)
   }

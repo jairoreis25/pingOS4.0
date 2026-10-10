@@ -311,6 +311,28 @@ CREATE TABLE IF NOT EXISTS `in_app_notifications` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ─────────────────────────────────────────────────────────────────────────────
+-- Outbox de notificações (fila de envio externo)
+--
+-- Criar ou mover um chamado não envia mais e-mail/Telegram/WhatsApp dentro da
+-- requisição: grava uma linha aqui e o worker entrega em segundo plano, com
+-- tentativas, backoff e `last_error`. Linha presa em `sending` (processo morto no
+-- meio do envio) volta para `pending` depois de alguns minutos.
+-- ─────────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `notification_outbox` (
+  `id`           BIGINT       NOT NULL AUTO_INCREMENT,
+  `kind`         VARCHAR(40)  NOT NULL,
+  `payload`      TEXT         NOT NULL,
+  `status`       ENUM('pending','sending','sent','failed') NOT NULL DEFAULT 'pending',
+  `attempts`     INT          NOT NULL DEFAULT 0,
+  `available_at` BIGINT       NOT NULL,
+  `created_at`   BIGINT       NOT NULL,
+  `updated_at`   BIGINT       NOT NULL,
+  `last_error`   VARCHAR(255) NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_outbox_fila` (`status`, `available_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ─────────────────────────────────────────────────────────────────────────────
 -- Anti-spam de inatividade (1 alerta por chamado+regra até o chamado mudar)
 -- ─────────────────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `inactivity_logs` (
