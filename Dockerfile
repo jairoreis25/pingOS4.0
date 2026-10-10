@@ -33,7 +33,10 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 # API ou da ponte = editar a variável de ambiente + reiniciar (sem rebuild).
 COPY config.js.template /config.js.template
 COPY docker-entrypoint.sh /usr/local/bin/pingos-entrypoint.sh
-RUN chmod +x /usr/local/bin/pingos-entrypoint.sh
+# O `sed` é defesa em profundidade: um checkout no Windows (core.autocrlf) pode
+# entregar o script com CRLF mesmo com .gitattributes, e aí o kernel procura
+# "/bin/sh\r" e o container morre com exit 127 (restart loop, site fora do ar).
+RUN sed -i 's/\r$//' /usr/local/bin/pingos-entrypoint.sh && chmod +x /usr/local/bin/pingos-entrypoint.sh
 
 EXPOSE 80
 ENTRYPOINT ["/sbin/tini", "--"]

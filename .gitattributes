@@ -1,0 +1,23 @@
+# Normalização de fim de linha entre Windows e Linux.
+#
+# Motivo concreto: com `core.autocrlf=true` (padrão no Windows), o checkout
+# entrega `docker-entrypoint.sh` com CRLF. O Docker copia o arquivo como está e o
+# kernel passa a procurar o interpretador "/bin/sh\r" — o container do app morria
+# com exit 127 e ficava em restart loop. Scripts e arquivos lidos por ferramentas
+# Linux precisam de LF no disco, não só no repositório.
+
+* text=auto eol=lf
+
+*.sh text eol=lf
+Dockerfile text eol=lf
+*.Dockerfile text eol=lf
+*.conf text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.sql text eol=lf
+*.template text eol=lf
+
+# Scripts de Windows continuam com CRLF.
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
