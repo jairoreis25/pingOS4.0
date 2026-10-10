@@ -202,6 +202,7 @@ MYSQL_PASSWORD=uma-senha-forte
 MYSQL_DATABASE=pingos
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=uma-senha-forte
+BRIDGE_TOKEN=dev-local-bridge-token   # token da ponte do WhatsApp (cole o mesmo no app)
 SITE_URL=http://localhost:8090
 RESEND_API_KEY=           # só se for enviar e-mail pela Resend
 RESEND_FROM=PingOS <onboarding@resend.dev>
@@ -225,6 +226,26 @@ docker compose -f docker-compose.local.yml down -v
 
 # backup gerado pelo painel, direto do container para a sua máquina
 docker compose -f docker-compose.local.yml cp api:/data/backups ./backups-do-servidor
+```
+
+### Verificação rápida (smoke)
+
+```bash
+curl -s http://localhost:4000/api/health          # {"status":"ok","database":true}
+curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8090/   # 200
+```
+
+### Windows: fim de linha (CRLF)
+
+O Docker copia os arquivos como estão no disco. Com `core.autocrlf=true` (padrão
+no Windows), um checkout entregava `docker-entrypoint.sh` com CRLF e o container
+do `app` morria em loop com `exit 127` — o kernel procurava o interpretador
+`/bin/sh\r`. O repositório tem [.gitattributes](.gitattributes) (`*.sh text eol=lf`)
+e o `Dockerfile` normaliza com `sed` antes do `chmod`, então isso não volta a
+acontecer — mas se você criar **novos** scripts shell, confirme que estão em LF:
+
+```bash
+docker compose -f docker-compose.local.yml logs app   # se aparecer "exec ... failed: No such file or directory", é CRLF
 ```
 
 > ⚠️ O primeiro `up --build` demora alguns minutos (build do frontend). O
