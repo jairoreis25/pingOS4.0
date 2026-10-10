@@ -183,7 +183,6 @@ export const api = {
   users: {
     currentUser: q("users.currentUser", () => "/api/users/current"),
     systemStatus: q("users.systemStatus", () => "/api/auth/status"),
-    seedFirstAdmin: m("users.seedFirstAdmin", "POST", () => "/api/users/seed-first-admin"),
     ensureBootstrap: m("users.ensureBootstrap", "POST", () => "/api/users/ensure-bootstrap"),
     listManaged: q<ManagedUser[]>("users.listManaged", () => "/api/users"),
     createManaged: mCreate("users.createManaged", "/api/users"),

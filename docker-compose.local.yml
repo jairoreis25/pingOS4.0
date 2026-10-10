@@ -55,7 +55,7 @@ services:
       MYSQL_AUTO_MIGRATE: "true"
       # Primeiro administrador criado no boot (troque depois dentro do app).
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       ADMIN_NAME: ${ADMIN_NAME:-Administrador}
       API_PORT: 4000
       # Mesma origem (nginx): pode ficar vazio. Só importa para IP:4000.

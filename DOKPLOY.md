@@ -645,11 +645,11 @@ FLUSH PRIVILEGES;
 
 Três caminhos:
 
-| Caminho                                | Como                                                                                                                                                                        |
-| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **A. Variáveis**                       | `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `ADMIN_NAME` na aba Environment → Deploy                                                                                                |
-| **B. Endpoint** (só com o banco vazio) | `curl -X POST https://SEU_DOMINIO/api/auth/setup -H 'Content-Type: application/json' -d '{"username":"admin","password":"uma-senha-com-8-ou-mais","name":"Administrador"}'` |
-| **C. Tela do app**                     | entre na tela de login e use o admin criado (banco vazio já oferece `admin` / `admin123`)                                                                                   |
+| Caminho                                | Como                                                                                                                                                                                                                                                                            |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **A. Variáveis**                       | `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `ADMIN_NAME` na aba Environment → Deploy                                                                                                                                                                                                    |
+| **B. Endpoint** (só com o banco vazio) | `curl -X POST https://SEU_DOMINIO/api/auth/setup -H 'Content-Type: application/json' -d '{"bootstrapToken":"TOKEN","username":"admin","password":"uma-senha-com-8-ou-mais","name":"Administrador"}'` — o `TOKEN` é o `BOOTSTRAP_TOKEN` (ou o aleatório impresso no log do boot) |
+| **C. Tela do app**                     | entre na tela de login com o admin criado em A ou B (não existe mais `admin` / `admin123` padrão)                                                                                                                                                                               |
 
 ### 7.4 Verificar
 

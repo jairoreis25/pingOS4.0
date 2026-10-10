@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button"
-import { useMutation, useQuery } from "@/lib/backend/react"
+import { useQuery } from "@/lib/backend/react"
 import { api } from "@/lib/backend/api"
 import {
   Card,
@@ -40,25 +40,17 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Primeiro acesso: se o sistema ainda não tem admin nem contas de senha,
-  // cria o admin inicial (admin/admin123) e avisa na tela.
+  // Primeiro acesso: o sistema informa quando o banco ainda não tem usuários.
+  // O admin inicial NÃO é mais criado automaticamente com senha padrão — veja
+  // o aviso na tela (POST /api/auth/setup com BOOTSTRAP_TOKEN).
   const systemStatus = useQuery(api.users.systemStatus)
-  const seedFirstAdmin = useMutation(api.users.seedFirstAdmin)
-  const needsBootstrap = systemStatus?.needsBootstrap === true
-  // Mantém a dica visível durante toda a visita à página, mesmo depois do seed.
+  // Mantém o aviso visível durante toda a visita à página.
   const [bootstrapHint, setBootstrapHint] = useState<boolean | null>(null)
   useEffect(() => {
     if (bootstrapHint === null && systemStatus !== undefined) {
       setBootstrapHint(systemStatus.needsBootstrap)
     }
   }, [systemStatus, bootstrapHint])
-  useEffect(() => {
-    if (needsBootstrap) {
-      seedFirstAdmin().catch(() => {
-        // se falhar (ex.: alguém já criou), o status reativa e some sozinho
-      })
-    }
-  }, [needsBootstrap, seedFirstAdmin])
 
   // Usuário inativo (desativado pelo admin) é deslogado e avisado.
   useEffect(() => {
@@ -125,8 +117,11 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                 <div className="rounded-lg border border-amber-300/60 bg-amber-50 dark:bg-amber-950/30 px-3 py-2.5 text-xs text-amber-800 dark:text-amber-200 space-y-1">
                   <p className="font-semibold">Primeiro acesso</p>
                   <p>
-                    Use <b>admin</b> / <b>admin123</b> para entrar e depois troque a senha e crie os
-                    usuários da equipe em Configurações → Usuários.
+                    O banco ainda não tem usuários. Crie o administrador inicial com{" "}
+                    <code className="font-mono">POST /api/auth/setup</code> informando{" "}
+                    <b>bootstrapToken</b> (o valor de{" "}
+                    <code className="font-mono">BOOTSTRAP_TOKEN</code>, ou o token aleatório que
+                    aparece no log do servidor) junto de usuário e senha.
                   </p>
                 </div>
               )}

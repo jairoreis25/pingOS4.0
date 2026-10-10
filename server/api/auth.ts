@@ -11,7 +11,7 @@ import { randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:cry
 import { promisify } from "node:util"
 import { Router } from "express"
 import { execute, newId, newSessionToken, query, queryOne } from "../mysql/pool"
-import { badRequest, unauthorized } from "./errors"
+import { badRequest, forbidden, unauthorized } from "./errors"
 import { asyncHandler } from "./errors"
 import { getEffectivePermissions } from "./permissions"
 import { toBool, toPublicUser, type UserRow } from "./types"
@@ -24,6 +24,29 @@ const scrypt = promisify(scryptCallback) as (
 
 const SALT_BYTES = 16
 const KEY_BYTES = 64
+
+// ── Bootstrap do primeiro administrador ─────────────────────────────────────
+// Com o banco vazio, `POST /api/auth/setup` cria o primeiro admin. Sem trava,
+// quem chamasse a rota primeiro viraria administrador. A rota passa a exigir um
+// token: o valor de BOOTSTRAP_TOKEN ou, quando a variável não existe, um token
+// aleatório gerado neste boot e impresso apenas no log do servidor.
+const BOOTSTRAP_TOKEN =
+  (process.env.BOOTSTRAP_TOKEN ?? "").trim() || randomBytes(24).toString("hex")
+
+if (!(process.env.BOOTSTRAP_TOKEN ?? "").trim()) {
+  console.log(
+    `[bootstrap] BOOTSTRAP_TOKEN não definido — token desta execução (só aparece aqui): ${BOOTSTRAP_TOKEN}`,
+  )
+}
+
+function assertBootstrapToken(value: unknown): void {
+  const provided = typeof value === "string" ? value.trim() : ""
+  const a = Buffer.from(provided)
+  const b = Buffer.from(BOOTSTRAP_TOKEN)
+  if (a.length !== b.length || !timingSafeEqual(a, b)) {
+    throw forbidden("Token de bootstrap ausente ou inválido.")
+  }
+}
 
 /** Hash no formato `scrypt$<salt-hex>$<hash-hex>`. */
 export async function hashPassword(password: string): Promise<string> {
@@ -206,6 +229,7 @@ authRouter.post(
     }
 
     const body = (req.body ?? {}) as Record<string, unknown>
+    assertBootstrapToken(body.bootstrapToken)
     const username = normalizeUsername(body.username ?? "admin")
     const password = String(body.password ?? "")
     const name = String(body.name ?? "Administrador").trim() || "Administrador"

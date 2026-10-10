@@ -83,9 +83,10 @@ API_PORT=4000
 UPLOAD_DIR=./uploads
 BACKUP_DIR=./backups
 SITE_URL=http://localhost:5173
-# opcional (cria o 1º administrador automaticamente)
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=admin123
+# opcional: cria o 1º administrador no boot (exige as DUAS variáveis e senha
+# com 8+ caracteres). Sem elas, use POST /api/auth/setup com bootstrapToken.
+# ADMIN_USERNAME=admin
+# ADMIN_PASSWORD=troque-por-uma-senha-forte
 ```
 
 Esse arquivo **não é versionado** — ele é lido automaticamente pelo servidor
@@ -97,8 +98,9 @@ Esse arquivo **não é versionado** — ele é lido automaticamente pelo servido
 bun run mysql:seed
 ```
 
-Cria as 14 tabelas (`server/mysql/schema.sql`), os papéis padrão e o admin do
-`ADMIN_USERNAME` / `ADMIN_PASSWORD`. É idempotente: pode rodar de novo.
+Cria as 14 tabelas (`server/mysql/schema.sql`), os papéis padrão e — somente se
+`ADMIN_USERNAME` e `ADMIN_PASSWORD` estiverem definidos — o primeiro
+administrador. É idempotente: pode rodar de novo.
 
 ### 1.6 Subir a API e o site
 
@@ -112,8 +114,9 @@ bun run mysql:api
 bun run dev
 ```
 
-Abra **http://localhost:5173** e entre com `admin` / `admin123` (troque a senha
-depois). Em desenvolvimento o frontend aponta sozinho para
+Abra **http://localhost:5173** e entre com o usuário e a senha definidos em
+`ADMIN_USERNAME` / `ADMIN_PASSWORD` (ou com o admin criado por
+`POST /api/auth/setup`). Em desenvolvimento o frontend aponta sozinho para
 `http://localhost:4000` — **não é preciso criar `.env.local`** para começar. Se
 preferir fixar (ou usar outra porta), crie `.env.local`:
 
@@ -180,8 +183,9 @@ O que sobe:
 | `mysql`    | localhost:**3307** (3306 dentro da rede) | dados no volume `mysql-data`                                         |
 | `whatsapp` | interno (3001 na rede)                   | sessão no volume `whatsapp-session`                                  |
 
-- **Login inicial:** `admin` / `admin123` (mude em `ADMIN_USERNAME` /
-  `ADMIN_PASSWORD` antes do primeiro start, se quiser).
+- **Login inicial:** o usuário criado por `ADMIN_USERNAME` / `ADMIN_PASSWORD`
+  (defina antes do primeiro start) ou via `POST /api/auth/setup` com
+  `bootstrapToken`. Não existe mais senha padrão.
 - **Acesso pelo navegador é sempre pelo 8090**: `VITE_API_URL` fica vazio e o
   nginx repassa `/api` para o container `api` — mesma origem, sem CORS.
 

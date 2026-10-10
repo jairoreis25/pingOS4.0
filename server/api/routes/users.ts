@@ -38,37 +38,15 @@ usersRouter.get(
   }),
 )
 
-// ── POST /api/users/seed-first-admin — admin inicial de um banco vazio ──────
-// Mesmo comportamento do `seedFirstAdmin` do Convex: só age se não existir
-// nenhum usuário e cria `admin` / `admin123` (a tela de login avisa e pede a
-// troca da senha). Em produção, prefira ADMIN_USERNAME/ADMIN_PASSWORD no boot.
-usersRouter.post(
-  "/seed-first-admin",
-  asyncHandler(async (_req, res) => {
-    const rows = await query<{ total: number }>("SELECT COUNT(*) AS total FROM `users`")
-    if (Number(rows[0]?.total ?? 0) > 0) {
-      res.json({ created: false })
-      return
-    }
-
-    const now = Date.now()
-    await execute(
-      `INSERT INTO users
-         (id, name, email, username, password_hash, is_anonymous, role, active, created_at, updated_at)
-       VALUES (?, 'Administrador', 'admin', 'admin', ?, 0, 'admin', 1, ?, ?)`,
-      [newId(), await hashPassword("admin123"), now, now],
-    )
-    console.log("[seed] administrador inicial criado (admin / admin123) — troque a senha.")
-    res.status(201).json({ created: true, username: "admin" })
-  }),
-)
-
-// ── POST /api/users/ensure-bootstrap — papéis padrão + admin inicial ────────
+// ── POST /api/users/ensure-bootstrap — papéis padrão (só administrador) ─────
+// Antes rodava sem autenticação; agora exige sessão de admin, porque dispara a
+// migração inteira (schema, papéis, contadores). O primeiro admin de um banco
+// vazio é criado por POST /api/auth/setup com BOOTSTRAP_TOKEN (ver auth.ts).
 usersRouter.post(
   "/ensure-bootstrap",
-  asyncHandler(async (_req, res) => {
-    // Reusa a migração (idempotente): garante papéis padrão, contadores e o
-    // administrador definido em ADMIN_USERNAME/ADMIN_PASSWORD.
+  asyncHandler(async (req, res) => {
+    requireAdmin(req)
+    // Reusa a migração (idempotente): garante papéis padrão e contadores.
     const { runMigrations } = await import("../../mysql/migrate")
     await runMigrations()
     res.json({ success: true })

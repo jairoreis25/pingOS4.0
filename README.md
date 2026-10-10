@@ -52,9 +52,11 @@ bun run mysql:api                          # sobe a API em http://localhost:4000
 
 - `MYSQL_AUTO_MIGRATE=true` faz o boot aplicar schema/papéis automaticamente
   (é o que o container faz no deploy).
-- Um banco vazio cria o administrador `admin` / `admin123` no primeiro acesso à
-  tela de login — troque a senha em seguida (ou defina `ADMIN_USERNAME` /
-  `ADMIN_PASSWORD`).
+- Um banco vazio **não cria mais** admin com senha padrão. Defina
+  `ADMIN_USERNAME` e `ADMIN_PASSWORD` (mínimo 8 caracteres) antes do
+  `mysql:seed`, ou crie o primeiro administrador com `POST /api/auth/setup`
+  enviando `bootstrapToken` (o valor de `BOOTSTRAP_TOKEN`; sem essa variável o
+  servidor gera um token aleatório e mostra no log do boot).
 - Passo a passo para rodar (local com Bun, Docker local e Dokploy): **`RODAR.md`**.
 - Detalhes e troubleshooting: **`MYSQL.md`**. Deploy no Dokploy: **`DOKPLOY.md`**.
 
