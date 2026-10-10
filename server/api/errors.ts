@@ -46,9 +46,10 @@ export function errorMiddleware(error: unknown, _req: Request, res: Response, _n
     res.status(409).json({ message: "Já existe um registro com esses dados." })
     return
   }
-  const message = error instanceof Error ? error.message : "Erro interno do servidor."
   // Erro não previsto: log estruturado com o id da requisição (o `requestLogger`
   // já registra a linha da requisição; aqui vai o stack para depurar).
   logger.error({ err: error, requestId: requestIdOf(res), status: 500 }, "erro não tratado na API")
-  res.status(500).json({ message })
+  // A mensagem interna (que pode citar tabela, coluna ou driver do MySQL) fica
+  // no log; o cliente recebe só o genérico.
+  res.status(500).json({ message: "Erro interno do servidor." })
 }

@@ -13,6 +13,7 @@
 
 import cors from "cors"
 import express from "express"
+import { isAdmin } from "../../src/lib/permissions"
 import { attachUser, authRouter, purgeExpiredSessions } from "./auth"
 import { loadEnvFile } from "./env"
 import { errorMiddleware } from "./errors"
@@ -86,13 +87,15 @@ app.use(express.json({ limit: process.env.JSON_BODY_LIMIT ?? "2mb" }))
 
 app.use(attachUser)
 
-app.get("/api/health", async (_req, res) => {
+app.get("/api/health", async (req, res) => {
   const database = await pingDatabase()
+  // Só o administrador vê host/porta/usuário do banco e o arquivo de ambiente;
+  // o monitoramento externo precisa apenas de `status` e `database`.
+  const admin = req.auth ? isAdmin(req.auth.user.role) : false
   res.status(database ? 200 : 503).json({
     status: database ? "ok" : "degraded",
     database,
-    target: dbConfigInfo(),
-    envFile: envInfo.file,
+    ...(admin ? { target: dbConfigInfo(), envFile: envInfo.file } : {}),
   })
 })
 
