@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PingOS</title>
+  <!-- Tipografia Inter (UI minimalista estilo Linear/Vercel). -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+  <!-- Tema antes da primeira pintura: evita o "flash" claro quando o usuário
+       escolheu Escuro (o React só monta depois). Em sincronia com o
+       ThemeProvider/storageKey de src/main.tsx. -->
+  <script>
+    (function () {
+      try {
+        var stored = localStorage.getItem("pingos-theme");
+        var dark =
+          stored === "dark" ||
+          ((!stored || stored === "system") &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches);
+        if (dark) document.documentElement.classList.add("dark");
+      } catch (e) {
+        /* localStorage bloqueado: segue o tema claro */
+      }
+    })();
+  </script>
+</head>
+
+
+<body>
+  <div id="root"></div>
+  <!-- Configuração de runtime (em produção o container gera este arquivo com
+       as variáveis do ambiente). Precisa vir ANTES do bundle: é um script
+       clássico e roda de imediato, enquanto o módulo abaixo é deferido. -->
+  <script src="/config.js"></script>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
+</html>

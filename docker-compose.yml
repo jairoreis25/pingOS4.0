@@ -1,0 +1,182 @@
+# ── PingOS — Dokploy / Docker Compose ────────────────────────────────────
+# Deploy no Dokploy: crie um serviço do tipo "Docker Compose" apontando para
+# este arquivo (raiz do repositório). Não use o tipo "Stack" (Swarm): ele não
+# suporta `build:`.
+#
+# Quatro serviços:
+#   app       — nginx servindo o SPA + proxy /whatsapp-api e /api
+#   whatsapp  — ponte Baileys na 3001 (interna; o app fala com ela pelo nginx)
+#   api       — backend Express + MySQL (opcional — veja a nota abaixo)
+#   bot       — agente "Ping IA" no Telegram (leia a nota no serviço `bot`)
+#
+# As variáveis ${...} vêm do arquivo .env que o Dokploy gera a partir da aba
+# "Environment" do serviço.
+#
+# ── Banco de dados MySQL criado no próprio Dokploy ───────────────────────
+# Todos os serviços entram na rede `dokploy-network` (a mesma dos bancos que o
+# Dokploy cria). Assim o container `api` alcança o banco pelo **host interno**
+# mostrado em Dokploy → banco → aba "Connection" (formato
+# `<projeto>-<serviço>-<random>`, porta interna 3306) — sem publicar porta e sem
+# passar pela internet:
+#
+#   MYSQL_HOST=pingod-h2rdn7      # copie o "Internal Host" da aba Connection
+#   MYSQL_PORT=3306               # porta INTERNA do container do banco
+#   MYSQL_USER=...  MYSQL_PASSWORD=...  MYSQL_DATABASE=...
+#
+# Se o MySQL estiver FORA do Docker (na mesma VPS), use `host.docker.internal`
+# como MYSQL_HOST — o `extra_hosts` abaixo já cuida disso.
+#
+# ── Migração automática ─────────────────────────────────────────────────
+# O container `api` aplica o schema (idempotente) e garante papéis/contador a
+# cada boot — não é preciso rodar `docker exec ... mysql:seed` na mão. Desligue
+# com MYSQL_AUTO_MIGRATE=false na aba Environment.
+#
+# ── Se você ainda NÃO usa o MySQL ────────────────────────────────────────
+# Apague o serviço `api`, o volume `uploads`, a build arg VITE_API_URL de
+# `app`, o `- api` do depends_on e (se ninguém mais usar a rede) o bloco
+# `networks:` do fim do arquivo.
+
+services:
+  # ── Frontend (SPA + proxy do WhatsApp e da API) ────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+        VITE_WHATSAPP_WEB_URL: ${VITE_WHATSAPP_WEB_URL}
+    # Configuração de runtime (o entrypoint gera /config.js com estes valores).
+    # Basta um Restart do serviço para aplicar uma mudança aqui.
+    environment:
+      # Vazio = o navegador chama /api e /uploads na MESMA origem (o nginx
+      # repassa para o serviço `api`). Não coloque senha nem URL de MySQL aqui.
+      VITE_API_URL: ${VITE_API_URL}
+      VITE_WHATSAPP_WEB_URL: ${VITE_WHATSAPP_WEB_URL}
+    # Acesso direto por IP: http://SEU_IP:8090
+    # (o Dokploy usa a 3000 no painel dele e a 80/443 no Traefik — evite-as)
+    ports:
+      - "8090:80"
+    depends_on:
+      - whatsapp
+      - api
+    networks:
+      - dokploy-network
+    restart: unless-stopped
+
+  # ── Ponte do WhatsApp (Baileys) ────────────────────────────────────────
+  # Sem porta publicada: só o container `app` (nginx) precisa alcançá-la.
+  whatsapp:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    volumes:
+      - whatsapp-session:/data/whatsapp-session
+    networks:
+      - dokploy-network
+    restart: unless-stopped
+
+  # ── Backend MySQL (opcional) ───────────────────────────────────────────
+  # Aplica o schema e os papéis automaticamente no boot (idempotente).
+  api:
+    build:
+      context: .
+      dockerfile: server/api/Dockerfile
+    environment:
+      # Os valores depois de `:-` são o padrão quando a variável não existe
+      # na aba Environment do Dokploy (evita aviso de variável vazia).
+      # MySQL criado no Dokploy → use o "Internal Host" da aba Connection.
+      MYSQL_HOST: ${MYSQL_HOST:-host.docker.internal}
+      MYSQL_PORT: ${MYSQL_PORT:-3306}
+      MYSQL_USER: ${MYSQL_USER:-pingos}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-pingos}
+      MYSQL_POOL_SIZE: ${MYSQL_POOL_SIZE:-10}
+      MYSQL_SSL: ${MYSQL_SSL:-false}
+      # Schema + papéis + (opcional) 1º admin a cada boot — idempotente.
+      MYSQL_AUTO_MIGRATE: ${MYSQL_AUTO_MIGRATE:-true}
+      ADMIN_USERNAME: ${ADMIN_USERNAME}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      ADMIN_NAME: ${ADMIN_NAME}
+      API_PORT: ${API_PORT:-4000}
+      # Mesma origem (nginx): o CORS_ORIGIN só importa para acesso por IP:4000.
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      SESSION_TTL_DAYS: ${SESSION_TTL_DAYS:-30}
+      JSON_BODY_LIMIT: ${JSON_BODY_LIMIT:-2mb}
+      UPLOAD_DIR: /data/uploads
+      UPLOAD_MAX_BYTES: ${UPLOAD_MAX_BYTES:-15728640}
+      # ── Backup e restauração (Configurações → Backup) ────────────────
+      # Pasta dos arquivos .json no container (volume persistente abaixo).
+      BACKUP_DIR: /data/backups
+      # Backup de segurança automático antes de cada restauração.
+      BACKUP_SAFETY: ${BACKUP_SAFETY:-true}
+      BACKUP_MAX_BYTES: ${BACKUP_MAX_BYTES:-268435456}
+      # ── Notificações (sino, e-mail, Telegram, WhatsApp) ──────────────
+      # Usado nos links das mensagens (ex.: https://pingos.suaempresa.com).
+      SITE_URL: ${SITE_URL}
+      # E-mail transacional (painel do Resend). Sem a chave, o envio de
+      # e-mail falha e o motivo fica registrado em `notifications`.
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      RESEND_FROM: ${RESEND_FROM}
+      # Ponte Baileys interna (nome do serviço neste compose).
+      WHATSAPP_BRIDGE_URL: ${WHATSAPP_BRIDGE_URL:-http://whatsapp:3001}
+      NOTIFY_TIMEOUT_MS: ${NOTIFY_TIMEOUT_MS:-10000}
+      # Verifica chamados parados a cada N minutos (0 desliga).
+      INACTIVITY_INTERVAL_MINUTES: ${INACTIVITY_INTERVAL_MINUTES:-60}
+    # Permite usar o IP do próprio host da VPS como MYSQL_HOST
+    # (MySQL rodando fora do Docker, na mesma máquina)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "4000:4000" # acesso/teste por IP: http://SEU_IP:4000/api/health
+    volumes:
+      - uploads:/data/uploads
+      - backups:/data/backups
+    networks:
+      - dokploy-network
+    restart: unless-stopped
+
+  # ── Bot Ping IA (agente administrativo no Telegram) ────────────────────
+  # Não abre porta: fala com o Telegram por long polling e usa o MESMO banco
+  # da API. A chave da NVIDIA, o token do Telegram, o modelo e o liga/desliga
+  # ficam na tabela `bot_config` e são editados em Configurações → Bot Ping IA.
+  #
+  # Aqui só entram as credenciais do banco (as mesmas da API). Todo o resto
+  # (NVIDIA API Key, token do Telegram, modelo, Id do administrador e o
+  # liga/desliga) é configurado pelo dashboard: Configurações → Bot Ping IA.
+  # O ADMIN_ID continua aceito como alternativa, mas não é mais necessário.
+  #
+  # O agente relê a configuração a cada 15s: depois de salvar o formulário com
+  # "Ativar bot" ligado, ele entra no ar sozinho — basta aguardar o ciclo.
+  bot:
+    build:
+      context: .
+      dockerfile: hermes/Dockerfile
+    environment:
+      MYSQL_HOST: ${MYSQL_HOST:-host.docker.internal}
+      MYSQL_PORT: ${MYSQL_PORT:-3306}
+      MYSQL_USER: ${MYSQL_USER:-pingos}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-pingos}
+      MYSQL_POOL_SIZE: ${MYSQL_POOL_SIZE:-10}
+      MYSQL_SSL: ${MYSQL_SSL:-false}
+      # Opcional: o Id do administrador já vem do dashboard.
+      ADMIN_ID: ${ADMIN_ID:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - api
+    networks:
+      - dokploy-network
+    restart: unless-stopped
+
+# Rede compartilhada do Dokploy: é nela que ficam os bancos criados pelo painel.
+# Precisa existir (o Dokploy a cria na instalação) — por isso `external: true`.
+networks:
+  dokploy-network:
+    external: true
+
+volumes:
+  whatsapp-session:
+  uploads:
+  # Arquivos de backup (.json) gerados pelo painel do Administrador.
+  backups:

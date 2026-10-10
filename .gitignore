@@ -1,16 +1,10 @@
-# Segredos — nunca versionar
-api key git.txt
-config.yaml
-.env
-.env.*
-*.pem
-*.key
+.env.local
+node_modules
+dist
 
-# Sistema / editor
-Thumbs.db
-desktop.ini
-.DS_Store
-*.tmp
-*.log
-.vscode/
-.idea/
+# Backend MySQL: credenciais locais (copie de mysql-api.env.example)
+mysql-api.env
+server/mysql-api.env
+
+# Imagens anexadas aos chamados (backend MySQL)
+uploads/

@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": ["node"],
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "allowImportingTsExtensions": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["./**/*.ts", "../hermes/**/*.ts", "../src/lib/permissions.ts"],
+  // O bridge do WhatsApp (Baileys) tem divergências de tipos próprias da
+  // biblioteca e não faz parte do backend MySQL.
+  "exclude": ["whatsapp-web-server.ts"]
+}

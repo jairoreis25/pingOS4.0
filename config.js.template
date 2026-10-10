@@ -1,0 +1,14 @@
+// ── PingOS — configuração de runtime ─────────────────────────────────────
+// Este template NÃO é servido direto: o docker-entrypoint.sh aplica envsubst
+// com as variáveis do container e escreve o resultado em
+// /usr/share/nginx/html/config.js antes do nginx subir.
+//
+// Trocar qualquer valor aqui é só editar a variável na aba Environment do
+// Dokploy e reiniciar o serviço — sem rebuild da imagem.
+//
+// `apiUrl` vazio significa "mesma origem": o nginx do container `app` repassa
+// /api e /uploads para o serviço `api`.
+window.__PINGOS_CONFIG__ = {
+  apiUrl: "${VITE_API_URL}",
+  whatsappWebUrl: "${VITE_WHATSAPP_WEB_URL}"
+};

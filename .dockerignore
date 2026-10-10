@@ -1,0 +1,21 @@
+# Keep the build context small — Docker only needs source + lockfile
+node_modules
+dist
+.git
+.env
+.env.*
+*.local
+*.log
+
+# Runtime data not needed in the image
+whatsapp-session
+whatsapp-session.*
+backups
+uploads
+
+# Segredos do backend MySQL (usados apenas no container da API)
+mysql-api.env
+
+# Platform-specific files that shouldn't reach the image
+.DS_Store
+Thumbs.db

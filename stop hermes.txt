@@ -1,9 +1,0 @@
- Resumo rápido
-Ação	Serviço de Usuário	Serviço de Sistema
-Parar agora	systemctl --user stop hermes-gateway.service	sudo systemctl stop hermes-gateway.service
-
-Desativar boot	systemctl --user disable hermes-gateway.service	sudo systemctl disable hermes-gateway.service
-
-Iniciar manual	systemctl --user start hermes-gateway.service	sudo systemctl start hermes-gateway.service
-
-Reativar boot	systemctl --user enable hermes-gateway.service	sudo systemctl enable hermes-gateway.service

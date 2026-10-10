@@ -1,0 +1,134 @@
+# ── PingOS — Docker local (fora do Dokploy) ──────────────────────────────
+# Sobe a stack inteira na sua máquina: MySQL + API + app (nginx) + ponte
+# WhatsApp. É o irmão "standalone" do docker-compose.yml (que é do Dokploy e
+# depende da rede externa `dokploy-network` e do banco criado no painel).
+#
+#   docker compose -f docker-compose.local.yml up -d --build
+#
+# Depois:
+#   app     → http://localhost:8090
+#   API     → http://localhost:4000/api/health
+#   MySQL   → localhost:3307 (porta 3307 para não brigar com um MySQL do host)
+#
+# O container `api` aplica o schema sozinho no boot (MYSQL_AUTO_MIGRATE) e cria
+# o administrador abaixo no primeiro start. O container `bot` é o agente do
+# Telegram (Ping IA) — ele lê tudo do dashboard, inclusive o Id do admin.
+#
+# Parar:    docker compose -f docker-compose.local.yml down
+# Apagar TUDO (banco, imagens dos chamados e backups): acrescente `-v`.
+services:
+  # ── Banco ───────────────────────────────────────────────────────────────
+  mysql:
+    image: mysql:8.4
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-pingos-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-pingos}
+      MYSQL_USER: ${MYSQL_USER:-pingos}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-pingos}
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      # A API só sobe depois que o banco responde (senão a migração falha).
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+    restart: unless-stopped
+
+  # ── API Express (backend MySQL) ─────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: server/api/Dockerfile
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: ${MYSQL_USER:-pingos}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-pingos}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-pingos}
+      MYSQL_AUTO_MIGRATE: "true"
+      # Primeiro administrador criado no boot (troque depois dentro do app).
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+      ADMIN_NAME: ${ADMIN_NAME:-Administrador}
+      API_PORT: 4000
+      # Mesma origem (nginx): pode ficar vazio. Só importa para IP:4000.
+      CORS_ORIGIN: ${CORS_ORIGIN:-}
+      UPLOAD_DIR: /data/uploads
+      BACKUP_DIR: /data/backups
+      BACKUP_SAFETY: "true"
+      # Links das notificações e ponte interna do WhatsApp.
+      SITE_URL: ${SITE_URL:-http://localhost:8090}
+      WHATSAPP_BRIDGE_URL: http://whatsapp:3001
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM: ${RESEND_FROM:-PingOS <onboarding@resend.dev>}
+      INACTIVITY_INTERVAL_MINUTES: ${INACTIVITY_INTERVAL_MINUTES:-60}
+    ports:
+      - "4000:4000"
+    volumes:
+      - uploads:/data/uploads
+      - backups:/data/backups
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Bot Ping IA (agente no Telegram) ───────────────────────────────────
+  # Sem porta: fala com o Telegram por long polling. A configuração (chave da
+  # NVIDIA, token, modelo, Id do admin e liga/desliga) vem do dashboard; aqui
+  # só entram as credenciais do banco. ADMIN_ID é opcional.
+  bot:
+    build:
+      context: .
+      dockerfile: hermes/Dockerfile
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: ${MYSQL_USER:-pingos}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-pingos}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-pingos}
+      ADMIN_ID: ${ADMIN_ID:-}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Ponte do WhatsApp (Baileys) ─────────────────────────────────────────
+  whatsapp:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    volumes:
+      - whatsapp-session:/data/whatsapp-session
+    restart: unless-stopped
+
+  # ── App (SPA + proxy de /api, /uploads e /whatsapp-api) ─────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Vazio = o navegador chama /api na mesma origem (nginx → container api).
+        VITE_API_URL: ""
+        VITE_WHATSAPP_WEB_URL: ""
+    environment:
+      VITE_API_URL: ""
+      VITE_WHATSAPP_WEB_URL: ""
+    ports:
+      - "8090:80"
+    depends_on:
+      - api
+      - whatsapp
+    restart: unless-stopped
+
+volumes:
+  mysql-data:
+  uploads:
+  backups:
+  whatsapp-session:
