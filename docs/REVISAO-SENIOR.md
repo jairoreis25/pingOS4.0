@@ -290,6 +290,21 @@ Criar ou mover um chamado enviava e-mail/Telegram/WhatsApp **dentro da requisiç
 
 **Próximo passo**: as linhas `sent`/`failed` são histórico — vale uma rotina de limpeza (apagar `sent` com mais de 30 dias) e um contador em `/api/metrics`.
 
+### 17. Decomposição dos arquivos gigantes (parcial — `35d2f96`, `9ff1795`)
+
+Regra adotada: **extrair primeiro a lógica pura**, que reduz o arquivo e ganha teste sem tocar em comportamento de UI.
+
+| Arquivo                                    | Antes | Depois | O que saiu                                                                                    |
+| ------------------------------------------ | ----- | ------ | --------------------------------------------------------------------------------------------- |
+| `src/pages/Dashboard.tsx`                  | 1.636 | 1.522  | busca do Kanban → `src/lib/ticket-search.ts`; HTML da via térmica → `src/lib/ticket-print.ts` |
+| `src/components/UsersManagementDialog.tsx` | 1.177 | 1.056  | `summarizeRole` → `src/lib/role-summary.ts` (e a 3ª cópia dos rótulos de status desapareceu)  |
+
+**Correção de segurança encontrada na extração**: o HTML da via de impressão interpolava texto do usuário sem escapar e a janela abre na **mesma origem** do sistema — uma descrição com `<script>` (inclusive vinda do formulário público de chamados) executaria ali. Agora tudo passa por `escapeHtml`, com casos de XSS fixados em teste.
+
+Testes novos: 19 (busca + impressão) e 13 (resumo de papéis) — total da suíte: **273 casos / 18 arquivos**.
+
+Ainda gigantes: `hermes/bot-ia.ts` (3.251 linhas — o maior), `src/lib/reports.ts` (945), `src/pages/Reports.tsx` (941), `src/components/BotConfig.tsx` (679), `server/api/notify.ts` (643). Próximo alvo natural: separar `Dashboard.tsx` em `TicketDetailDialog.tsx` + `useKanbanDrag` (o diálogo sozinho tem ~900 linhas).
+
 ### Pendente na Semana 4+
 
-Uploads em objeto · decomposição dos arquivos gigantes · PWA/push · i18n.
+Uploads em objeto · PWA/push · i18n · decomposição dos arquivos restantes.
