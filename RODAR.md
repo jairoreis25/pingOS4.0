@@ -294,25 +294,27 @@ SELECT type, status, LEFT(error, 80) AS erro, FROM_UNIXTIME(sent_at/1000)
 
 ### Backend (`mysql-api.env` local / aba Environment no Dokploy)
 
-| Variável                                           | Padrão                  | Para que serve                                                 |
-| -------------------------------------------------- | ----------------------- | -------------------------------------------------------------- |
-| `MYSQL_HOST` / `MYSQL_PORT`                        | `127.0.0.1` / `3306`    | conexão com o banco                                            |
-| `MYSQL_USER` / `MYSQL_PASSWORD` / `MYSQL_DATABASE` | `pingos` / — / `pingos` | credenciais                                                    |
-| `MYSQL_AUTO_MIGRATE`                               | `true`                  | aplica o schema e garante papéis/admin no boot                 |
-| `API_PORT`                                         | `4000`                  | porta da API                                                   |
-| `CORS_ORIGIN`                                      | vazio                   | vazio = reflete a origem (dev); em produção liste o domínio    |
-| `SESSION_TTL_DAYS`                                 | `30`                    | validade da sessão                                             |
-| `JSON_BODY_LIMIT`                                  | `2mb`                   | limite do corpo JSON (imagens vão por upload binário)          |
-| `UPLOAD_DIR` / `UPLOAD_MAX_BYTES`                  | `./uploads` / 15 MB     | imagens dos chamados                                           |
-| `BACKUP_DIR`                                       | `./backups`             | pasta dos arquivos `.json` de backup                           |
-| `BACKUP_SAFETY`                                    | `true`                  | backup de segurança antes de restaurar                         |
-| `BACKUP_MAX_BYTES`                                 | 256 MB                  | tamanho máximo do arquivo enviado para restaurar               |
-| `SITE_URL`                                         | —                       | link usado nas notificações                                    |
-| `RESEND_API_KEY` / `RESEND_FROM`                   | —                       | e-mail transacional                                            |
-| `WHATSAPP_BRIDGE_URL`                              | `http://whatsapp:3001`  | ponte Baileys (Docker)                                         |
-| `NOTIFY_TIMEOUT_MS`                                | `10000`                 | tempo máximo de cada chamada externa                           |
-| `INACTIVITY_INTERVAL_MINUTES`                      | `60`                    | de quanto em quanto tempo varre chamados parados (`0` desliga) |
-| `ADMIN_USERNAME` / `ADMIN_PASSWORD` / `ADMIN_NAME` | —                       | primeiro administrador criado no boot                          |
+| Variável                                           | Padrão                  | Para que serve                                                       |
+| -------------------------------------------------- | ----------------------- | -------------------------------------------------------------------- |
+| `MYSQL_HOST` / `MYSQL_PORT`                        | `127.0.0.1` / `3306`    | conexão com o banco                                                  |
+| `MYSQL_USER` / `MYSQL_PASSWORD` / `MYSQL_DATABASE` | `pingos` / — / `pingos` | credenciais                                                          |
+| `MYSQL_AUTO_MIGRATE`                               | `true`                  | aplica o schema e garante papéis/admin no boot                       |
+| `API_PORT`                                         | `4000`                  | porta da API                                                         |
+| `CORS_ORIGIN`                                      | vazio                   | vazio = reflete a origem (dev); em produção liste o domínio          |
+| `SESSION_TTL_DAYS`                                 | `30`                    | validade da sessão                                                   |
+| `JSON_BODY_LIMIT`                                  | `2mb`                   | limite do corpo JSON (imagens vão por upload binário)                |
+| `UPLOAD_DIR` / `UPLOAD_MAX_BYTES`                  | `./uploads` / 15 MB     | imagens dos chamados                                                 |
+| `BACKUP_DIR`                                       | `./backups`             | pasta dos arquivos `.json` de backup                                 |
+| `BACKUP_SAFETY`                                    | `true`                  | backup de segurança antes de restaurar                               |
+| `BACKUP_MAX_BYTES`                                 | 256 MB                  | tamanho máximo do arquivo enviado para restaurar                     |
+| `SITE_URL`                                         | —                       | link usado nas notificações                                          |
+| `RESEND_API_KEY` / `RESEND_FROM`                   | —                       | e-mail transacional                                                  |
+| `WHATSAPP_BRIDGE_URL`                              | `http://whatsapp:3001`  | ponte Baileys (Docker)                                               |
+| `NOTIFY_TIMEOUT_MS`                                | `10000`                 | tempo máximo de cada chamada externa                                 |
+| `INACTIVITY_INTERVAL_MINUTES`                      | `60`                    | de quanto em quanto tempo varre chamados parados (`0` desliga)       |
+| `ADMIN_USERNAME` / `ADMIN_PASSWORD` / `ADMIN_NAME` | —                       | primeiro administrador criado no boot                                |
+| `BOOTSTRAP_TOKEN`                                  | —                       | token exigido por `POST /api/auth/setup` (sem ele, aleatório no log) |
+| `RATE_LIMIT_ENABLED`                               | `true`                  | limites por IP em login, setup, chamado público, upload e OCR        |
 
 ### Frontend (`.env.local` no dev, `/config.js` no Docker)
 

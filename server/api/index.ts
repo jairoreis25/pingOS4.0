@@ -31,6 +31,13 @@ import { techniciansRouter } from "./routes/technicians"
 import { ticketsRouter } from "./routes/tickets"
 import { uploadDir, uploadsRouter } from "./routes/uploads"
 import { usersRouter } from "./routes/users"
+import {
+  guestTicketLimiter,
+  loginLimiter,
+  ocrLimiter,
+  setupLimiter,
+  uploadLimiter,
+} from "./rate-limit"
 import { backupDir } from "./backup"
 import { closePool, dbConfigInfo, pingDatabase } from "../mysql/pool"
 
@@ -77,6 +84,18 @@ app.get("/api/health", async (_req, res) => {
     envFile: envInfo.file,
   })
 })
+
+// ── Rate limiting (server/api/rate-limit.ts) ────────────────────────────────
+// Precisa vir ANTES dos routers: login (brute force), setup do 1º admin,
+// abertura pública de chamado, upload e a leitura de O.S. por foto (IA paga).
+app.use("/api/auth/login", loginLimiter)
+app.use("/api/auth/setup", setupLimiter)
+app.use("/api/tickets/guest", guestTicketLimiter)
+app.use("/api/chamados/ocr", ocrLimiter)
+// Só o POST conta: a leitura das imagens (GET) não deve gastar o limite.
+app.use("/api/uploads", (req, res, next) =>
+  req.method === "POST" ? uploadLimiter(req, res, next) : next(),
+)
 
 app.use("/api/auth", authRouter)
 app.use("/api/tickets", ticketsRouter)

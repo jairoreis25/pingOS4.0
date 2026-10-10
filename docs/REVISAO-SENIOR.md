@@ -148,10 +148,10 @@ Cinco itens, um commit cada. Estado ao final de cada item verificado com `bun ru
 | #   | Item                                                                                                                                                                                                                                                  | Arquivos                                                                                                                                                                                             | Estado    |
 | --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
 | 1   | Ponte WhatsApp autenticada: `BRIDGE_TOKEN` obrigatório (fail closed), `X-Bridge-Token` em todas as rotas JSON, CORS por allowlist (`BRIDGE_ALLOWED_ORIGINS`), gate antes do parser de 20 MB, painel com token via `?token=` e cliente `waBridgeFetch` | `server/whatsapp-web-server.ts`, `src/lib/whatsapp-bridge.ts`, `src/lib/whatsapp-notify.ts`, `src/pages/PublicTicket.tsx`, `src/components/WhatsAppWebDialog.tsx`, `docker-compose*.yml`, `RODAR.md` | concluído |
-| 2   | Removido o bypass de autenticação (`/api/agent/list`, `/api/tickets/admin-list`, `/api/tickets/admin-edit/:id`), o segredo literal `HERMES_SECRET_ADMIN_KEY_2026` e o módulo `server/api/db-helpers.ts`                                               | `server/api/index.ts`, `server/api/routes/tickets.ts`, `server/api/db-helpers.ts`                                                                                                                    | pendente  |
-| 3   | Primeiro administrador sem senha padrão e sem criação pública                                                                                                                                                                                         | `server/api/routes/users.ts`, `server/api/auth.ts`, `server/mysql/migrate.ts`, `src/pages/Auth.tsx`                                                                                                  | pendente  |
-| 4   | Upload autenticado, validado por conteúdo e servido com nome gerado                                                                                                                                                                                   | `server/api/routes/uploads.ts`, `server/api/index.ts`, `nginx.conf`                                                                                                                                  | pendente  |
-| 5   | Rate limit nas entradas sensíveis (login, guest, upload, OCR)                                                                                                                                                                                         | `server/api/index.ts`, `server/api/auth.ts`, `server/api/routes/*`                                                                                                                                   | pendente  |
+| 2   | Removido o bypass de autenticação (`/api/agent/list`, `/api/tickets/admin-list`, `/api/tickets/admin-edit/:id`), o segredo literal `HERMES_SECRET_ADMIN_KEY_2026` e o módulo `server/api/db-helpers.ts`                                               | `server/api/index.ts`, `server/api/routes/tickets.ts`, `server/api/db-helpers.ts`                                                                                                                    | concluído |
+| 3   | Primeiro administrador sem senha padrão e sem criação pública                                                                                                                                                                                         | `server/api/routes/users.ts`, `server/api/auth.ts`, `server/mysql/migrate.ts`, `src/pages/Auth.tsx`                                                                                                  | concluído |
+| 4   | Upload autenticado, validado por conteúdo e servido com nome gerado                                                                                                                                                                                   | `server/api/routes/uploads.ts`, `server/api/index.ts`, `nginx.conf`                                                                                                                                  | concluído |
+| 5   | Rate limit nas entradas sensíveis (login, guest, upload, OCR)                                                                                                                                                                                         | `server/api/index.ts`, `server/api/auth.ts`, `server/api/routes/*`                                                                                                                                   | concluído |
 
 ### Verificação em runtime do item 1
 
@@ -169,3 +169,21 @@ Ponte iniciada localmente com `BRIDGE_TOKEN=test-token-123` na porta 3998:
 | Iniciar sem `BRIDGE_TOKEN`                  | **exit 1** com mensagem explicando como definir           |
 
 O `<script>` do painel continua compilando após as alterações (`node --check` no HTML avaliado = OK, 0 interpolações no template).
+
+### Verificação em runtime do item 5
+
+API iniciada localmente sem banco (porta 3994), o que faz cada tentativa de login responder 500 — falha que **conta** no limitador:
+
+| Cenário                                                   | Resultado                                                                           |
+| --------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| 12 POSTs em `/api/auth/login` (`RATE_LIMIT_ENABLED=true`) | `500` × 10 e depois **`429`** com `RateLimit-Policy: 10;w=900` e `Retry-After: 900` |
+| 6 POSTs em `/api/tickets/guest` (limite 5/h)              | `400` × 5 e depois **`429`**                                                        |
+| `RATE_LIMIT_ENABLED=false`                                | nenhum `429` (limites desligados)                                                   |
+
+Observação: `express.json()` roda antes dos roteadores, então um corpo JSON inválido é rejeitado com 500 antes de chegar ao limitador — o limite é contado nas requisições que chegam à rota.
+
+### Pendências conhecidas após a Onda 1
+
+- O store do rate limit é em memória: com mais de uma réplica da API é preciso um store compartilhado (Redis/MySQL).
+- `GET /api/health` continua público e ainda devolve host/porta/usuário do banco (P1-1), e o erro interno continua vazando `error.message` (P1-2).
+- A ponte do WhatsApp e o upload foram validados por runtime local; o restante segue sem cobertura de testes automatizados (dívida P0).
