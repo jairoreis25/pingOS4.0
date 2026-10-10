@@ -59,13 +59,13 @@ src/                → React 19 + Vite + Tailwind 4 + shadcn/ui
   lib/mysql-api.ts  → transporte HTTP real (apiFetch, dedupe de GET, ApiClientError)
   lib/permissions.ts→ FONTE ÚNICA de permissões (usada pelo front E pelo back)
 server/             → Express + mysql2 (bun run mysql:api, porta 4000)
-  api/index.ts      → middlewares, montagem das rotas, /uploads estático
+  api/index.ts      → middlewares, montagem das rotas, /api/uploads (autenticado)
   api/routes/       → tickets, users, roles, technicians, metrics, reports, uploads, backups…
   api/auth.ts       → sessão por token opaco (tabela sessions) + scrypt
   mysql/schema.sql  → 19 tabelas (tickets, users, sessions, roles, notifications, backups…)
   whatsapp-web-server.ts → ponte Baileys (porta 3001), painel HTML próprio
 hermes/bot-ia.ts    → bot Telegram (3251 linhas; o maior arquivo do repo)
-nginx.conf          → serve o app e faz proxy de /api, /uploads, /whatsapp-api
+nginx.conf          → serve o app e faz proxy de /api e /whatsapp-api
 docker-compose.yml  → Dokploy | docker-compose.local.yml → stack local (app 8090, api 4000)
 ```
 

@@ -176,12 +176,12 @@ docker compose -f docker-compose.local.yml up -d --build
 
 O que sobe:
 
-| Container  | Endereço                                 | Observação                                                           |
-| ---------- | ---------------------------------------- | -------------------------------------------------------------------- |
-| `app`      | http://localhost:8090                    | nginx servindo o SPA + proxy de `/api`, `/uploads` e `/whatsapp-api` |
-| `api`      | http://localhost:4000/api/health         | aplica o schema e cria o admin no boot                               |
-| `mysql`    | localhost:**3307** (3306 dentro da rede) | dados no volume `mysql-data`                                         |
-| `whatsapp` | interno (3001 na rede)                   | sessão no volume `whatsapp-session`                                  |
+| Container  | Endereço                                 | Observação                                               |
+| ---------- | ---------------------------------------- | -------------------------------------------------------- |
+| `app`      | http://localhost:8090                    | nginx servindo o SPA + proxy de `/api` e `/whatsapp-api` |
+| `api`      | http://localhost:4000/api/health         | aplica o schema e cria o admin no boot                   |
+| `mysql`    | localhost:**3307** (3306 dentro da rede) | dados no volume `mysql-data`                             |
+| `whatsapp` | interno (3001 na rede)                   | sessão no volume `whatsapp-session`                      |
 
 - **Login inicial:** o usuário criado por `ADMIN_USERNAME` / `ADMIN_PASSWORD`
   (defina antes do primeiro start) ou via `POST /api/auth/setup` com

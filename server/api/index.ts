@@ -101,8 +101,9 @@ app.use("/api/admin", botConfigRouter)
 // Personalidades do bot (4 slots; o slot 1 é o Padrão fixo).
 app.use("/api/admin", botPersonalidadesRouter)
 
-// Imagens dos chamados (o que antes era o storage do Convex).
-app.use("/uploads", express.static(uploadDir(), { maxAge: "7d", fallthrough: true }))
+// Imagens dos chamados: agora servidas por GET /api/uploads/:filename, que
+// exige sessão (antes era `express.static` público). O upload vive no mesmo
+// router (`POST /api/uploads`), montado acima.
 
 app.use((_req, res) => {
   res.status(404).json({ message: "Rota não encontrada." })

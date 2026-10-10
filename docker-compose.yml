@@ -48,7 +48,7 @@ services:
     # Configuração de runtime (o entrypoint gera /config.js com estes valores).
     # Basta um Restart do serviço para aplicar uma mudança aqui.
     environment:
-      # Vazio = o navegador chama /api e /uploads na MESMA origem (o nginx
+      # Vazio = o navegador chama /api na MESMA origem (o nginx
       # repassa para o serviço `api`). Não coloque senha nem URL de MySQL aqui.
       VITE_API_URL: ${VITE_API_URL}
       VITE_WHATSAPP_WEB_URL: ${VITE_WHATSAPP_WEB_URL}

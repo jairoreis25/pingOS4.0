@@ -27,7 +27,7 @@ acessar o app (**domínio** com HTTPS ou **IP:porta**).
 (Não há nenhuma dependência de nuvem: o Convex foi removido do projeto.)
 
 - O **app** é o bundle do Vite servido pelo nginx, com fallback de SPA
-  (react-router) e proxy de `/whatsapp-api`, `/api` e `/uploads` (mesma origem,
+  (react-router) e proxy de `/whatsapp-api` e `/api` (mesma origem,
   sem CORS).
 - O **backend inteiro roda no Dokploy**: a API Express é quem fala com o MySQL.
 - A **ponte do WhatsApp** roda no VPS e guarda a sessão num volume persistente.

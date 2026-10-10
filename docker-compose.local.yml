@@ -112,7 +112,7 @@ services:
       - whatsapp-session:/data/whatsapp-session
     restart: unless-stopped
 
-  # ── App (SPA + proxy de /api, /uploads e /whatsapp-api) ─────────────────
+  # ── App (SPA + proxy de /api e /whatsapp-api) ───────────────────────────
   app:
     build:
       context: .
