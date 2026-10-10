@@ -287,6 +287,7 @@ export default function ProductsServicesDialog({
                       className="size-7"
                       onClick={() => startEdit(item)}
                       title="Editar"
+                      aria-label="Editar produto/serviço"
                     >
                       <Pencil className="size-3.5" />
                     </Button>
@@ -296,6 +297,7 @@ export default function ProductsServicesDialog({
                       className="size-7 text-destructive"
                       onClick={() => setDeleteTarget(item._id)}
                       title="Excluir"
+                      aria-label="Excluir produto/serviço"
                     >
                       <Trash2 className="size-3.5" />
                     </Button>

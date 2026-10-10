@@ -272,6 +272,7 @@ export default function SlashProductsTextarea({ value, onValueChange, ...props }
                       variant="ghost"
                       className="size-6"
                       title="Salvar valor"
+                      aria-label="Salvar valor"
                       onClick={() => void savePrice(item)}
                       disabled={saving}
                     >
@@ -287,6 +288,7 @@ export default function SlashProductsTextarea({ value, onValueChange, ...props }
                       variant="ghost"
                       className="size-6"
                       title="Cancelar"
+                      aria-label="Cancelar"
                       onClick={cancelEditPrice}
                       disabled={saving}
                     >
@@ -326,6 +328,7 @@ export default function SlashProductsTextarea({ value, onValueChange, ...props }
                     <button
                       type="button"
                       title="Editar valor"
+                      aria-label="Editar valor"
                       onMouseDown={(e) => {
                         e.preventDefault()
                         startEditPrice(item)

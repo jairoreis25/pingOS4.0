@@ -33,7 +33,7 @@ export function LogoDropdown() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-10 w-10">
+        <Button variant="ghost" size="icon" className="h-10 w-10" aria-label="Abrir menu da conta">
           <img src={logo} alt="Logo" width={32} height={32} className="rounded-lg" />
         </Button>
       </DropdownMenuTrigger>

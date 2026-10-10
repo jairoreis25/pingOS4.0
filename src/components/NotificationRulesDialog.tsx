@@ -439,6 +439,7 @@ export default function NotificationRulesDialog({
                               size="icon"
                               className="size-8"
                               title="Editar"
+                              aria-label="Editar regra"
                               onClick={() => openEdit(rule)}
                             >
                               <Pencil className="size-4" />
@@ -448,6 +449,7 @@ export default function NotificationRulesDialog({
                               size="icon"
                               className="size-8 text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300"
                               title="Excluir"
+                              aria-label="Excluir regra"
                               onClick={() => setDeletingId(rule._id)}
                             >
                               <Trash2 className="size-4" />

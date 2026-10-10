@@ -1312,6 +1312,7 @@ export default function Dashboard() {
                 className="size-8 rounded-lg text-slate-500 transition-all duration-150 hover:text-blue-600"
                 onClick={() => setWhatsappWebOpen(true)}
                 title="WhatsApp Web"
+                aria-label="WhatsApp Web"
               >
                 <Smartphone
                   className="size-4 text-green-600 dark:text-green-400"
@@ -1325,6 +1326,7 @@ export default function Dashboard() {
               size="icon"
               className="size-8 rounded-lg text-slate-500 transition-all duration-150 hover:text-blue-600"
               title={soundOn ? "Desativar alerta sonoro" : "Ativar alerta sonoro"}
+              aria-label={soundOn ? "Desativar alerta sonoro" : "Ativar alerta sonoro"}
               onClick={() => {
                 const next = !soundOn
                 setSoundOn(next)
@@ -1345,6 +1347,7 @@ export default function Dashboard() {
                 className="size-8 rounded-lg text-slate-500 transition-all duration-150 hover:text-blue-600"
                 onClick={() => setSettingsOpen(true)}
                 title="Configurações"
+                aria-label="Configurações"
               >
                 <Settings className="size-4" strokeWidth={1.5} />
               </Button>
@@ -1356,6 +1359,7 @@ export default function Dashboard() {
                 className="size-8 rounded-lg text-slate-500 transition-all duration-150 hover:text-blue-600"
                 onClick={() => setShowMetrics(!showMetrics)}
                 title={showMetrics ? "Ocultar métricas" : "Mostrar métricas"}
+                aria-label={showMetrics ? "Ocultar métricas" : "Mostrar métricas"}
               >
                 <BarChart3 className="size-4" strokeWidth={1.5} />
               </Button>
@@ -1367,6 +1371,7 @@ export default function Dashboard() {
                 className="size-8 rounded-lg text-slate-500 transition-all duration-150 hover:text-blue-600"
                 onClick={() => navigate("/reports")}
                 title="Relatórios"
+                aria-label="Relatórios"
               >
                 <PieChart className="size-4" strokeWidth={1.5} />
               </Button>
@@ -1424,6 +1429,7 @@ export default function Dashboard() {
                 className="size-8 rounded-lg text-slate-500 transition-all duration-150 hover:text-blue-600"
                 onClick={handleSignOut}
                 title="Sair"
+                aria-label="Sair"
               >
                 <LogOut className="size-4" strokeWidth={1.5} />
               </Button>

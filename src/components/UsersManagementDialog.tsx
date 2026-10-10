@@ -743,6 +743,7 @@ export default function UsersManagementDialog({
                                 size="icon"
                                 className="size-8"
                                 title="Editar usuário"
+                                aria-label="Editar usuário"
                                 onClick={() => openEdit(u)}
                               >
                                 <Pencil className="size-3.5" />
@@ -752,6 +753,7 @@ export default function UsersManagementDialog({
                                 size="icon"
                                 className="size-8"
                                 title="Redefinir senha"
+                                aria-label="Redefinir senha"
                                 onClick={() => {
                                   setResetUserId(u._id)
                                   setResetPw("")
@@ -765,6 +767,7 @@ export default function UsersManagementDialog({
                                 size="icon"
                                 className="size-8 text-destructive hover:text-destructive"
                                 title="Excluir usuário"
+                                aria-label="Excluir usuário"
                                 onClick={() => setDeleteUserId(u._id)}
                               >
                                 <Trash2 className="size-3.5" />
@@ -927,6 +930,7 @@ export default function UsersManagementDialog({
                               size="icon"
                               className="size-7"
                               title="Renomear papel"
+                              aria-label="Renomear papel"
                               onClick={() => {
                                 setRenamingRole(r._id)
                                 setRenameValue(r.name)
@@ -939,6 +943,7 @@ export default function UsersManagementDialog({
                               size="icon"
                               className="size-7 text-destructive hover:text-destructive"
                               title="Excluir papel"
+                              aria-label="Excluir papel"
                               onClick={() => setDeleteRoleId(r._id)}
                             >
                               <Trash2 className="size-3.5" />

@@ -95,8 +95,19 @@ export const KanbanCard = memo(
               }
             : undefined
         }
+        role="button"
+        tabIndex={0}
+        aria-label={`Abrir chamado #${ticket.number}`}
+        onKeyDown={(e) => {
+          // Teclado: Enter/Espaço abrem o chamado, onde o status pode ser
+          // alterado pelos botões do diálogo (o arraste não é acessível).
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault()
+            onTicketClick(ticket._id)
+          }
+        }}
         onClick={() => onTicketClick(ticket._id)}
-        className={`group relative w-full min-w-0 cursor-pointer rounded-lg border border-l-4 border-slate-300 bg-white p-3 transition-all duration-150 hover:border-slate-400 hover:shadow-md dark:border-slate-700 dark:bg-slate-900 dark:hover:border-slate-600 ${priorityConfig.leftBorder}`}
+        className={`group relative w-full min-w-0 cursor-pointer rounded-lg border border-l-4 border-slate-300 bg-white p-3 transition-all duration-150 hover:border-slate-400 hover:shadow-md focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:hover:border-slate-600 ${priorityConfig.leftBorder}`}
       >
         {/* Cabeçalho: solicitante + ações (clonar, menu e alça de arraste). */}
         <div className="flex items-start justify-between gap-2">

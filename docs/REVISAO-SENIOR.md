@@ -187,3 +187,14 @@ Observação: `express.json()` roda antes dos roteadores, então um corpo JSON i
 - O store do rate limit é em memória: com mais de uma réplica da API é preciso um store compartilhado (Redis/MySQL).
 - `GET /api/health` continua público e ainda devolve host/porta/usuário do banco (P1-1), e o erro interno continua vazando `error.message` (P1-2).
 - A ponte do WhatsApp e o upload foram validados por runtime local; o restante segue sem cobertura de testes automatizados (dívida P0).
+
+---
+
+## 10. Semana 1 — itens extras
+
+| #   | Item                                                                                                                                                                                                                                                  | Commit             | Evidência                                                                                    |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ | -------------------------------------------------------------------------------------------- |
+| 6   | Estado de erro nas queries: `useQueryState` com `{ data, error, retry }` e `QueryErrorBanner` (antes a falha só ia para o console e a tela ficava presa em "carregando")                                                                              | `77496a9`          | `src/lib/backend/react.ts`, `src/components/QueryErrorBanner.tsx`, `src/pages/Dashboard.tsx` |
+| 7   | Acessibilidade: 22 `aria-label` em botões só-ícone (7 diálogos + cabeçalho do painel) e cartão do Kanban operável por teclado (`role="button"`, `tabIndex`, Enter/Espaço abrem o chamado, onde o status muda pelos botões do diálogo com `canMoveTo`) | commit da Semana 1 | `src/components/*.tsx`, `src/components/KanbanColumn.tsx`, `src/pages/Dashboard.tsx`         |
+
+`useQuery` continua devolvendo `T | undefined`, então os ~100 pontos de uso não mudaram — só as telas que querem tratar falha passaram a usar `useQueryState`.

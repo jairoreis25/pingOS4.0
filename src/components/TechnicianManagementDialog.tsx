@@ -262,6 +262,7 @@ export default function TechnicianManagementDialog({
                       className="size-7"
                       onClick={() => startEdit(t)}
                       title="Editar"
+                      aria-label="Editar técnico"
                     >
                       <Pencil className="size-3.5" />
                     </Button>
@@ -271,6 +272,7 @@ export default function TechnicianManagementDialog({
                       className="size-7 text-destructive"
                       onClick={() => setDeleteTarget(t._id)}
                       title="Excluir"
+                      aria-label="Excluir técnico"
                     >
                       <Trash2 className="size-3.5" />
                     </Button>
