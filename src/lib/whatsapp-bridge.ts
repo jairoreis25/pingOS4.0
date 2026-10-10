@@ -28,6 +28,7 @@ import { runtimeConfig } from "./runtime-config"
 const ENV_BRIDGE = runtimeConfig.whatsappWebUrl.replace(/\/+$/, "")
 
 const STORAGE_KEY = "whatsapp-bridge-url"
+const TOKEN_KEY = "whatsapp-bridge-token"
 
 function normalizeUrl(value: string): string {
   return value.trim().replace(/\/+$/, "")
@@ -61,6 +62,47 @@ export function getBridgeBase(): string {
   return getBridgeOverride() || ENV_BRIDGE
 }
 
+/**
+ * Token (`X-Bridge-Token`) salvo neste navegador, ou "" quando não configurado.
+ *
+ * A ponte exige o token em toda rota (ver `server/whatsapp-web-server.ts`). Ele
+ * é digitado pelo operador no diálogo do WhatsApp e fica apenas no localStorage
+ * deste navegador — nunca no bundle, porque tudo que é `VITE_*` é público.
+ */
+export function getBridgeToken(): string {
+  if (typeof window === "undefined") return ""
+  try {
+    return (window.localStorage.getItem(TOKEN_KEY) ?? "").trim()
+  } catch {
+    return ""
+  }
+}
+
+/** Persist (or clear, when empty) the bridge token in this browser. */
+export function setBridgeToken(value: string): void {
+  if (typeof window === "undefined") return
+  const token = value.trim()
+  try {
+    if (token) window.localStorage.setItem(TOKEN_KEY, token)
+    else window.localStorage.removeItem(TOKEN_KEY)
+  } catch {
+    // Ignore storage errors — the next call simply fails with 401.
+  }
+}
+
+/**
+ * `fetch` autenticado contra a ponte. Aceita um caminho (`"/status"`) ou uma URL
+ * já resolvida por `waBridgeUrl`. Use sempre este helper: `fetch` cru esquece o
+ * header do token e recebe 401.
+ */
+export function waBridgeFetch(pathOrUrl: string, init: RequestInit = {}): Promise<Response> {
+  const token = getBridgeToken()
+  const headers = new Headers(init.headers)
+  if (token) headers.set("X-Bridge-Token", token)
+  const url = /^https?:\/\//i.test(pathOrUrl) ? pathOrUrl : waBridgeUrl(pathOrUrl)
+  return fetch(url, { ...init, headers })
+}
+
 /** True when the app points at a remote always-on bridge (not the dev proxy). */
 export function whatsappBridgeConfigured(): boolean {
   return getBridgeBase().length > 0
@@ -76,7 +118,10 @@ export function waBridgeUrl(path: string): string {
 /** URL of the bridge web console page (status, QR Code and logs). */
 export function waConsoleUrl(): string {
   const base = getBridgeBase()
-  return base ? `${base}/` : `${window.location.origin}/whatsapp-api/`
+  const url = base ? `${base}/` : `${window.location.origin}/whatsapp-api/`
+  const token = getBridgeToken()
+  // O painel exige o token: entrega via query (o painel guarda e limpa a URL).
+  return token ? `${url}?token=${encodeURIComponent(token)}` : url
 }
 
 /** Where the current bridge base comes from — for the settings UI. */

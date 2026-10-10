@@ -100,10 +100,14 @@ services:
     restart: unless-stopped
 
   # ── Ponte do WhatsApp (Baileys) ─────────────────────────────────────────
+  # BRIDGE_TOKEN: padrão apenas para desenvolvimento local; em produção defina
+  # um segredo longo (openssl rand -hex 32) no painel do provedor.
   whatsapp:
     build:
       context: .
       dockerfile: server/Dockerfile
+    environment:
+      BRIDGE_TOKEN: ${BRIDGE_TOKEN:-dev-local-bridge-token}
     volumes:
       - whatsapp-session:/data/whatsapp-session
     restart: unless-stopped

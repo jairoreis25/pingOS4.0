@@ -65,10 +65,17 @@ services:
 
   # ── Ponte do WhatsApp (Baileys) ────────────────────────────────────────
   # Sem porta publicada: só o container `app` (nginx) precisa alcançá-la.
+  # BRIDGE_TOKEN é obrigatório (a ponte se recusa a subir sem ele) e é o
+  # segredo que a tela de WhatsApp do app pede uma vez por navegador.
+  # BRIDGE_ALLOWED_ORIGINS (opcional) libera origens de navegador, separadas
+  # por vírgula — sem ela, só same-origin (o próprio painel e o proxy nginx).
   whatsapp:
     build:
       context: .
       dockerfile: server/Dockerfile
+    environment:
+      BRIDGE_TOKEN: ${BRIDGE_TOKEN:-}
+      BRIDGE_ALLOWED_ORIGINS: ${BRIDGE_ALLOWED_ORIGINS:-}
     volumes:
       - whatsapp-session:/data/whatsapp-session
     networks:

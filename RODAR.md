@@ -126,8 +126,15 @@ VITE_API_URL=http://localhost:4000
 
 ```bash
 # terminal 3 — ponte na porta 3001 (o Vite já faz proxy de /whatsapp-api)
-bun run whatsapp
+BRIDGE_TOKEN=$(openssl rand -hex 32) bun run whatsapp
 ```
+
+`BRIDGE_TOKEN` é **obrigatório**: a ponte segura a sessão do WhatsApp (enviar
+mensagens, deslogar o aparelho, ler logs), então ela se recusa a subir sem o
+segredo e exige o header `X-Bridge-Token` em todas as rotas. Cole o mesmo token
+em **Configurações → WhatsApp Web → URL do servidor** (ele fica só no
+`localStorage` daquele navegador). Opcional: `BRIDGE_ALLOWED_ORIGINS` com as
+origens de navegador autorizadas, separadas por vírgula.
 
 Depois conecte o número em **Configurações → WhatsApp Web** (QR Code). No
 `mysql-api.env`, deixe `WHATSAPP_BRIDGE_URL=http://localhost:3001` para as

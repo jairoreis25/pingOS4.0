@@ -34,10 +34,13 @@ import {
 } from "@/components/ui/dialog"
 import {
   waBridgeUrl,
+  waBridgeFetch,
   waConsoleUrl,
   whatsappBridgeConfigured,
   getBridgeOverride,
   setBridgeOverride,
+  getBridgeToken,
+  setBridgeToken,
   bridgeSourceLabel,
 } from "@/lib/whatsapp-bridge"
 
@@ -60,6 +63,7 @@ export default function WhatsAppWebDialog({
   const [togglingPause, setTogglingPause] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [bridgeUrl, setBridgeUrl] = useState<string>(getBridgeOverride())
+  const [bridgeTokenInput, setBridgeTokenInput] = useState<string>(getBridgeToken())
   const [showBridgeConfig, setShowBridgeConfig] = useState(false)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const wasOnlineRef = useRef<boolean | null>(null)
@@ -67,7 +71,7 @@ export default function WhatsAppWebDialog({
 
   const refreshStatus = useCallback(async () => {
     try {
-      const res = await fetch(waBridgeUrl("/status"))
+      const res = await waBridgeFetch(waBridgeUrl("/status"))
       const result = await res.json()
       setStatus(result.status ?? "disconnected")
       setPaused(result.paused === true)
@@ -96,7 +100,7 @@ export default function WhatsAppWebDialog({
 
   const refreshQR = useCallback(async () => {
     try {
-      const res = await fetch(waBridgeUrl("/qr"))
+      const res = await waBridgeFetch(waBridgeUrl("/qr"))
       const result = await res.json()
       serverOnlineRef.current = true
       if (result.qr) {
@@ -132,7 +136,7 @@ export default function WhatsAppWebDialog({
   const handleLogout = async () => {
     setLoading(true)
     try {
-      await fetch(waBridgeUrl("/logout"), { method: "POST" })
+      await waBridgeFetch(waBridgeUrl("/logout"), { method: "POST" })
       setStatus("disconnected")
       setQrImage(null)
       setPhone("")
@@ -155,7 +159,7 @@ export default function WhatsAppWebDialog({
     const next = !paused
     setTogglingPause(true)
     try {
-      const res = await fetch(waBridgeUrl(next ? "/pause" : "/resume"), {
+      const res = await waBridgeFetch(waBridgeUrl(next ? "/pause" : "/resume"), {
         method: "POST",
       })
       const result = (await res.json().catch(() => ({}))) as { paused?: boolean }
@@ -183,7 +187,7 @@ export default function WhatsAppWebDialog({
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), 4000)
     try {
-      const res = await fetch(waBridgeUrl("/status"), { signal: controller.signal })
+      const res = await waBridgeFetch(waBridgeUrl("/status"), { signal: controller.signal })
       const result = await res.json()
       setStatus(result.status ?? "disconnected")
       serverOnlineRef.current = true
@@ -221,6 +225,7 @@ export default function WhatsAppWebDialog({
       setBridgeOverride("")
       toast.info("URL personalizada removida")
     }
+    setBridgeToken(bridgeTokenInput)
     setBridgeUrl(getBridgeOverride())
     setShowBridgeConfig(false)
     refreshStatus()
@@ -235,7 +240,7 @@ export default function WhatsAppWebDialog({
     }
     setTestSending(true)
     try {
-      const res = await fetch(waBridgeUrl("/send"), {
+      const res = await waBridgeFetch(waBridgeUrl("/send"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -439,6 +444,21 @@ export default function WhatsAppWebDialog({
                   placeholder="https://seu-servidor-whatsapp.com"
                   value={bridgeUrl}
                   onChange={(e) => setBridgeUrl(e.target.value)}
+                  className="text-sm font-mono"
+                />
+                <p className="text-[11px] text-muted-foreground/70">
+                  O servidor WhatsApp exige o token de acesso (variável{" "}
+                  <code className="bg-muted border border-border/60 rounded px-1 font-mono text-[10px]">
+                    BRIDGE_TOKEN
+                  </code>
+                  ). Cole-o aqui — fica só neste navegador, nunca no bundle do site.
+                </p>
+                <Input
+                  type="password"
+                  autoComplete="off"
+                  placeholder="BRIDGE_TOKEN"
+                  value={bridgeTokenInput}
+                  onChange={(e) => setBridgeTokenInput(e.target.value)}
                   className="text-sm font-mono"
                 />
                 <div className="flex gap-2">

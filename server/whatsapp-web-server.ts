@@ -36,9 +36,68 @@ import {
 } from "@whiskeysockets/baileys"
 import path from "path"
 import pino from "pino"
+import { timingSafeEqual } from "node:crypto"
 
 const app = express()
-app.use(cors())
+
+// ── Autenticação (fail closed) ──────────────────────────────────────────────
+// A ponte segura a sessão do WhatsApp: quem fala com ela pode enviar mensagens
+// pelo número pareado, deslogar o aparelho e ler os logs. Por isso toda rota
+// (exceto a casca HTML do painel) exige o header `X-Bridge-Token`, comparado em
+// tempo constante. Sem a variável o processo nem sobe.
+const BRIDGE_TOKEN = (process.env.BRIDGE_TOKEN ?? "").trim()
+if (!BRIDGE_TOKEN) {
+  console.error(
+    "[bridge] BRIDGE_TOKEN não definido — recusando iniciar.\n" +
+      "         Defina um segredo longo (ex.: openssl rand -hex 32) e reinicie:\n" +
+      "         BRIDGE_TOKEN=... bun run whatsapp   (ou no painel do Dokploy)",
+  )
+  process.exit(1)
+}
+
+// Origens permitidas para chamadas de navegador (lista separada por vírgula em
+// BRIDGE_ALLOWED_ORIGINS). Sem a variável, só requisições same-origin passam —
+// é o caso do painel servido pela própria ponte e do proxy /whatsapp-api.
+const allowedOrigins = (process.env.BRIDGE_ALLOWED_ORIGINS ?? "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean)
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      // Origem não autorizada: segue sem cabeçalhos CORS (o navegador bloqueia).
+      // A autenticação real é o token, não a origem.
+      callback(null, !origin || allowedOrigins.includes(origin))
+    },
+    allowedHeaders: ["Content-Type", "X-Bridge-Token"],
+    methods: ["GET", "POST", "OPTIONS"],
+  }),
+)
+
+function tokenMatches(provided: string): boolean {
+  const a = Buffer.from(provided)
+  const b = Buffer.from(BRIDGE_TOKEN)
+  return a.length === b.length && timingSafeEqual(a, b)
+}
+
+function providedToken(req: express.Request): string {
+  const header = req.get("x-bridge-token")
+  if (header) return header
+  const query = req.query.token
+  return typeof query === "string" ? query : ""
+}
+
+// Gate antes do parser de JSON: requisição anônima não chega a alocar 20 MB.
+app.use((req, res, next) => {
+  // A casca do painel não contém segredo (QR, status e logs continuam
+  // protegidos); o operador abre a página com ?token=... e o token fica no
+  // localStorage daquele navegador.
+  if (req.method === "GET" && (req.path === "/" || req.path === "/index.html")) return next()
+  if (tokenMatches(providedToken(req))) return next()
+  res.status(401).json({ error: "token do bridge ausente ou inválido" })
+})
+
 app.use(express.json({ limit: "20mb" }))
 
 const PORT = Number(process.env.PORT) || 3001
@@ -503,6 +562,19 @@ const PANEL_HTML = `<!doctype html>
   </main>
 <script>
 (function () {
+  // Token de acesso do bridge: chega uma vez por ?token=... (a tela de WhatsApp
+  // do app abre o painel assim) e fica só neste navegador.
+  var TOKEN_KEY = "pingos.bridgeToken";
+  var BRIDGE_TOKEN = (function () {
+    var fromUrl = "";
+    try { fromUrl = new URLSearchParams(location.search).get("token") || ""; } catch (e) { fromUrl = ""; }
+    if (fromUrl) {
+      try { localStorage.setItem(TOKEN_KEY, fromUrl); } catch (e) {}
+      try { history.replaceState(null, "", location.pathname); } catch (e) {}
+      return fromUrl;
+    }
+    try { return localStorage.getItem(TOKEN_KEY) || ""; } catch (e) { return ""; }
+  })();
   var pill = document.getElementById("statusPill");
   var label = document.getElementById("statusLabel");
   var qrImg = document.getElementById("qrImg");
@@ -557,9 +629,13 @@ const PANEL_HTML = `<!doctype html>
     return fetch(url, {
       method: opts.method || "GET",
       body: opts.body,
+      headers: { "X-Bridge-Token": BRIDGE_TOKEN, "Content-Type": "application/json" },
       signal: ctrl.signal
     })
-      .then(function (r) { return r.json(); })
+      .then(function (r) {
+        if (r.status === 401) throw new Error("bridge-unauthorized");
+        return r.json();
+      })
       .then(function (d) { clearTimeout(t); return d; })
       .catch(function (e) { clearTimeout(t); throw e; });
   }
@@ -579,8 +655,12 @@ const PANEL_HTML = `<!doctype html>
           qrPh.textContent = "WhatsApp conectado ✓";
         }
       })
-      .catch(function () {
+      .catch(function (e) {
         setStatus("offline");
+        if (e && e.message === "bridge-unauthorized") {
+          setError('Token do bridge ausente ou inválido. Abra este painel pela tela de WhatsApp do aplicativo, ou acrescente ?token=SEU_TOKEN na URL.');
+          return;
+        }
         setError('Sem resposta do servidor. Abra esta página no MESMO computador em que o servidor roda (http://localhost:3001) e confirme que o comando "bun run whatsapp" continua ativo no terminal.');
         logsEl.innerHTML = '<span class="muted">Servidor sem resposta — confira se o processo está rodando (bun run whatsapp).</span>';
       });

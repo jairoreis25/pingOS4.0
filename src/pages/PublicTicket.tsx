@@ -9,7 +9,7 @@ import { Headphones, ArrowRight, CheckCircle2, ArrowLeft, ImagePlus, X } from "l
 import { useNavigate } from "react-router"
 import { ThemeToggle } from "@/components/ThemeToggle"
 import { toast } from "sonner"
-import { waBridgeUrl } from "@/lib/whatsapp-bridge"
+import { waBridgeFetch, waBridgeUrl } from "@/lib/whatsapp-bridge"
 
 type TicketPriority = "baixa" | "media" | "alta" | "critica"
 
@@ -33,7 +33,7 @@ async function sendWhatsAppWebNotification(
   oldStatus?: string | null,
 ) {
   try {
-    const statusRes = await fetch(waBridgeUrl("/status"))
+    const statusRes = await waBridgeFetch(waBridgeUrl("/status"))
     const statusData = await statusRes.json()
     if (statusData.status !== "connected") return
 
@@ -91,7 +91,7 @@ async function sendWhatsAppWebNotification(
     if (ticket.imageUrl) {
       payload.image = ticket.imageUrl
     }
-    await fetch(waBridgeUrl("/send"), {
+    await waBridgeFetch(waBridgeUrl("/send"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),

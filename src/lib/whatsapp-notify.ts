@@ -6,7 +6,7 @@
  */
 import { apiFetch } from "@/lib/mysql-api"
 import { buildTicketMessage } from "@/lib/desc-fields"
-import { waBridgeUrl } from "@/lib/whatsapp-bridge"
+import { waBridgeFetch, waBridgeUrl } from "@/lib/whatsapp-bridge"
 
 /**
  * Busca a imagem do chamado só quando ela é realmente necessária.
@@ -56,7 +56,7 @@ export async function sendWhatsAppWebNotification(
 ) {
   try {
     // Step 1: Check bridge connection
-    const statusRes = await fetch(waBridgeUrl("/status"))
+    const statusRes = await waBridgeFetch(waBridgeUrl("/status"))
     const statusData = await statusRes.json()
     console.log("[WhatsApp Web] Bridge status:", statusData.status)
     if (statusData.status !== "connected") {
@@ -96,7 +96,7 @@ export async function sendWhatsAppWebNotification(
     if (image) {
       payload.image = image
     }
-    const sendRes = await fetch(waBridgeUrl("/send"), {
+    const sendRes = await waBridgeFetch(waBridgeUrl("/send"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),

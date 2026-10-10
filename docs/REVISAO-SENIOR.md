@@ -138,3 +138,34 @@ _Saída:_ `react-hooks/set-state-in-effect` = `error` no `eslint.config.js`; cob
 - `docker compose config` e o smoke da stack não foram executados.
 - Se `/api/tickets` já aplica limite no servidor (o achado P1-8 assume que não; o cliente não envia `limit`).
 - Vazamento da flag `SET FOREIGN_KEY_CHECKS = 0` entre queries da mesma conexão do pool (`server/api/backup.ts:268`).
+
+---
+
+## 9. Onda 1 — execução (2026-10-10, sessão 2)
+
+Cinco itens, um commit cada. Estado ao final de cada item verificado com `bun run verify`, `bun run build` e `bun run format:check`.
+
+| #   | Item                                                                                                                                                                                                                                                  | Arquivos                                                                                                                                                                                             | Estado    |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| 1   | Ponte WhatsApp autenticada: `BRIDGE_TOKEN` obrigatório (fail closed), `X-Bridge-Token` em todas as rotas JSON, CORS por allowlist (`BRIDGE_ALLOWED_ORIGINS`), gate antes do parser de 20 MB, painel com token via `?token=` e cliente `waBridgeFetch` | `server/whatsapp-web-server.ts`, `src/lib/whatsapp-bridge.ts`, `src/lib/whatsapp-notify.ts`, `src/pages/PublicTicket.tsx`, `src/components/WhatsAppWebDialog.tsx`, `docker-compose*.yml`, `RODAR.md` | concluído |
+| 2   | Removido o bypass de autenticação (`/api/agent/list`, `/api/tickets/admin-list`, `/api/tickets/admin-edit/:id`), o segredo literal `HERMES_SECRET_ADMIN_KEY_2026` e o módulo `server/api/db-helpers.ts`                                               | `server/api/index.ts`, `server/api/routes/tickets.ts`, `server/api/db-helpers.ts`                                                                                                                    | pendente  |
+| 3   | Primeiro administrador sem senha padrão e sem criação pública                                                                                                                                                                                         | `server/api/routes/users.ts`, `server/api/auth.ts`, `server/mysql/migrate.ts`, `src/pages/Auth.tsx`                                                                                                  | pendente  |
+| 4   | Upload autenticado, validado por conteúdo e servido com nome gerado                                                                                                                                                                                   | `server/api/routes/uploads.ts`, `server/api/index.ts`, `nginx.conf`                                                                                                                                  | pendente  |
+| 5   | Rate limit nas entradas sensíveis (login, guest, upload, OCR)                                                                                                                                                                                         | `server/api/index.ts`, `server/api/auth.ts`, `server/api/routes/*`                                                                                                                                   | pendente  |
+
+### Verificação em runtime do item 1
+
+Ponte iniciada localmente com `BRIDGE_TOKEN=test-token-123` na porta 3998:
+
+| Requisição                                  | Resultado                                                 |
+| ------------------------------------------- | --------------------------------------------------------- |
+| `GET /status` sem header                    | **401** `{"error":"token do bridge ausente ou inválido"}` |
+| `GET /status` com token errado              | **401**                                                   |
+| `GET /status` com `X-Bridge-Token` correto  | **200**                                                   |
+| `GET /` (casca do painel)                   | **200**                                                   |
+| `POST /logout` com token                    | **200**                                                   |
+| Preflight `OPTIONS` com `Origin` autorizada | **204** + `Access-Control-Allow-Origin`                   |
+| Preflight `OPTIONS` com `Origin` estranha   | **401**, sem cabeçalhos CORS                              |
+| Iniciar sem `BRIDGE_TOKEN`                  | **exit 1** com mensagem explicando como definir           |
+
+O `<script>` do painel continua compilando após as alterações (`node --check` no HTML avaliado = OK, 0 interpolações no template).
