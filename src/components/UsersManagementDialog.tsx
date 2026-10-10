@@ -29,16 +29,12 @@ import { toast } from "sonner"
 import { usePermissions } from "@/hooks/use-permissions"
 import {
   PERMISSION_GROUPS,
-  TICKET_STATUSES,
   DEFAULT_USER_PERMISSIONS,
   ADMIN_ROLE,
   DEFAULT_ROLE,
   ALL_PERMISSIONS,
-  hasStatusViewRestriction,
-  hasStatusEditRestriction,
-  hasEditAssignmentRestriction,
-  hasViewAssignmentRestriction,
 } from "@/lib/permissions"
+import { summarizeRole } from "@/lib/role-summary"
 import {
   Plus,
   Search,
@@ -64,17 +60,6 @@ function getInitials(name: string): string {
     .join("")
 }
 
-/** Resumo amigável das permissões de um papel para exibição em cards. */
-type RoleSummary = { chips: string[]; notes: string[] }
-
-const STATUS_LABELS: Record<string, string> = {
-  aberto: "Aberto",
-  em_andamento: "Em Andamento",
-  aguardando: "Aguardando",
-  resolvido: "Resolvido",
-  fechado: "Fechado",
-}
-
 const ROLE_AVATAR_STYLES = [
   "bg-primary/10 text-primary border-primary/20",
   "bg-sky-100 text-sky-700 border-sky-200 dark:bg-sky-950/50 dark:text-sky-300 dark:border-sky-900/60",
@@ -90,64 +75,6 @@ function roleAvatarStyle(roleName: string, isAdminRole: boolean): string {
   let hash = 0
   for (const ch of roleName) hash = (hash * 31 + ch.charCodeAt(0)) % 997
   return ROLE_AVATAR_STYLES[1 + (hash % (ROLE_AVATAR_STYLES.length - 1))]
-}
-
-/** Converte a lista crua de permissões em capacidades e escopos legíveis. */
-function summarizeRole(permissions: string[]): RoleSummary {
-  const set = new Set(permissions)
-  const has = (k: string) => set.has(k)
-  const hasAny = (prefix: string) => [...set].some((k) => k.startsWith(prefix))
-  const chips: string[] = []
-  const notes: string[] = []
-
-  if (has("tickets.view") || has("tickets.view.all") || hasAny("tickets.view.")) {
-    chips.push("Ver chamados")
-  }
-  if (has("tickets.create")) chips.push("Criar chamados")
-  if (has("tickets.edit") || has("tickets.edit.all") || hasAny("tickets.edit.")) {
-    chips.push("Editar chamados")
-  }
-  if (has("tickets.assign")) chips.push("Atribuir responsável")
-  if (has("tickets.move") || hasAny("tickets.move.")) {
-    chips.push("Mover no Kanban")
-  }
-  if (has("tickets.delete")) chips.push("Excluir chamados")
-  if (has("metrics.view")) chips.push("Ver métricas")
-  if (has("settings.manage")) chips.push("Configurações")
-  if (has("users.manage")) chips.push("Gerenciar usuários")
-
-  // Escopos restritos por coluna (espelham o que o backend aplica de fato).
-  if (!has("tickets.view.all") && hasStatusViewRestriction(permissions)) {
-    const cols = TICKET_STATUSES.filter((s) => has(`tickets.view.${s}`)).map(
-      (s) => STATUS_LABELS[s],
-    )
-    notes.push(`Visível: ${cols.join(", ")}`)
-  }
-  if (!has("tickets.edit.all") && hasStatusEditRestriction(permissions)) {
-    const cols = TICKET_STATUSES.filter((s) => has(`tickets.edit.${s}`)).map(
-      (s) => STATUS_LABELS[s],
-    )
-    notes.push(`Edição: ${cols.join(", ")}`)
-  }
-  if (!has("tickets.move") && hasAny("tickets.move.")) {
-    const cols = TICKET_STATUSES.filter((s) => has(`tickets.move.${s}`)).map(
-      (s) => STATUS_LABELS[s],
-    )
-    notes.push(`Mover para: ${cols.join(", ")}`)
-  }
-  if (hasEditAssignmentRestriction(permissions)) {
-    const bits: string[] = []
-    if (has("tickets.edit.own")) bits.push("apenas os próprios chamados")
-    if (has("tickets.edit.unassigned")) bits.push("também sem responsável")
-    notes.push(`Edição: ${bits.join(" · ")}`)
-  }
-  if (hasViewAssignmentRestriction(permissions)) {
-    const bits: string[] = []
-    if (has("tickets.view.own")) bits.push("apenas os próprios chamados")
-    if (has("tickets.view.unassigned")) bits.push("também sem responsável")
-    notes.push(`Visualização: ${bits.join(" · ")}`)
-  }
-  return { chips, notes }
 }
 
 type ManagedUser = {
