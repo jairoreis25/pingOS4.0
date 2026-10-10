@@ -40,6 +40,7 @@ import {
   uploadLimiter,
 } from "./rate-limit"
 import { backupDir } from "./backup"
+import { broadcastOnWrite, eventsRouter } from "./events"
 import { requestLogger } from "./logger"
 import { closePool, dbConfigInfo, pingDatabase } from "../mysql/pool"
 
@@ -116,6 +117,13 @@ app.use("/api/tickets", ticketsRouter)
 // Leitura de O.S. por foto (o "Nova OS por Foto" do dashboard): extrai os
 // campos da foto e abre o chamado já preenchido.
 app.use("/api/chamados", ocrChamadoRouter)
+
+// ── Tempo real (SSE) ────────────────────────────────────────────────────────
+// `GET /api/events` mantém a conexão aberta e avisa quando algo muda. Toda
+// requisição que escreve dispara o aviso quando termina com sucesso — é o que
+// substitui o poll de 10 s que revalidava a base inteira no navegador.
+app.use("/api/events", eventsRouter)
+app.use(broadcastOnWrite())
 
 app.use("/api/users", usersRouter)
 app.use("/api/roles", rolesRouter)
