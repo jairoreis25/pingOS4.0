@@ -23,6 +23,7 @@ import {
   getSession,
   handleAuthError,
   markAuthenticated,
+  markTokenIssued,
   notifyChange,
   setCachedQuery,
   subscribeChange,
@@ -392,6 +393,7 @@ export function useAuthActions(): {
           { method: "POST", body: { username, password }, auth: false },
         )
         setToken(result.token)
+        markTokenIssued()
         markAuthenticated(result.user?._id ?? null)
         notifyChange()
       },

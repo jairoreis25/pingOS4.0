@@ -7,13 +7,13 @@
  * de validade — trocar a senha invalida as sessões abertas.
  */
 
-import { randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto"
+import { createHash, randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto"
 import { promisify } from "node:util"
 import { Router } from "express"
 import { execute, newId, newSessionToken, query, queryOne } from "../mysql/pool"
 import { badRequest, forbidden, unauthorized } from "./errors"
 import { asyncHandler } from "./errors"
-import { getEffectivePermissions } from "./permissions"
+import { getEffectivePermissions, requireAuth } from "./permissions"
 import { toBool, toPublicUser, type UserRow } from "./types"
 
 const scrypt = promisify(scryptCallback) as (
@@ -77,13 +77,33 @@ function sessionTtlMs(): number {
   return safeDays * 24 * 60 * 60 * 1000
 }
 
-/** Cria uma sessão e devolve o token. */
+/**
+ * Hash do token de sessão gravado no banco (SHA-256 em hex, 64 caracteres).
+ *
+ * O token em claro só existe no cliente: quem ler a tabela `sessions` (dump,
+ * backup, log de query) não consegue se autenticar com o que está lá. O tamanho
+ * continua 64 caracteres, então a coluna `CHAR(64)` não mudou.
+ */
+export function hashSessionToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex")
+}
+
+/** Seleciona a sessão pelo hash do token, já trazendo o usuário e a validade. */
+const SESSION_LOOKUP = `SELECT u.*, s.expires_at AS session_expires_at
+   FROM \`sessions\` s
+   JOIN \`users\` u ON u.id = s.user_id
+  WHERE s.token = ? AND s.expires_at > ?
+  LIMIT 1`
+
+type SessionUserRow = UserRow & { session_expires_at?: number }
+
+/** Cria uma sessão e devolve o token (o banco guarda apenas o hash). */
 export async function createSession(userId: string, userAgent?: string): Promise<string> {
   const token = newSessionToken()
   const now = Date.now()
   await execute(
     "INSERT INTO `sessions` (`token`, `user_id`, `created_at`, `expires_at`, `user_agent`) VALUES (?, ?, ?, ?, ?)",
-    [token, userId, now, now + sessionTtlMs(), userAgent?.slice(0, 255) ?? null],
+    [hashSessionToken(token), userId, now, now + sessionTtlMs(), userAgent?.slice(0, 255) ?? null],
   )
   return token
 }
@@ -111,17 +131,39 @@ export const attachUser = asyncHandler(async (req, _res, next) => {
     next()
     return
   }
-  const row = await queryOne<UserRow>(
-    `SELECT u.* FROM sessions s
-       JOIN users u ON u.id = s.user_id
-      WHERE s.token = ? AND s.expires_at > ?
-      LIMIT 1`,
-    [token, Date.now()],
-  )
+
+  const now = Date.now()
+  const hashed = hashSessionToken(token)
+  let row = await queryOne<SessionUserRow>(SESSION_LOOKUP, [hashed, now])
+
+  if (!row) {
+    // Compatibilidade: versões anteriores guardavam o token em claro. Se for o
+    // caso, a própria requisição migra a linha para o hash — o usuário não
+    // precisa entrar de novo.
+    const legado = await queryOne<{ token: string }>(
+      "SELECT `token` FROM `sessions` WHERE `token` = ? AND `expires_at` > ? LIMIT 1",
+      [token, now],
+    )
+    if (legado) {
+      await execute("UPDATE `sessions` SET `token` = ? WHERE `token` = ?", [hashed, token])
+      row = await queryOne<SessionUserRow>(SESSION_LOOKUP, [hashed, now])
+    }
+  }
+
   if (!row) {
     next()
     return
   }
+
+  // Renovação deslizante: sessão na metade do prazo ganha mais um ciclo (uma
+  // escrita rara em vez de uma por requisição). Sem isso, quem usa o sistema
+  // todo dia continuaria sendo deslogado no 30º dia.
+  const expiresAt = Number(row.session_expires_at ?? 0)
+  const ttl = sessionTtlMs()
+  if (expiresAt && expiresAt - now < ttl / 2) {
+    await execute("UPDATE `sessions` SET `expires_at` = ? WHERE `token` = ?", [now + ttl, hashed])
+  }
+
   const permissions = await getEffectivePermissions(row)
   req.auth = { user: row, permissions }
   next()
@@ -174,9 +216,30 @@ authRouter.post(
   asyncHandler(async (req, res) => {
     const token = bearerToken(req.headers.authorization)
     if (token) {
-      await execute("DELETE FROM `sessions` WHERE `token` = ?", [token])
+      // O banco guarda o hash (ver `createSession`).
+      await execute("DELETE FROM `sessions` WHERE `token` = ?", [hashSessionToken(token)])
     }
     res.json({ success: true })
+  }),
+)
+
+// ── POST /api/auth/rotate — troca o token da sessão atual ───────────────────
+// Rotação explícita: o cliente pede um token novo e substitui o que tem. Não é
+// feita "sozinha" em toda requisição porque requisições que não passam pelo
+// transporte do app (a conexão SSE, um <img>) não teriam como guardar o token
+// novo — e o antigo já teria sido apagado.
+authRouter.post(
+  "/rotate",
+  asyncHandler(async (req, res) => {
+    const ctx = requireAuth(req)
+    const atual = bearerToken(req.headers.authorization)
+
+    const token = await createSession(ctx.user.id, req.headers["user-agent"])
+    if (atual) {
+      await execute("DELETE FROM `sessions` WHERE `token` = ?", [hashSessionToken(atual)])
+    }
+
+    res.json({ token })
   }),
 )
 

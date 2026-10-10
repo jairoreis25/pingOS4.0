@@ -203,6 +203,54 @@ export function handleAuthError(error: unknown): void {
   }
 }
 
+/** Chave do carimbo de quando o token atual foi emitido. */
+const TOKEN_ISSUED_KEY = "pingos.mysql.tokenIssuedAt"
+
+/** Depois deste prazo o cliente pede um token novo (rotação explícita). */
+const ROTATE_AFTER_MS = 7 * 24 * 60 * 60 * 1000
+
+/** Marca agora como o momento em que o token atual foi criado. */
+export function markTokenIssued(at: number = Date.now()): void {
+  if (typeof window === "undefined") return
+  try {
+    window.localStorage.setItem(TOKEN_ISSUED_KEY, String(at))
+  } catch {
+    /* storage indisponível — a rotação só acontece no próximo login */
+  }
+}
+
+function tokenIssuedAt(): number {
+  try {
+    return Number(window.localStorage.getItem(TOKEN_ISSUED_KEY) ?? 0) || 0
+  } catch {
+    return 0
+  }
+}
+
+/**
+ * Pede um token novo quando o atual passou de `ROTATE_AFTER_MS`.
+ *
+ * É oportunista de propósito: se a chamada falhar (offline, 401), a sessão
+ * atual continua valendo e a próxima tentativa acontece no próximo boot. A
+ * rotação não é feita "sozinha" a cada requisição porque conexões que não passam
+ * pelo transporte do app (a conexão SSE, um `<img>`) não teriam como guardar o
+ * token novo — e o antigo já teria sido apagado no servidor.
+ */
+export async function rotateTokenIfStale(): Promise<void> {
+  if (typeof window === "undefined" || !getToken()) return
+  const issued = tokenIssuedAt()
+  if (issued && Date.now() - issued < ROTATE_AFTER_MS) return
+
+  try {
+    const result = await apiFetch<{ token?: string }>("/api/auth/rotate", { method: "POST" })
+    if (!result?.token) return
+    setToken(result.token)
+    markTokenIssued()
+  } catch {
+    /* rotação é oportunista: mantém o token atual */
+  }
+}
+
 /**
  * Resolve a sessão na primeira renderização: se existe token salvo, confirma
  * com o backend que ele ainda vale (`GET /api/auth/me`).
@@ -220,8 +268,11 @@ export async function ensureSessionLoaded(): Promise<void> {
   try {
     // `auth` fica ligado de propósito: é o token salvo que está sendo validado.
     const me = await apiFetch<{ userId: string } | null>("/api/auth/me")
-    if (me?.userId) markAuthenticated(me.userId)
-    else {
+    if (me?.userId) {
+      markAuthenticated(me.userId)
+      // Sessão válida: aproveita para rotacionar o token se ele já estiver velho.
+      void rotateTokenIfStale()
+    } else {
       setToken(null)
       markSignedOut()
     }

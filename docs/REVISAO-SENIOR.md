@@ -250,4 +250,27 @@ Os oito itens da fase estão entregues. A paginação por keyset fechou com a ad
 
 ### Próxima fase — Semana 4+
 
-**Outbox de notificações** (tirar e-mail/Telegram/WhatsApp do caminho da requisição: hoje `server/api/notify.ts` roda inline e pode segurar a resposta até `NOTIFY_TIMEOUT_MS`) · **sessão com hash do token + rotação** (`server/api/auth.ts` guarda o token em claro) · **uploads em objeto** (hoje disco local) · **decomposição dos arquivos gigantes** (`hermes/bot-ia.ts` 3.251 linhas, `Dashboard.tsx` ~1.616, `UsersManagementDialog.tsx` 1.177) · **PWA/push** (já existe `manifest.webmanifest`; falta service worker e push) · **i18n** (textos literais espalhados; `index.html` declara `lang="en"`).
+**Outbox de notificações** (tirar e-mail/Telegram/WhatsApp do caminho da requisição: hoje `server/api/notify.ts` roda inline e pode segurar a resposta até `NOTIFY_TIMEOUT_MS`) · **uploads em objeto** (hoje disco local) · **decomposição dos arquivos gigantes** (`hermes/bot-ia.ts` 3.251 linhas, `Dashboard.tsx` ~1.616, `UsersManagementDialog.tsx` 1.177) · **PWA/push** (já existe `manifest.webmanifest`; falta service worker e push) · **i18n** (textos literais espalhados; `index.html` declara `lang="en"`).
+
+---
+
+## 12. Semana 4+ — progresso
+
+### 15. Sessão com hash do token e rotação (`este commit`)
+
+O banco guardava o token de sessão **em claro** (`sessions.token`): um dump, um backup ou um log de query davam login imediato a qualquer conta. Agora:
+
+| Mudança                    | Detalhe                                                                                                                                                    |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Hash na gravação           | `createSession` guarda `SHA-256(token)` em hex (64 caracteres — cabe no `CHAR(64)`, sem migração de schema)                                                |
+| Busca por hash             | `attachUser` procura pelo hash; o token em claro só existe no navegador                                                                                    |
+| Upgrade transparente       | Sessão antiga (token em claro) é reconhecida pelo valor antigo e reescrita com o hash na própria requisição — ninguém precisa relogar                      |
+| Renovação deslizante       | Sessão que passou da metade do prazo ganha mais um ciclo (uma escrita rara, não uma por requisição)                                                        |
+| Rotação explícita          | `POST /api/auth/rotate` emite token novo e apaga o antigo; o cliente chama no boot quando o token passa de **7 dias** (`markTokenIssued` guarda o carimbo) |
+| Efeito colateral corrigido | O `logout` apagava por `WHERE token = ?` com o valor em claro — com o hash isso nunca casaria e a sessão sobreviveria ao logout                            |
+
+**Testes**: `tests/server-auth.test.ts` (6 casos) cobre determinismo, formato (64 hex), token ≠ hash, colisão entre tokens distintos e o vetor conhecido do SHA-256. A busca por hash, o upgrade da sessão antiga, a renovação e a rotação dependem de banco e **não têm teste automatizado** nesta máquina (sem MySQL) — o caminho foi validado por tipos, lint e revisão do SQL (`SELECT`/`UPDATE`/`DELETE` sempre por `sessions.token` = hash).
+
+### Pendente na Semana 4+
+
+Outbox de notificações · uploads em objeto · decomposição dos arquivos gigantes · PWA/push · i18n.

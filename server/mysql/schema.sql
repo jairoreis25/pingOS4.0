@@ -54,6 +54,11 @@ CREATE TABLE IF NOT EXISTS `users` (
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Sessões (substituem as sessões do Convex Auth)
+--
+-- `token` guarda o HASH SHA-256 (hex) do token de sessão: o token em claro só
+-- existe no navegador do usuário, então um dump/backup desta tabela não permite
+-- se autenticar. Sessões criadas por versões antigas (token em claro) são
+-- migradas para o hash na primeira requisição que as usar.
 -- ─────────────────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `sessions` (
   `token`      CHAR(64)     NOT NULL,
