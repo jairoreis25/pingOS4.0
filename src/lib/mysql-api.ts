@@ -112,8 +112,30 @@ export function apiFetch<T = unknown>(path: string, options: RequestOptions = {}
   return request
 }
 
-/** Executa a requisição de fato (sem dedupe). */
+/** Executa a requisição de fato (sem dedupe) e devolve o corpo interpretado. */
 async function doFetch<T = unknown>(path: string, options: RequestOptions = {}): Promise<T> {
+  const { data } = await doFetchResponse<T>(path, options)
+  return data
+}
+
+/**
+ * Igual ao `apiFetch`, mas devolve também os headers da resposta.
+ *
+ * Necessário para a paginação por keyset: o corpo é só a lista de itens e o
+ * cursor da próxima página chega em `X-Next-Cursor` (ver `server/api/tickets-page.ts`).
+ */
+export function apiFetchWithMeta<T = unknown>(
+  path: string,
+  options: RequestOptions = {},
+): Promise<{ data: T; headers: Headers }> {
+  return doFetchResponse<T>(path, options)
+}
+
+/** Requisição + corpo interpretado + headers, com erro tipado. */
+async function doFetchResponse<T = unknown>(
+  path: string,
+  options: RequestOptions = {},
+): Promise<{ data: T; headers: Headers }> {
   const headers: Record<string, string> = {}
   if (options.auth !== false) {
     const token = getToken()
@@ -151,5 +173,5 @@ async function doFetch<T = unknown>(path: string, options: RequestOptions = {}):
   if (!response.ok) {
     throw new ApiClientError(response.status, messageFrom(payload, `Erro ${response.status}`))
   }
-  return payload as T
+  return { data: payload as T, headers: response.headers }
 }

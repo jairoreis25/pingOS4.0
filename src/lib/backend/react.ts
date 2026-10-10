@@ -12,9 +12,10 @@
  * plano (para pegar o que outro usuário alterou).
  */
 
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react"
-import { apiFetch, setToken } from "@/lib/mysql-api"
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
+import { apiFetch, apiFetchWithMeta, setToken } from "@/lib/mysql-api"
 import type { MutationRef, QueryRef } from "./api"
+import { appendPage, mergePages, nextCursorFrom } from "./paging"
 import {
   clearSession,
   ensureSessionLoaded,
@@ -179,6 +180,146 @@ export function useQueryState<T = any>(
  */
 export function useQuery<T = any>(ref: QueryRef<T> | null | undefined, args?: Args): T | undefined {
   return useQueryState<T>(ref, args).data
+}
+
+// ── Queries paginadas (keyset) ──────────────────────────────────────────────
+export type PagedQueryState<T> = {
+  items: T[]
+  error: unknown
+  /** Primeira página ainda carregando. */
+  loading: boolean
+  /** "Carregar mais" em andamento. */
+  loadingMore: boolean
+  /** Existe próxima página (o servidor mandou `X-Next-Cursor`). */
+  hasMore: boolean
+  loadMore: () => void
+  /** Recarrega a primeira página (usado no aviso de erro). */
+  retry: () => void
+}
+
+/**
+ * Query paginada por keyset, com acumulação das páginas.
+ *
+ * O servidor devolve até `pageSize` itens e o cursor da próxima página no header
+ * `X-Next-Cursor` (ver `server/api/tickets-page.ts`). Aqui:
+ * - a primeira página é recarregada quando o path muda ou quando o SSE avisa de
+ *   mudança, e o resultado é **mesclado** com o que o usuário já carregou (sem
+ *   repetir item — `mergePages`);
+ * - `loadMore()` busca a página seguinte usando o cursor guardado.
+ *
+ * `keyOf` precisa ser **estável** (função declarada fora do componente): ela
+ * entra nas dependências e uma função nova a cada render revalidaria a lista sem
+ * parar. `args` pode vir inline — é comparado pelo conteúdo.
+ */
+export function usePagedQuery<T>(
+  ref: QueryRef<T[]> | null | undefined,
+  args: Args,
+  pageSize: number,
+  keyOf: (item: T) => string,
+): PagedQueryState<T> {
+  const skip = args === "skip"
+  const baseKey = JSON.stringify(args && args !== "skip" ? args : {})
+  const base = useMemo(() => JSON.parse(baseKey) as Record<string, unknown>, [baseKey])
+
+  const [items, setItems] = useState<T[]>([])
+  const [error, setError] = useState<unknown>(null)
+  const [loading, setLoading] = useState(!skip)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(false)
+  const [reloadToken, setReloadToken] = useState(0)
+  const cursorRef = useRef<string | null>(null)
+
+  const fetchPage = useCallback(
+    async (cursor: string | null): Promise<{ items: T[]; cursor: string | null } | null> => {
+      if (!ref || skip) return null
+      const path = ref.path({
+        ...base,
+        limit: pageSize,
+        ...(cursor ? { cursor } : {}),
+      })
+      try {
+        const { data, headers } = await apiFetchWithMeta<T[]>(path)
+        setQueryError(path, null)
+        return { items: data ?? [], cursor: nextCursorFrom(headers) }
+      } catch (err) {
+        handleAuthError(err)
+        setQueryError(path, err)
+        throw err
+      }
+    },
+    [ref, skip, base, pageSize],
+  )
+
+  useEffect(() => {
+    if (!ref || skip) {
+      // Nada a assinar: o estado devolvido abaixo já é vazio (evita setState
+      // sincrono no corpo do efeito).
+      cursorRef.current = null
+      return
+    }
+
+    let cancelled = false
+
+    // Primeira página; em caso de mudança (SSE), mescla com o que já está na tela.
+    const reload = async () => {
+      setLoading(true)
+      try {
+        const page = await fetchPage(null)
+        if (cancelled || !page) return
+        cursorRef.current = page.cursor
+        setHasMore(page.cursor !== null)
+        setError(null)
+        setItems((prev) => mergePages(prev, page.items, keyOf))
+      } catch (err) {
+        if (!cancelled) setError(err)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    void reload()
+    const offChange = subscribeChange(() => void reload())
+
+    return () => {
+      cancelled = true
+      offChange()
+    }
+  }, [ref, skip, fetchPage, keyOf, reloadToken])
+
+  const loadMore = useCallback(() => {
+    const cursor = cursorRef.current
+    if (!cursor || loadingMore) return
+    setLoadingMore(true)
+    void (async () => {
+      try {
+        const page = await fetchPage(cursor)
+        if (!page) return
+        cursorRef.current = page.cursor
+        setHasMore(page.cursor !== null)
+        setItems((prev) => appendPage(prev, page.items, keyOf))
+      } catch (err) {
+        setError(err)
+      } finally {
+        setLoadingMore(false)
+      }
+    })()
+  }, [fetchPage, keyOf, loadingMore])
+
+  const retry = useCallback(() => setReloadToken((value) => value + 1), [])
+
+  if (skip) {
+    return {
+      items: [],
+      error: null,
+      loading: false,
+      loadingMore: false,
+      hasMore: false,
+      loadMore,
+      retry,
+    }
+  }
+
+  return { items, error, loading, loadingMore, hasMore, loadMore, retry }
 }
 
 // ── Mutations / actions ─────────────────────────────────────────────────────

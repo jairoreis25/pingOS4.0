@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { useMutation, useQuery, useQueryState } from "@/lib/backend/react"
+import { useMutation, usePagedQuery, useQuery } from "@/lib/backend/react"
 import { api } from "@/lib/backend/api"
 import { useAuth } from "@/hooks/use-auth"
 import { usePermissions } from "@/hooks/use-permissions"
@@ -80,6 +80,14 @@ import {
   buildTicketMessage,
 } from "@/lib/desc-fields"
 import { TICKET_CATEGORIES, TICKET_CATEGORY_EMPTY } from "@/lib/ticket-categories"
+
+/** Chamados por página no Kanban (`GET /api/tickets?limit=`). */
+const TICKETS_PAGE_SIZE = 200
+
+/** Chave estável para mesclar páginas e deduplicar chamados. */
+function ticketKey(ticket: { _id: string }): string {
+  return ticket._id
+}
 
 // ---- Ticket Detail Dialog ----
 
@@ -1101,20 +1109,26 @@ export default function Dashboard() {
   const visibleColumns = COLUMNS.filter((c) => canViewStatus(c.id))
   // Sem permissão de visualização, não assina a query (que exigiria a
   // permissão e derrubaria a tela "Sem acesso").
-  // `useQueryState` para tratar falha: antes, API fora do ar deixava o quadro
-  // preso em "carregando" para sempre.
-  const ticketsState = useQueryState(api.tickets.list, canViewTickets ? {} : "skip")
+  // `usePagedQuery` traz a primeira página (e o cursor da próxima): antes o
+  // painel baixava a base inteira de chamados, e o filtro de permissão do
+  // servidor podia devolver menos itens que o pedido.
+  const ticketsPage = usePagedQuery(
+    api.tickets.list,
+    canViewTickets ? {} : "skip",
+    TICKETS_PAGE_SIZE,
+    ticketKey,
+  )
   // Update otimista: com o arraste (ou a mudança pelo diálogo) o status já vale
-  // na tela, sem esperar o poll de 10s — antes o card voltava para a coluna
-  // antiga por alguns segundos, parecendo perda de dado.
+  // na tela, sem esperar o SSE/poll — antes o card voltava para a coluna antiga
+  // por alguns segundos, parecendo perda de dado.
   const [pendingMoves, setPendingMoves] = useState<Record<string, TicketStatus>>({})
   const tickets = useMemo(() => {
-    const list = ticketsState.data
+    const list = ticketsPage.items
     if (!list) return list
     return list.map((ticket) =>
       pendingMoves[ticket._id] ? { ...ticket, status: pendingMoves[ticket._id] } : ticket,
     )
-  }, [ticketsState.data, pendingMoves])
+  }, [ticketsPage.items, pendingMoves])
   useTicketAlerts(tickets)
   const updateStatus = useMutation(api.tickets.updateStatus)
 
@@ -1460,11 +1474,11 @@ export default function Dashboard() {
 
       {showMetrics && <MetricsSection />}
 
-      {ticketsState.error ? (
+      {ticketsPage.error ? (
         <div className="mx-auto max-w-[1600px] px-4 pt-6 sm:px-6">
           <QueryErrorBanner
-            error={ticketsState.error}
-            onRetry={ticketsState.retry}
+            error={ticketsPage.error}
+            onRetry={ticketsPage.retry}
             label="os chamados"
           />
         </div>
@@ -1534,6 +1548,18 @@ export default function Dashboard() {
                 canDrag={canDrag}
               />
             ))}
+          </div>
+        )}
+
+        {ticketsPage.hasMore && (
+          <div className="mt-4 flex justify-center">
+            <Button
+              variant="outline"
+              onClick={ticketsPage.loadMore}
+              disabled={ticketsPage.loadingMore}
+            >
+              {ticketsPage.loadingMore ? "Carregando..." : "Carregar mais chamados"}
+            </Button>
           </div>
         )}
       </main>

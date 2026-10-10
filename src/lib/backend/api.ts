@@ -160,7 +160,13 @@ function mCreate(name: string, base: string, body?: (args: any) => unknown): Mut
 export const api = {
   // ── Chamados / Kanban ─────────────────────────────────────────────────────
   tickets: {
-    list: q<Ticket[]>("tickets.list", () => "/api/tickets"),
+    list: q<Ticket[]>("tickets.list", (args: { limit?: number; cursor?: string } | undefined) => {
+      const params = new URLSearchParams()
+      if (args?.limit) params.set("limit", String(args.limit))
+      if (args?.cursor) params.set("cursor", args.cursor)
+      const query = params.toString()
+      return query ? `/api/tickets?${query}` : "/api/tickets"
+    }),
     get: q<Ticket | null>("tickets.get", (args) => `/api/tickets/${pickId(args)}`),
     create: mCreate("tickets.create", "/api/tickets"),
     createAsGuest: mCreate("tickets.createAsGuest", "/api/tickets/guest"),
