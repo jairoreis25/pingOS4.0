@@ -51,14 +51,60 @@ function samePayload(a: unknown, b: unknown): boolean {
   }
 }
 
+// ── Erros das queries ───────────────────────────────────────────────────────
+/**
+ * Erro da última tentativa de cada query.
+ *
+ * Antes a falha ia só para o console e o componente continuava exibindo
+ * "carregando" para sempre (tela presa quando a API estava fora do ar). O mapa
+ * fica no módulo para que o erro sobreviva a remontagens e para que o `retry`
+ * consiga limpá-lo. Quem quer tratar o estado usa `useQueryState`.
+ */
+const queryErrors = new Map<string, unknown>()
+const errorListeners = new Set<() => void>()
+
+function setQueryError(path: string, error: unknown): void {
+  const previous = queryErrors.get(path)
+  if (previous === error) return
+  if (error === null || error === undefined) queryErrors.delete(path)
+  else queryErrors.set(path, error)
+  errorListeners.forEach((listener) => listener())
+}
+
+function subscribeQueryError(listener: () => void): () => void {
+  errorListeners.add(listener)
+  return () => {
+    errorListeners.delete(listener)
+  }
+}
+
+function queryErrorSnapshot(path: string | null): unknown {
+  return path ? (queryErrors.get(path) ?? null) : null
+}
+
+export type QueryState<T> = {
+  /** `undefined` enquanto a primeira resposta não chega. */
+  data: T | undefined
+  /** Último erro da query (`null` quando está tudo certo). */
+  error: unknown
+  /** Tenta novamente agora (limpa o erro e refaz a busca). */
+  retry: () => void
+}
+
 // ── Queries ─────────────────────────────────────────────────────────────────
 /**
- * Executa uma query do backend. Devolve `undefined` enquanto a primeira resposta
- * não chega (igual ao Convex) e `T` depois disso.
+ * Executa uma query do backend e devolve `data`, `error` e `retry`.
+ *
+ * Use este hook nas telas que precisam reagir à falha (mostrar aviso e botão de
+ * tentar de novo). O `useQuery` abaixo continua devolvendo só os dados.
  */
-export function useQuery<T = any>(ref: QueryRef<T> | null | undefined, args?: Args): T | undefined {
+export function useQueryState<T = any>(
+  ref: QueryRef<T> | null | undefined,
+  args?: Args,
+): QueryState<T> {
   const skip = args === "skip"
   const path = ref && !skip ? ref.path(args ?? {}) : null
+  const [attempt, setAttempt] = useState(0)
 
   // Já entrega o último resultado conhecido (quando houver) em vez de piscar
   // "carregando" a cada remontagem do mesmo recurso.
@@ -71,12 +117,14 @@ export function useQuery<T = any>(ref: QueryRef<T> | null | undefined, args?: Ar
     try {
       const result = await apiFetch<T>(path)
       setCachedQuery(path, result)
+      setQueryError(path, null)
       // Só re-renderiza se o conteúdo realmente mudou.
       setData((prev) => (samePayload(prev, result) ? prev : result))
     } catch (error) {
       handleAuthError(error)
-      // Query que falha não derruba a tela: o componente segue com o último dado
-      // (ou `undefined`, que ele já trata como "carregando").
+      // Registra a falha para quem usa `useQueryState`; o componente segue com o
+      // último dado conhecido (ou `undefined`, tratado como "carregando").
+      setQueryError(path, error)
       console.warn("[backend] falha na query", path, error instanceof Error ? error.message : error)
     }
   }, [path])
@@ -107,9 +155,30 @@ export function useQuery<T = any>(ref: QueryRef<T> | null | undefined, args?: Ar
       cancelled = true
       offChange()
     }
-  }, [path, fetchNow])
+  }, [path, fetchNow, attempt])
 
-  return data
+  const error = useSyncExternalStore(
+    subscribeQueryError,
+    () => queryErrorSnapshot(path),
+    () => queryErrorSnapshot(path),
+  )
+
+  const retry = useCallback(() => {
+    if (!path) return
+    setQueryError(path, null)
+    setAttempt((value) => value + 1)
+  }, [path])
+
+  return { data, error, retry }
+}
+
+/**
+ * Executa uma query do backend. Devolve `undefined` enquanto a primeira resposta
+ * não chega (igual ao Convex) e `T` depois disso. Para tratar erro e repetir a
+ * busca, use `useQueryState`.
+ */
+export function useQuery<T = any>(ref: QueryRef<T> | null | undefined, args?: Args): T | undefined {
+  return useQueryState<T>(ref, args).data
 }
 
 // ── Mutations / actions ─────────────────────────────────────────────────────

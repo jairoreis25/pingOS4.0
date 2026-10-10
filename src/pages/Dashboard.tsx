@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react"
-import { useMutation, useQuery } from "@/lib/backend/react"
+import { useMutation, useQuery, useQueryState } from "@/lib/backend/react"
 import { api } from "@/lib/backend/api"
 import { useAuth } from "@/hooks/use-auth"
 import { usePermissions } from "@/hooks/use-permissions"
@@ -69,6 +69,7 @@ import {
   type TicketStatus,
 } from "@/lib/ticket-ui"
 import { KanbanColumn } from "@/components/KanbanColumn"
+import { QueryErrorBanner } from "@/components/QueryErrorBanner"
 import GuestNewTicketDialog from "@/components/GuestNewTicketDialog"
 import CameraTicketButton from "@/components/CameraTicketButton"
 import WhatsAppWebDialog from "@/components/WhatsAppWebDialog"
@@ -1100,7 +1101,10 @@ export default function Dashboard() {
   const visibleColumns = COLUMNS.filter((c) => canViewStatus(c.id))
   // Sem permissão de visualização, não assina a query (que exigiria a
   // permissão e derrubaria a tela "Sem acesso").
-  const tickets = useQuery(api.tickets.list, canViewTickets ? {} : "skip")
+  // `useQueryState` para tratar falha: antes, API fora do ar deixava o quadro
+  // preso em "carregando" para sempre.
+  const ticketsState = useQueryState(api.tickets.list, canViewTickets ? {} : "skip")
+  const tickets = ticketsState.data
   useTicketAlerts(tickets)
   const updateStatus = useMutation(api.tickets.updateStatus)
 
@@ -1429,6 +1433,16 @@ export default function Dashboard() {
       </header>
 
       {showMetrics && <MetricsSection />}
+
+      {ticketsState.error ? (
+        <div className="mx-auto max-w-[1600px] px-4 pt-6 sm:px-6">
+          <QueryErrorBanner
+            error={ticketsState.error}
+            onRetry={ticketsState.retry}
+            label="os chamados"
+          />
+        </div>
+      ) : null}
 
       <main className="mx-auto max-w-[1600px] px-4 sm:px-6 py-6 min-h-[60vh]">
         {isMobile ? (
