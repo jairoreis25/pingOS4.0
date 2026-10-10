@@ -210,7 +210,8 @@ Observação: `express.json()` roda antes dos roteadores, então um corpo JSON i
 | 10  | `GET_LOCK` nas migrações: `withNamedLock` no pool (lock numa conexão dedicada) e `runMigrations` segurando `pingos:migrate` por 30 s                                                                                                     | `8c55c4b`   | `server/mysql/pool.ts:114-145`, `server/mysql/migrate.ts`                                                                           |
 | 11  | Update otimista no Kanban: o card muda de coluna na hora e volta se a mutation falhar                                                                                                                                                    | `e1c3970`   | `src/pages/Dashboard.tsx`                                                                                                           |
 | 12  | Suíte inicial de testes: **10 arquivos / 200 casos**, sem banco e sem navegador                                                                                                                                                          | `d4cc8b6`   | `tests/`, `vitest.config.ts`, `bun run test`                                                                                        |
-| 13  | Tempo real por SSE: `GET /api/events` avisa as conexões abertas quando uma escrita termina bem; o cliente consome o stream com `fetch` (token no `Authorization`, nunca na query) e o poll caiu de 10 s para 60 s como rede de segurança | este commit | `server/api/events.ts`, `src/lib/backend/session.ts`, `nginx.conf` (`proxy_buffering off`), `tests/server-events.test.ts` (4 casos) |
+| 13  | Tempo real por SSE: `GET /api/events` avisa as conexões abertas quando uma escrita termina bem; o cliente consome o stream com `fetch` (token no `Authorization`, nunca na query) e o poll caiu de 10 s para 60 s como rede de segurança | `faea516`   | `server/api/events.ts`, `src/lib/backend/session.ts`, `nginx.conf` (`proxy_buffering off`), `tests/server-events.test.ts` (4 casos) |
+| 14  | Paginação por keyset no **servidor**: `GET /api/tickets` aceita `limit`/`cursor`, ordena por `(created_at, id)` e devolve `X-Next-Cursor`; sem parâmetros mantém a lista completa; laço com teto cobre o filtro de permissão pós-SELECT  | este commit | `server/api/tickets-page.ts`, `server/api/routes/tickets.ts`, `tests/tickets-page.test.ts` (10 casos)                               |
 
 ### Cobertura da suíte
 
@@ -240,11 +241,9 @@ Nota de ambiente: no sandbox do DSH o `vitest` via `bun run` falha com `EPERM` a
 
 ### Ainda pendente na Semana 2-3
 
-Paginação por keyset em `/api/tickets` (o SSE já resolveu a revalidação constante; agora falta limitar o tamanho da primeira carga).
+**Adoção da paginação no cliente.** O servidor já responde por keyset (item 14); falta o painel pedir a primeira página em vez da base inteira. Próximo passo:
 
-Plano para o próximo passo:
-
-1. **Helper puro** `buildTicketPage({ limit, cursor })` devolvendo `WHERE`/`ORDER BY`/`LIMIT` e parâmetros, com teste unitário — a ordenação atual é só `created_at DESC`; keyset exige `created_at DESC, id DESC` para ser estável.
-2. **Handler** `GET /api/tickets` aceitando `limit` e `cursor` e devolvendo `X-Next-Cursor`; sem parâmetros, mantém a resposta atual (array completo) para não quebrar o cliente.
-3. **Cuidado conhecido**: o filtro de permissão (`canViewTicket`) roda em JS depois do `SELECT`, então uma página pode voltar com menos itens visíveis que o `limit`. O handler precisa seguir buscando páginas cruas até completar a página visível ou esgotar as linhas (laço com teto).
-4. **Cliente**: o painel pede a primeira página e mostra "Carregar mais chamados" enquanto houver cursor, em vez de baixar a base inteira.
+1. **Transporte**: expor os headers da resposta. Hoje `apiFetch` devolve só o corpo, e `X-Next-Cursor` se perde — adicionar uma opção `withMeta` (ou um `pagedFetch`) em `src/lib/mysql-api.ts`.
+2. **Hook**: `usePagedQuery(ref, { pageSize })` em `src/lib/backend/react.ts`, acumulando páginas e devolvendo `loadMore()`/`hasMore`; ao receber `changed` do SSE, revalida a primeira página e mantém as já carregadas.
+3. **Painel**: `Dashboard.tsx` passa a pedir `limit: 200` e mostra "Carregar mais chamados" enquanto houver cursor.
+4. **Verificação**: teste do hook com `fetch` simulado (cursor inválido, fim da lista, revalidação por SSE) + smoke no navegador.

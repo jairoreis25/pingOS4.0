@@ -15,6 +15,13 @@ import { asyncHandler, badRequest, forbidden, notFound } from "../errors"
 import { toNumber, toPublicTicket, type TicketRow } from "../types"
 import { canEditTicket, canMoveTo, canViewTicket, isAdmin } from "../../../src/lib/permissions"
 import { isTicketCategory, normalizeTicketCategory } from "../../../src/lib/ticket-categories"
+import {
+  buildTicketPageQuery,
+  encodeTicketCursor,
+  parseTicketCursor,
+  parseTicketLimit,
+  type TicketCursor,
+} from "../tickets-page"
 
 const TICKET_STATUSES = ["aberto", "em_andamento", "aguardando", "resolvido", "fechado"] as const
 
@@ -38,6 +45,9 @@ const LIST_COLUMNS =
 
 type TicketStatus = (typeof TICKET_STATUSES)[number]
 type Priority = (typeof PRIORITIES)[number]
+
+/** Chamado "rico" devolvido pela API (nomes resolvidos por `enrichTicket`). */
+type Ticket = ReturnType<typeof enrichTicket>
 
 /**
  * Grava a transição de status no histórico (`ticket_status_events`).
@@ -228,31 +238,76 @@ async function resetInactivityLogs(ticketId: string): Promise<void> {
 
 export const ticketsRouter = Router()
 
-// ── GET /api/tickets — lista do Kanban ──────────────────────────────────────
+// ── GET /api/tickets — lista do Kanban (com paginação por keyset) ───────────
+// Sem `limit` devolve a lista completa (contrato antigo). Com `limit`, devolve
+// até `limit` chamados **visíveis** e o cursor da próxima página no header
+// `X-Next-Cursor`.
 ticketsRouter.get(
   "/",
   asyncHandler(async (req, res) => {
     const ctx = requirePermission(req, "tickets.view")
-    const [rows, enrichment] = await Promise.all([
-      query<TicketRow>(`SELECT ${LIST_COLUMNS} FROM \`tickets\` ORDER BY \`created_at\` DESC`),
-      loadEnrichment(),
-    ])
+    const limit = parseTicketLimit(req.query.limit)
+    const cursor = parseTicketCursor(req.query.cursor)
+    const enrichment = await loadEnrichment()
 
     const user = ctx.user
-    const visible = rows
-      .map((row) => enrichTicket(enrichment, row))
-      .filter((ticket) =>
-        canViewTicket(
-          ctx.permissions,
-          ticket.status,
-          ticket.assigneeId,
-          user.id,
-          ticket.assigneeName,
-          user.name,
-          isAdmin(user.role),
-        ),
+    const isVisible = (ticket: Ticket) =>
+      canViewTicket(
+        ctx.permissions,
+        ticket.status,
+        ticket.assigneeId,
+        user.id,
+        ticket.assigneeName,
+        user.name,
+        isAdmin(user.role),
       )
 
+    if (!limit) {
+      const rows = await query<TicketRow>(
+        `SELECT ${LIST_COLUMNS} FROM \`tickets\` ORDER BY \`created_at\` DESC, \`id\` DESC`,
+      )
+      res.json(rows.map((row) => enrichTicket(enrichment, row)).filter(isVisible))
+      return
+    }
+
+    // O filtro de permissão acontece depois do SELECT, então uma página crua pode
+    // render menos chamados visíveis que o `limit`: segue buscando (com teto)
+    // até completar a página ou acabar a tabela.
+    const MAX_RAW_PAGES = 5
+    const visible: Ticket[] = []
+    let nextCursor: TicketCursor | null = null
+    let pageCursor: TicketCursor | null = cursor
+
+    for (let page = 0; page < MAX_RAW_PAGES; page++) {
+      const { sql, params } = buildTicketPageQuery(LIST_COLUMNS, {
+        cursor: pageCursor,
+        limit,
+      })
+      const rows = await query<TicketRow>(sql, params)
+      if (rows.length === 0) {
+        nextCursor = null
+        break
+      }
+
+      for (const row of rows) {
+        if (visible.length >= limit) break
+        const ticket = enrichTicket(enrichment, row)
+        if (isVisible(ticket)) visible.push(ticket)
+      }
+
+      const last = rows[rows.length - 1]
+      pageCursor = { createdAt: Number(last.created_at), id: String(last.id) }
+      nextCursor = pageCursor
+
+      // Página crua incompleta = acabaram os registros.
+      if (rows.length < limit) {
+        nextCursor = null
+        break
+      }
+      if (visible.length >= limit) break
+    }
+
+    if (nextCursor) res.setHeader("X-Next-Cursor", encodeTicketCursor(nextCursor))
     res.json(visible)
   }),
 )
