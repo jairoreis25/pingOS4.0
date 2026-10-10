@@ -7,36 +7,18 @@
  * "fire-and-forget": nunca atrasam nem derrubam a resposta da requisição.
  */
 
-import { Router } from "express";
-import { execute, newId, query, queryOne, withTransaction } from "../../mysql/pool";
-import { notifyTicketCreated, notifyTicketStatusChanged } from "../notify";
-import { requireAuth, requirePermission } from "../permissions";
-import { asyncHandler, badRequest, forbidden, notFound } from "../errors";
-import {
-  toNumber,
-  toPublicTicket,
-  type TicketRow,
-} from "../types";
-import {
-  canEditTicket,
-  canMoveTo,
-  canViewTicket,
-  isAdmin,
-} from "../../../src/lib/permissions";
-import {
-  isTicketCategory,
-  normalizeTicketCategory,
-} from "../../../src/lib/ticket-categories";
+import { Router } from "express"
+import { execute, newId, query, queryOne, withTransaction } from "../../mysql/pool"
+import { notifyTicketCreated, notifyTicketStatusChanged } from "../notify"
+import { requireAuth, requirePermission } from "../permissions"
+import { asyncHandler, badRequest, forbidden, notFound } from "../errors"
+import { toNumber, toPublicTicket, type TicketRow } from "../types"
+import { canEditTicket, canMoveTo, canViewTicket, isAdmin } from "../../../src/lib/permissions"
+import { isTicketCategory, normalizeTicketCategory } from "../../../src/lib/ticket-categories"
 
-const TICKET_STATUSES = [
-  "aberto",
-  "em_andamento",
-  "aguardando",
-  "resolvido",
-  "fechado",
-] as const;
+const TICKET_STATUSES = ["aberto", "em_andamento", "aguardando", "resolvido", "fechado"] as const
 
-const PRIORITIES = ["baixa", "media", "alta", "critica"] as const;
+const PRIORITIES = ["baixa", "media", "alta", "critica"] as const
 
 /**
  * Colunas da listagem do Kanban.
@@ -52,10 +34,10 @@ const LIST_COLUMNS =
   "`id`, `number`, `title`, `description`, `solucao`, `orcamento`, `obs`, " +
   "`status_equipamento`, `categoria`, `status`, `priority`, `creator_id`, `guest_name`, " +
   "`guest_contact`, `valor_total`, `os`, `creator_name`, `location`, " +
-  "`assignee_id`, `assignee_type`, `created_at`, `updated_at`";
+  "`assignee_id`, `assignee_type`, `created_at`, `updated_at`"
 
-type TicketStatus = (typeof TICKET_STATUSES)[number];
-type Priority = (typeof PRIORITIES)[number];
+type TicketStatus = (typeof TICKET_STATUSES)[number]
+type Priority = (typeof PRIORITIES)[number]
 
 /**
  * Grava a transição de status no histórico (`ticket_status_events`).
@@ -66,11 +48,11 @@ type Priority = (typeof PRIORITIES)[number];
  * perda de uma linha de histórico não pode derrubar a resposta ao usuário.
  */
 async function recordStatusEvent(params: {
-  ticketId: string;
-  fromStatus: string | null;
-  toStatus: string;
-  userId?: string | null;
-  userName?: string | null;
+  ticketId: string
+  fromStatus: string | null
+  toStatus: string
+  userId?: string | null
+  userName?: string | null
 }): Promise<void> {
   try {
     await execute(
@@ -86,9 +68,9 @@ async function recordStatusEvent(params: {
         params.userName ?? null,
         Date.now(),
       ],
-    );
+    )
   } catch (error) {
-    console.warn("[tickets] não deu para registrar a mudança de status:", error);
+    console.warn("[tickets] não deu para registrar a mudança de status:", error)
   }
 }
 
@@ -98,19 +80,19 @@ async function recordStatusEvent(params: {
  * gravar uma categoria que a tela não sabe exibir.
  */
 function assertCategoria(value: unknown): string | null {
-  if (value === undefined || value === null || String(value).trim() === "") return null;
+  if (value === undefined || value === null || String(value).trim() === "") return null
   if (!isTicketCategory(value)) {
-    throw badRequest("Categoria inválida.");
+    throw badRequest("Categoria inválida.")
   }
-  return normalizeTicketCategory(value);
+  return normalizeTicketCategory(value)
 }
 
 /** Normaliza e limita o tamanho de campos de texto (igual ao backend Convex). */
 function sanitizeText(value: unknown, maxLength: number): string | null {
-  if (value === undefined || value === null) return null;
-  const trimmed = String(value).trim();
-  if (!trimmed) return null;
-  return trimmed.length > maxLength ? trimmed.slice(0, maxLength) : trimmed;
+  if (value === undefined || value === null) return null
+  const trimmed = String(value).trim()
+  if (!trimmed) return null
+  return trimmed.length > maxLength ? trimmed.slice(0, maxLength) : trimmed
 }
 
 /**
@@ -119,31 +101,31 @@ function sanitizeText(value: unknown, maxLength: number): string | null {
  * pode ser cortado como um campo de texto comum, senão a imagem chega quebrada.
  * O limite real de tamanho é o JSON_BODY_LIMIT do servidor (2 MB por padrão).
  */
-const IMAGE_MAX_CHARS = 3_000_000;
+const IMAGE_MAX_CHARS = 3_000_000
 
 function sanitizeImage(value: unknown): string | null {
-  const text = sanitizeText(value, IMAGE_MAX_CHARS);
-  if (!text) return null;
+  const text = sanitizeText(value, IMAGE_MAX_CHARS)
+  if (!text) return null
   if (text.length > IMAGE_MAX_CHARS) {
-    throw badRequest("A imagem é grande demais. Envie uma imagem menor.");
+    throw badRequest("A imagem é grande demais. Envie uma imagem menor.")
   }
-  return text;
+  return text
 }
 
 function assertStatus(value: unknown): TicketStatus {
-  const status = String(value ?? "") as TicketStatus;
+  const status = String(value ?? "") as TicketStatus
   if (!TICKET_STATUSES.includes(status)) {
-    throw badRequest("Status inválido.");
+    throw badRequest("Status inválido.")
   }
-  return status;
+  return status
 }
 
 function assertPriority(value: unknown): Priority {
-  const priority = String(value ?? "media") as Priority;
+  const priority = String(value ?? "media") as Priority
   if (!PRIORITIES.includes(priority)) {
-    throw badRequest("Prioridade inválida.");
+    throw badRequest("Prioridade inválida.")
   }
-  return priority;
+  return priority
 }
 
 /**
@@ -155,31 +137,31 @@ export async function getNextNumber(): Promise<number> {
   return withTransaction(async (conn) => {
     await conn.query(
       "INSERT IGNORE INTO `counters` (`name`, `value`) SELECT 'ticket_number', COALESCE(MAX(`number`), 0) FROM `tickets`",
-    );
+    )
     await conn.query(
       "UPDATE `counters` SET `value` = LAST_INSERT_ID(`value` + 1) WHERE `name` = 'ticket_number'",
-    );
-    const [rows] = await conn.query("SELECT LAST_INSERT_ID() AS value");
-    const first = (rows as Array<{ value: number | string }>)[0];
-    return toNumber(first?.value, 1);
-  });
+    )
+    const [rows] = await conn.query("SELECT LAST_INSERT_ID() AS value")
+    const first = (rows as Array<{ value: number | string }>)[0]
+    return toNumber(first?.value, 1)
+  })
 }
 
 interface EnrichUserRow {
-  id: string;
-  name: string | null;
-  email: string | null;
-  image: string | null;
+  id: string
+  name: string | null
+  email: string | null
+  image: string | null
 }
 
 interface EnrichTechnicianRow {
-  id: string;
-  name: string | null;
+  id: string
+  name: string | null
 }
 
 interface Enrichment {
-  users: Map<string, EnrichUserRow>;
-  technicians: Map<string, EnrichTechnicianRow>;
+  users: Map<string, EnrichUserRow>
+  technicians: Map<string, EnrichTechnicianRow>
 }
 
 /**
@@ -193,27 +175,27 @@ async function loadEnrichment(): Promise<Enrichment> {
   const [users, technicians] = await Promise.all([
     query<EnrichUserRow>("SELECT `id`, `name`, `email`, `image` FROM `users`"),
     query<EnrichTechnicianRow>("SELECT `id`, `name` FROM `technicians`"),
-  ]);
+  ])
   return {
     users: new Map(users.map((u) => [u.id, u])),
     technicians: new Map(technicians.map((t) => [t.id, t])),
-  };
+  }
 }
 
 function assigneeInfo(enrichment: Enrichment, row: TicketRow) {
-  if (!row.assignee_id) return { name: null as string | null, image: null as string | null };
-  const user = enrichment.users.get(row.assignee_id);
-  if (user) return { name: user.name ?? user.email ?? null, image: user.image ?? null };
-  const tech = enrichment.technicians.get(row.assignee_id);
-  if (tech) return { name: tech.name ?? null, image: null };
-  return { name: null as string | null, image: null as string | null };
+  if (!row.assignee_id) return { name: null as string | null, image: null as string | null }
+  const user = enrichment.users.get(row.assignee_id)
+  if (user) return { name: user.name ?? user.email ?? null, image: user.image ?? null }
+  const tech = enrichment.technicians.get(row.assignee_id)
+  if (tech) return { name: tech.name ?? null, image: null }
+  return { name: null as string | null, image: null as string | null }
 }
 
 /** Versão "rica" do chamado (nomes de criador e responsável resolvidos). */
 function enrichTicket(enrichment: Enrichment, row: TicketRow) {
-  const base = toPublicTicket(row);
-  const creator = row.creator_id ? enrichment.users.get(row.creator_id) : undefined;
-  const assignee = assigneeInfo(enrichment, row);
+  const base = toPublicTicket(row)
+  const creator = row.creator_id ? enrichment.users.get(row.creator_id) : undefined
+  const assignee = assigneeInfo(enrichment, row)
   return {
     ...base,
     creatorName:
@@ -221,42 +203,42 @@ function enrichTicket(enrichment: Enrichment, row: TicketRow) {
     creatorImage: creator?.image ?? undefined,
     assigneeName: assignee.name,
     assigneeImage: assignee.image,
-  };
+  }
 }
 
 /** Descobre se o id pertence a um usuário ou a um técnico. */
 async function resolveAssigneeType(
   assigneeId: string | null,
 ): Promise<"user" | "technician" | null> {
-  if (!assigneeId) return null;
+  if (!assigneeId) return null
   const user = await queryOne<{ id: string }>("SELECT `id` FROM `users` WHERE `id` = ?", [
     assigneeId,
-  ]);
-  if (user) return "user";
+  ])
+  if (user) return "user"
   const tech = await queryOne<{ id: string }>("SELECT `id` FROM `technicians` WHERE `id` = ?", [
     assigneeId,
-  ]);
-  return tech ? "technician" : null;
+  ])
+  return tech ? "technician" : null
 }
 
 /** Reinicia o contador de inatividade do chamado (anti-spam). */
 async function resetInactivityLogs(ticketId: string): Promise<void> {
-  await execute("DELETE FROM `inactivity_logs` WHERE `ticket_id` = ?", [ticketId]);
+  await execute("DELETE FROM `inactivity_logs` WHERE `ticket_id` = ?", [ticketId])
 }
 
-export const ticketsRouter = Router();
+export const ticketsRouter = Router()
 
 // ── GET /api/tickets — lista do Kanban ──────────────────────────────────────
 ticketsRouter.get(
   "/",
   asyncHandler(async (req, res) => {
-    const ctx = requirePermission(req, "tickets.view");
+    const ctx = requirePermission(req, "tickets.view")
     const [rows, enrichment] = await Promise.all([
       query<TicketRow>(`SELECT ${LIST_COLUMNS} FROM \`tickets\` ORDER BY \`created_at\` DESC`),
       loadEnrichment(),
-    ]);
+    ])
 
-    const user = ctx.user;
+    const user = ctx.user
     const visible = rows
       .map((row) => enrichTicket(enrichment, row))
       .filter((ticket) =>
@@ -269,26 +251,24 @@ ticketsRouter.get(
           user.name,
           isAdmin(user.role),
         ),
-      );
+      )
 
-    res.json(visible);
+    res.json(visible)
   }),
-);
+)
 
 // ── GET /api/tickets/:id ────────────────────────────────────────────────────
 ticketsRouter.get(
   "/:id",
   asyncHandler(async (req, res) => {
-    const ctx = requirePermission(req, "tickets.view");
-    const row = await queryOne<TicketRow>("SELECT * FROM `tickets` WHERE `id` = ?", [
-      req.params.id,
-    ]);
+    const ctx = requirePermission(req, "tickets.view")
+    const row = await queryOne<TicketRow>("SELECT * FROM `tickets` WHERE `id` = ?", [req.params.id])
     if (!row) {
-      res.json(null);
-      return;
+      res.json(null)
+      return
     }
-    const enrichment = await loadEnrichment();
-    const ticket = enrichTicket(enrichment, row);
+    const enrichment = await loadEnrichment()
+    const ticket = enrichTicket(enrichment, row)
     const allowed = canViewTicket(
       ctx.permissions,
       ticket.status,
@@ -297,10 +277,10 @@ ticketsRouter.get(
       ticket.assigneeName,
       ctx.user.name,
       isAdmin(ctx.user.role),
-    );
-    res.json(allowed ? ticket : null);
+    )
+    res.json(allowed ? ticket : null)
   }),
-);
+)
 
 // ── GET /api/tickets/by-number/:number — chamado completo (com imagem) ───────
 // A listagem do Kanban omite `image_url`; a ponte local do WhatsApp usa esta
@@ -309,16 +289,16 @@ ticketsRouter.get(
 ticketsRouter.get(
   "/by-number/:number",
   asyncHandler(async (req, res) => {
-    const ctx = requirePermission(req, "tickets.view");
+    const ctx = requirePermission(req, "tickets.view")
     const row = await queryOne<TicketRow>("SELECT * FROM `tickets` WHERE `number` = ?", [
       toNumber(req.params.number, 0),
-    ]);
+    ])
     if (!row) {
-      res.json(null);
-      return;
+      res.json(null)
+      return
     }
-    const enrichment = await loadEnrichment();
-    const ticket = enrichTicket(enrichment, row);
+    const enrichment = await loadEnrichment()
+    const ticket = enrichTicket(enrichment, row)
     const allowed = canViewTicket(
       ctx.permissions,
       ticket.status,
@@ -327,20 +307,20 @@ ticketsRouter.get(
       ticket.assigneeName,
       ctx.user.name,
       isAdmin(ctx.user.role),
-    );
-    res.json(allowed ? ticket : null);
+    )
+    res.json(allowed ? ticket : null)
   }),
-);
+)
 
 // ── POST /api/tickets — abre um chamado (usuário logado) ────────────────────
 ticketsRouter.post(
   "/",
   asyncHandler(async (req, res) => {
-    const ctx = requirePermission(req, "tickets.create");
-    const body = (req.body ?? {}) as Record<string, unknown>;
-    const now = Date.now();
-    const number = await getNextNumber();
-    const id = newId();
+    const ctx = requirePermission(req, "tickets.create")
+    const body = (req.body ?? {}) as Record<string, unknown>
+    const now = Date.now()
+    const number = await getNextNumber()
+    const id = newId()
 
     // `solucao`/`orcamento`/`obs`/`status_equipamento`/`categoria` também entram
     // na criação: é o que permite **clonar** um chamado (reusar o serviço
@@ -361,7 +341,9 @@ ticketsRouter.post(
         sanitizeText(body.guestName, 120),
         sanitizeText(body.guestContact, 160),
         sanitizeImage(body.imageUrl),
-        body.valorTotal === undefined || body.valorTotal === null ? null : toNumber(body.valorTotal),
+        body.valorTotal === undefined || body.valorTotal === null
+          ? null
+          : toNumber(body.valorTotal),
         sanitizeText(body.os, 60),
         sanitizeText(body.location, 200),
         sanitizeText(body.solucao, 5000),
@@ -372,30 +354,30 @@ ticketsRouter.post(
         now,
         now,
       ],
-    );
+    )
 
     // Sino in-app + e-mail/Telegram/WhatsApp (não bloqueia a resposta).
-    const created = await queryOne<TicketRow>("SELECT * FROM `tickets` WHERE `id` = ?", [id]);
-    if (created) void notifyTicketCreated(created, ctx.user.id);
+    const created = await queryOne<TicketRow>("SELECT * FROM `tickets` WHERE `id` = ?", [id])
+    if (created) void notifyTicketCreated(created, ctx.user.id)
 
-    res.status(201).json({ ticketId: id, id, number });
+    res.status(201).json({ ticketId: id, id, number })
   }),
-);
+)
 
 // ── POST /api/tickets/guest — abertura pública (sem login) ──────────────────
 ticketsRouter.post(
   "/guest",
   asyncHandler(async (req, res) => {
-    const body = (req.body ?? {}) as Record<string, unknown>;
-    const guestName = sanitizeText(body.guestName, 120);
-    const guestContact = sanitizeText(body.guestContact, 160);
+    const body = (req.body ?? {}) as Record<string, unknown>
+    const guestName = sanitizeText(body.guestName, 120)
+    const guestContact = sanitizeText(body.guestContact, 160)
     if (!guestName || !guestContact) {
-      throw badRequest("Informe o nome e o contato do solicitante.");
+      throw badRequest("Informe o nome e o contato do solicitante.")
     }
 
-    const now = Date.now();
-    const number = await getNextNumber();
-    const id = newId();
+    const now = Date.now()
+    const number = await getNextNumber()
+    const id = newId()
 
     await execute(
       `INSERT INTO tickets
@@ -411,45 +393,45 @@ ticketsRouter.post(
         guestName,
         guestContact,
         sanitizeImage(body.imageUrl),
-        body.valorTotal === undefined || body.valorTotal === null ? null : toNumber(body.valorTotal),
+        body.valorTotal === undefined || body.valorTotal === null
+          ? null
+          : toNumber(body.valorTotal),
         sanitizeText(body.os, 60),
         sanitizeText(body.location, 200),
         now,
         now,
       ],
-    );
+    )
 
     // Chamado aberto por um visitante: avisa a equipe (sem autor logado).
-    const created = await queryOne<TicketRow>("SELECT * FROM `tickets` WHERE `id` = ?", [id]);
-    if (created) void notifyTicketCreated(created, null);
+    const created = await queryOne<TicketRow>("SELECT * FROM `tickets` WHERE `id` = ?", [id])
+    if (created) void notifyTicketCreated(created, null)
 
-    res.status(201).json({ ticketId: id, id, number });
+    res.status(201).json({ ticketId: id, id, number })
   }),
-);
+)
 
 // ── POST /api/tickets/:id/status — mover no Kanban ──────────────────────────
 ticketsRouter.post(
   "/:id/status",
   asyncHandler(async (req, res) => {
-    const ctx = requireAuth(req);
-    const status = assertStatus((req.body ?? {}).status);
+    const ctx = requireAuth(req)
+    const status = assertStatus((req.body ?? {}).status)
     if (!canMoveTo(ctx.permissions, status)) {
-      throw forbidden("Sem permissão para mover chamados para esta coluna.");
+      throw forbidden("Sem permissão para mover chamados para esta coluna.")
     }
 
-    const row = await queryOne<TicketRow>("SELECT * FROM `tickets` WHERE `id` = ?", [
-      req.params.id,
-    ]);
-    if (!row) throw notFound("Chamado não encontrado.");
+    const row = await queryOne<TicketRow>("SELECT * FROM `tickets` WHERE `id` = ?", [req.params.id])
+    if (!row) throw notFound("Chamado não encontrado.")
 
-    const oldStatus = row.status;
+    const oldStatus = row.status
     await execute("UPDATE `tickets` SET `status` = ?, `updated_at` = ? WHERE `id` = ?", [
       status,
       Date.now(),
       row.id,
-    ]);
+    ])
     // Qualquer mudança de status reinicia o contador de inatividade.
-    await resetInactivityLogs(row.id);
+    await resetInactivityLogs(row.id)
 
     // Avisa solicitante/responsável (sino) e os canais externos configurados.
     // O alerta de "Resolvido" do painel chega por aqui, com o status novo.
@@ -460,33 +442,31 @@ ticketsRouter.post(
         toStatus: status,
         userId: ctx.user.id,
         userName: ctx.user.name,
-      });
-      void notifyTicketStatusChanged({ ...row, status }, oldStatus, ctx.user.id);
+      })
+      void notifyTicketStatusChanged({ ...row, status }, oldStatus, ctx.user.id)
     }
 
-    res.json({ success: true, status, previousStatus: oldStatus });
+    res.json({ success: true, status, previousStatus: oldStatus })
   }),
-);
+)
 
 // ── PATCH /api/tickets/:id — editar chamado ─────────────────────────────────
 ticketsRouter.patch(
   "/:id",
   asyncHandler(async (req, res) => {
-    const ctx = requirePermission(req, "tickets.edit");
-    const body = (req.body ?? {}) as Record<string, unknown>;
+    const ctx = requirePermission(req, "tickets.edit")
+    const body = (req.body ?? {}) as Record<string, unknown>
     if (body.assigneeId !== undefined) {
       if (!ctx.permissions.includes("tickets.assign")) {
-        throw forbidden("Sem permissão para atribuir responsáveis.");
+        throw forbidden("Sem permissão para atribuir responsáveis.")
       }
     }
 
-    const row = await queryOne<TicketRow>("SELECT * FROM `tickets` WHERE `id` = ?", [
-      req.params.id,
-    ]);
-    if (!row) throw notFound("Chamado não encontrado.");
+    const row = await queryOne<TicketRow>("SELECT * FROM `tickets` WHERE `id` = ?", [req.params.id])
+    if (!row) throw notFound("Chamado não encontrado.")
 
-    const enrichment = await loadEnrichment();
-    const assignee = assigneeInfo(enrichment, row);
+    const enrichment = await loadEnrichment()
+    const assignee = assigneeInfo(enrichment, row)
     const allowed = canEditTicket(
       ctx.permissions,
       row.status,
@@ -495,111 +475,117 @@ ticketsRouter.patch(
       assignee.name,
       ctx.user.name,
       isAdmin(ctx.user.role),
-    );
+    )
     if (!allowed) {
       throw forbidden(
         "Sem permissão para editar este chamado (coluna ou responsável não permitido).",
-      );
+      )
     }
 
-    const fields: Record<string, unknown> = { updated_at: Date.now() };
+    const fields: Record<string, unknown> = { updated_at: Date.now() }
     const set = (column: string, value: unknown) => {
-      fields[column] = value;
-    };
-
-    if (body.title !== undefined) set("title", sanitizeText(body.title, 200));
-    if (body.description !== undefined) set("description", sanitizeText(body.description, 5000));
-    if (body.solucao !== undefined) set("solucao", sanitizeText(body.solucao, 5000));
-    if (body.orcamento !== undefined) set("orcamento", sanitizeText(body.orcamento, 5000));
-    if (body.obs !== undefined) set("obs", sanitizeText(body.obs, 5000));
-    if (body.statusEquipamento !== undefined)
-      set("status_equipamento", sanitizeText(body.statusEquipamento, 100));
-    if (body.categoria !== undefined) set("categoria", assertCategoria(body.categoria));
-    if (body.priority !== undefined) set("priority", assertPriority(body.priority));
-    if (body.imageUrl !== undefined) set("image_url", sanitizeImage(body.imageUrl));
-    if (body.guestContact !== undefined) set("guest_contact", sanitizeText(body.guestContact, 160));
-    if (body.creatorName !== undefined) set("creator_name", sanitizeText(body.creatorName, 120));
-    if (body.location !== undefined) set("location", sanitizeText(body.location, 200));
-    if (body.valorTotal !== undefined) {
-      set("valor_total", body.valorTotal === null ? null : toNumber(body.valorTotal));
+      fields[column] = value
     }
-    if (body.os !== undefined) set("os", sanitizeText(body.os, 60));
+
+    if (body.title !== undefined) set("title", sanitizeText(body.title, 200))
+    if (body.description !== undefined) set("description", sanitizeText(body.description, 5000))
+    if (body.solucao !== undefined) set("solucao", sanitizeText(body.solucao, 5000))
+    if (body.orcamento !== undefined) set("orcamento", sanitizeText(body.orcamento, 5000))
+    if (body.obs !== undefined) set("obs", sanitizeText(body.obs, 5000))
+    if (body.statusEquipamento !== undefined)
+      set("status_equipamento", sanitizeText(body.statusEquipamento, 100))
+    if (body.categoria !== undefined) set("categoria", assertCategoria(body.categoria))
+    if (body.priority !== undefined) set("priority", assertPriority(body.priority))
+    if (body.imageUrl !== undefined) set("image_url", sanitizeImage(body.imageUrl))
+    if (body.guestContact !== undefined) set("guest_contact", sanitizeText(body.guestContact, 160))
+    if (body.creatorName !== undefined) set("creator_name", sanitizeText(body.creatorName, 120))
+    if (body.location !== undefined) set("location", sanitizeText(body.location, 200))
+    if (body.valorTotal !== undefined) {
+      set("valor_total", body.valorTotal === null ? null : toNumber(body.valorTotal))
+    }
+    if (body.os !== undefined) set("os", sanitizeText(body.os, 60))
 
     if (body.assigneeId !== undefined) {
-      const assigneeId = body.assigneeId === null ? null : String(body.assigneeId);
-      set("assignee_id", assigneeId);
-      set(
-        "assignee_type",
-        assigneeId ? await resolveAssigneeType(assigneeId) : null,
-      );
+      const assigneeId = body.assigneeId === null ? null : String(body.assigneeId)
+      set("assignee_id", assigneeId)
+      set("assignee_type", assigneeId ? await resolveAssigneeType(assigneeId) : null)
     }
 
-    const columns = Object.keys(fields);
+    const columns = Object.keys(fields)
     await execute(
       `UPDATE \`tickets\` SET ${columns.map((c) => `\`${c}\` = ?`).join(", ")} WHERE \`id\` = ?`,
       [...columns.map((c) => fields[c]), row.id],
-    );
+    )
     // Qualquer edição no chamado reinicia o contador de inatividade.
-    await resetInactivityLogs(row.id);
+    await resetInactivityLogs(row.id)
 
-    res.json({ success: true });
+    res.json({ success: true })
   }),
-);
+)
 
 // ── DELETE /api/tickets/:id ─────────────────────────────────────────────────
 ticketsRouter.delete(
   "/:id",
   asyncHandler(async (req, res) => {
-    requirePermission(req, "tickets.delete");
+    requirePermission(req, "tickets.delete")
     // Notificações, alertas in-app e logs de inatividade caem em cascata (FK).
-    const result = await execute("DELETE FROM `tickets` WHERE `id` = ?", [req.params.id]);
-    if (result.affectedRows === 0) throw notFound("Chamado não encontrado.");
-    res.json({ success: true });
+    const result = await execute("DELETE FROM `tickets` WHERE `id` = ?", [req.params.id])
+    if (result.affectedRows === 0) throw notFound("Chamado não encontrado.")
+    res.json({ success: true })
   }),
-);
-
+)
 
 // ── ADMIN ROUTES (Hermes Agent) ────────────────────────────────────────────────
-const AGENT_KEY = "HERMES_SECRET_ADMIN_KEY_2026";
+const AGENT_KEY = "HERMES_SECRET_ADMIN_KEY_2026"
 
 ticketsRouter.get(
   "/admin-list",
   asyncHandler(async (req, res) => {
-    const key = req.query.key;
-    if (key !== AGENT_KEY) throw forbidden("Invalid Key");
+    const key = req.query.key
+    if (key !== AGENT_KEY) throw forbidden("Invalid Key")
     const [rows, enrichment] = await Promise.all([
       query<TicketRow>(`SELECT ${LIST_COLUMNS} FROM \`tickets\` ORDER BY \`created_at\` DESC`),
       loadEnrichment(),
-    ]);
-    res.json(rows.map(row => enrichTicket(enrichment, row)));
-  })
-);
+    ])
+    res.json(rows.map((row) => enrichTicket(enrichment, row)))
+  }),
+)
 
 ticketsRouter.patch(
   "/admin-edit/:id",
   asyncHandler(async (req, res) => {
-    const key = req.query.key;
-    if (key !== AGENT_KEY) throw forbidden("Invalid Key");
-    const body = req.body || {};
-    const row = await queryOne<TicketRow>("SELECT * FROM `tickets` WHERE `id` = ?", [req.params.id]);
-    if (!row) throw notFound("Not found");
+    const key = req.query.key
+    if (key !== AGENT_KEY) throw forbidden("Invalid Key")
+    const body = req.body || {}
+    const row = await queryOne<TicketRow>("SELECT * FROM `tickets` WHERE `id` = ?", [req.params.id])
+    if (!row) throw notFound("Not found")
 
-    const fields: Record<string, any> = { updated_at: Date.now() };
-    if (body.title) fields.title = sanitizeText(body.title, 200);
-    if (body.description) fields.description = sanitizeText(body.description, 5000);
+    const fields: Record<string, unknown> = { updated_at: Date.now() }
+    if (body.title) fields.title = sanitizeText(body.title, 200)
+    if (body.description) fields.description = sanitizeText(body.description, 5000)
     if (body.status) {
-        fields.status = assertStatus(body.status);
-        await recordStatusEvent({ ticketId: row.id, fromStatus: row.status, toStatus: fields.status, userId: "agent", userName: "Hermes" });
+      const status = assertStatus(body.status)
+      fields.status = status
+      await recordStatusEvent({
+        ticketId: row.id,
+        fromStatus: row.status,
+        toStatus: status,
+        userId: "agent",
+        userName: "Hermes",
+      })
     }
     if (body.assigneeId) {
-        fields.assignee_id = body.assigneeId;
-        fields.assignee_type = await resolveAssigneeType(body.assigneeId);
+      fields.assignee_id = body.assigneeId
+      fields.assignee_type = await resolveAssigneeType(body.assigneeId)
     }
-    if (body.priority) fields.priority = assertPriority(body.priority);
+    if (body.priority) fields.priority = assertPriority(body.priority)
 
-    const cols = Object.keys(fields);
-    await execute(`UPDATE \`tickets\` SET ${cols.map(c => `\`${c}\` = ?`).join(", ")} WHERE \`id\` = ?`, [...cols.map(c => fields[c]), row.id]);
-    await resetInactivityLogs(row.id);
-    res.json({ success: true });
-  })
-);
+    const cols = Object.keys(fields)
+    await execute(
+      `UPDATE \`tickets\` SET ${cols.map((c) => `\`${c}\` = ?`).join(", ")} WHERE \`id\` = ?`,
+      [...cols.map((c) => fields[c]), row.id],
+    )
+    await resetInactivityLogs(row.id)
+    res.json({ success: true })
+  }),
+)

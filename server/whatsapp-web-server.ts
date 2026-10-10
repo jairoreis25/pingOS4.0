@@ -1,6 +1,6 @@
 /**
  * WhatsApp Web Bridge Server (Baileys)
- * 
+ *
  * Uses @whiskeysockets/baileys - pure JavaScript, no Chrome/Puppeteer needed.
  * Run: bun run server/whatsapp-web-server.ts  (port: $PORT or 3001)
  *
@@ -24,118 +24,118 @@
  * - POST /logout  — Disconnect and clear session
  */
 
-import express from "express";
-import cors from "cors";
-import fs from "fs";
+import express from "express"
+import cors from "cors"
+import fs from "fs"
 import {
   default as makeWASocket,
-  useMultiFileAuthState,
+  useMultiFileAuthState as createMultiFileAuthState,
   DisconnectReason,
   fetchLatestBaileysVersion,
   makeCacheableSignalKeyStore,
-  isJidUser,
-} from "@whiskeysockets/baileys";
-import path from "path";
-import pino from "pino";
+} from "@whiskeysockets/baileys"
+import path from "path"
+import pino from "pino"
 
-const app = express();
-app.use(cors());
-app.use(express.json({ limit: "20mb" }));
+const app = express()
+app.use(cors())
+app.use(express.json({ limit: "20mb" }))
 
-const PORT = Number(process.env.PORT) || 3001;
+const PORT = Number(process.env.PORT) || 3001
 // Session directory is configurable (Docker mounts a volume at
 // /data/whatsapp-session); defaults to ./whatsapp-session for local runs.
-const SESSION_DIR = process.env.SESSION_DIR || path.join(process.cwd(), "whatsapp-session");
+const SESSION_DIR = process.env.SESSION_DIR || path.join(process.cwd(), "whatsapp-session")
 
 // ── Log capture (for the web console page) ───────────────────────────────────
-const logBuffer: string[] = [];
-const MAX_LOG_LINES = 300;
-const origLog = console.log.bind(console);
+const logBuffer: string[] = []
+const MAX_LOG_LINES = 300
+const origLog = console.log.bind(console)
 function captureLog(...args: unknown[]) {
   const line = args
     .map((a) => {
-      if (typeof a === "string") return a;
+      if (typeof a === "string") return a
       try {
-        return JSON.stringify(a);
+        return JSON.stringify(a)
       } catch {
-        return String(a);
+        return String(a)
       }
     })
-    .join(" ");
-  logBuffer.push(`[${new Date().toLocaleTimeString("pt-BR")}] ${line}`);
+    .join(" ")
+  logBuffer.push(`[${new Date().toLocaleTimeString("pt-BR")}] ${line}`)
   if (logBuffer.length > MAX_LOG_LINES) {
-    logBuffer.splice(0, logBuffer.length - MAX_LOG_LINES);
+    logBuffer.splice(0, logBuffer.length - MAX_LOG_LINES)
   }
-  origLog(...args);
+  origLog(...args)
 }
-console.log = captureLog;
+console.log = captureLog
 
 // ── State ──────────────────────────────────────────────────────────────────────
-let sock: ReturnType<typeof makeWASocket> | null = null;
-let connectionStatus = "disconnected";
-let qrCodeDataUrl: string | null = null;
-let phoneInfo: { phone?: string; name?: string } = {};
-let reconnectAttempts = 0;
-const MAX_RECONNECT_ATTEMPTS = 5;
+let sock: ReturnType<typeof makeWASocket> | null = null
+let connectionStatus = "disconnected"
+let qrCodeDataUrl: string | null = null
+let phoneInfo: { phone?: string; name?: string } = {}
+let reconnectAttempts = 0
+const MAX_RECONNECT_ATTEMPTS = 5
 
 // ── Envio pausado (Configurações → WhatsApp Web no painel do PingOS) ─────────
 // Pausar NÃO desconecta o WhatsApp: a sessão pareada continua ativa e os
 // envios apenas param. O estado fica salvo dentro da pasta da sessão (o volume
 // do Docker), então sobrevive a reinícios do container — só um logout explícito
 // (que limpa a sessão inteira) volta ao estado "ativo".
-const PAUSE_FILE = path.join(SESSION_DIR, "pingos-paused.json");
-let sendingPaused = false;
+const PAUSE_FILE = path.join(SESSION_DIR, "pingos-paused.json")
+let sendingPaused = false
 
 function loadPauseState() {
   try {
-    if (!fs.existsSync(PAUSE_FILE)) return;
-    const raw = JSON.parse(fs.readFileSync(PAUSE_FILE, "utf8")) as { paused?: boolean };
-    sendingPaused = raw.paused === true;
-    console.log(`Estado de envio carregado: ${sendingPaused ? "pausado" : "ativo"}`);
+    if (!fs.existsSync(PAUSE_FILE)) return
+    const raw = JSON.parse(fs.readFileSync(PAUSE_FILE, "utf8")) as { paused?: boolean }
+    sendingPaused = raw.paused === true
+    console.log(`Estado de envio carregado: ${sendingPaused ? "pausado" : "ativo"}`)
   } catch (error) {
-    console.warn("Não deu para ler o estado de pausa:", error);
+    console.warn("Não deu para ler o estado de pausa:", error)
   }
 }
 
 function savePauseState() {
   try {
-    fs.mkdirSync(SESSION_DIR, { recursive: true });
-    fs.writeFileSync(
-      PAUSE_FILE,
-      JSON.stringify({ paused: sendingPaused, at: Date.now() }, null, 2),
-    );
+    fs.mkdirSync(SESSION_DIR, { recursive: true })
+    fs.writeFileSync(PAUSE_FILE, JSON.stringify({ paused: sendingPaused, at: Date.now() }, null, 2))
   } catch (error) {
-    console.warn("Não deu para salvar o estado de pausa:", error);
+    console.warn("Não deu para salvar o estado de pausa:", error)
   }
 }
 
-loadPauseState();
+loadPauseState()
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 function formatPhone(phone: string): string {
-  let digits = phone.replace(/\D/g, "");
+  let digits = phone.replace(/\D/g, "")
   // Auto-add Brazil country code if missing
   if (!digits.startsWith("55")) {
-    digits = "55" + digits;
+    digits = "55" + digits
   }
   // Remove the mobile "9" prefix (3rd digit after country code) if present
   // e.g. 5594991112740 → 559491112740 (13→12 digits)
   if (digits.length === 13 && digits[4] === "9") {
-    digits = digits.slice(0, 4) + digits.slice(5);
+    digits = digits.slice(0, 4) + digits.slice(5)
   }
-  return digits + "@s.whatsapp.net";
+  return digits + "@s.whatsapp.net"
 }
 
 // ── Connect ────────────────────────────────────────────────────────────────────
 async function startSock() {
   // Prevent multiple simultaneous connections
   if (sock) {
-    try { sock.end(undefined); } catch {}
-    sock = null;
+    try {
+      sock.end(undefined)
+    } catch {
+      /* sessão anterior já encerrada: nada a fazer */
+    }
+    sock = null
   }
 
-  const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
-  const { version } = await fetchLatestBaileysVersion();
+  const { state, saveCreds } = await createMultiFileAuthState(SESSION_DIR)
+  const { version } = await fetchLatestBaileysVersion()
 
   sock = makeWASocket({
     version,
@@ -146,105 +146,108 @@ async function startSock() {
     printQRInTerminal: false,
     generateHighQualityLinkPreview: false,
     syncFullHistory: false,
-  });
+  })
 
   // ── Connection update ──────────────────────────────────────────────────────
   sock.ev.on("connection.update", async (update) => {
-    const { connection, lastDisconnect, qr } = update;
+    const { connection, lastDisconnect, qr } = update
 
     if (qr) {
-      const QRCode = await import("qrcode");
+      const QRCode = await import("qrcode")
       qrCodeDataUrl = await QRCode.toDataURL(qr, {
         width: 300,
         margin: 2,
-      });
-      connectionStatus = "waiting_for_qr";
-      reconnectAttempts = 0;
-      console.log("QR Code generated — scan with WhatsApp");
+      })
+      connectionStatus = "waiting_for_qr"
+      reconnectAttempts = 0
+      console.log("QR Code generated — scan with WhatsApp")
       // Also print an ASCII QR directly in the terminal, so it can be scanned
       // even without opening the browser page (PowerShell / Windows Terminal).
       try {
         const ascii = await QRCode.toString(qr, {
           type: "terminal",
           small: true,
-        });
-        console.log(ascii);
-      } catch {}
+        })
+        console.log(ascii)
+      } catch {
+        /* QR ASCII é só um extra no terminal: se falhar, segue o fluxo */
+      }
     }
 
     if (connection === "close") {
-      const statusCode = lastDisconnect?.error?.output?.statusCode;
-      const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+      const statusCode = lastDisconnect?.error?.output?.statusCode
+      const shouldReconnect = statusCode !== DisconnectReason.loggedOut
 
-      console.log(`Connection closed. Status: ${statusCode}. Reconnect: ${shouldReconnect}`);
+      console.log(`Connection closed. Status: ${statusCode}. Reconnect: ${shouldReconnect}`)
 
-      qrCodeDataUrl = null;
+      qrCodeDataUrl = null
 
       if (shouldReconnect && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-        reconnectAttempts++;
-        connectionStatus = "reconnecting";
-        console.log(`Reconnecting... (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`);
+        reconnectAttempts++
+        connectionStatus = "reconnecting"
+        console.log(`Reconnecting... (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`)
 
         // Wait before reconnecting
-        await new Promise((r) => setTimeout(r, 2000 * reconnectAttempts));
-        startSock();
+        await new Promise((r) => setTimeout(r, 2000 * reconnectAttempts))
+        startSock()
       } else {
         // Max retries reached or logged out — clear session and reset
-        connectionStatus = "disconnected";
-        phoneInfo = {};
-        reconnectAttempts = 0;
+        connectionStatus = "disconnected"
+        phoneInfo = {}
+        reconnectAttempts = 0
 
         // Clear invalid session files so a new QR can be generated
         try {
-          const fs = await import("fs");
+          const fs = await import("fs")
           if (fs.existsSync(SESSION_DIR)) {
-            fs.rmSync(SESSION_DIR, { recursive: true, force: true });
-            console.log("Session cleared — will generate new QR on next connection");
+            fs.rmSync(SESSION_DIR, { recursive: true, force: true })
+            console.log("Session cleared — will generate new QR on next connection")
           }
-        } catch {}
+        } catch {
+          /* limpeza da sessão é best-effort: se falhar, o próximo QR resolve */
+        }
 
         // Auto-start a fresh connection so a new QR code is generated,
         // including after a logout (e.g. user disconnected from the phone)
-        console.log("Starting fresh connection for new QR code...");
+        console.log("Starting fresh connection for new QR code...")
         setTimeout(() => {
-          connectionStatus = "disconnected";
-          startSock();
-        }, 1000);
+          connectionStatus = "disconnected"
+          startSock()
+        }, 1000)
       }
     }
 
     if (connection === "open") {
-      connectionStatus = "connected";
-      qrCodeDataUrl = null;
-      reconnectAttempts = 0;
+      connectionStatus = "connected"
+      qrCodeDataUrl = null
+      reconnectAttempts = 0
 
-      const me = sock?.user;
+      const me = sock?.user
       if (me) {
         phoneInfo = {
           phone: me.id?.replace(/:.*@/, "@").split("@")[0],
           name: me.name,
-        };
+        }
       }
-      console.log(`Connected as ${phoneInfo.name} (${phoneInfo.phone})`);
+      console.log(`Connected as ${phoneInfo.name} (${phoneInfo.phone})`)
     }
-  });
+  })
 
   // ── Save credentials on update ────────────────────────────────────────────
-  sock.ev.on("creds.update", saveCreds);
+  sock.ev.on("creds.update", saveCreds)
 
   // ── Log incoming messages (optional) ──────────────────────────────────────
   sock.ev.on("messages.upsert", ({ messages }) => {
     for (const msg of messages) {
       if (!msg.key.fromMe && msg.message) {
-        const from = msg.key.remoteJid;
-        const body =
-          msg.message.conversation || msg.message.extendedTextMessage?.text || "";
+        const from = msg.key.remoteJid
+        const body = msg.message.conversation || msg.message.extendedTextMessage?.text || ""
         if (body) {
-          console.log(`📩 ${from}: ${body.slice(0, 80)}`);
+          console.log(`📩 ${from}: ${body.slice(0, 80)}`)
         }
       }
     }
-  });
+  })
 
   // ── Log delivery receipts ─────────────────────────────────────────────────
   sock.ev.on("messages.update", (messages) => {
@@ -258,12 +261,12 @@ async function startSock() {
           4: "READ",
           5: "PLAYED",
           6: "COMPOSED",
-        };
-        const statusName = statusMap[msg.update.status] || `UNKNOWN(${msg.update.status})`;
-        console.log(`📨 Message ${msg.key?.id?.slice(0, 8)}... → ${statusName}`);
+        }
+        const statusName = statusMap[msg.update.status] || `UNKNOWN(${msg.update.status})`
+        console.log(`📨 Message ${msg.key?.id?.slice(0, 8)}... → ${statusName}`)
       }
     }
-  });
+  })
 }
 
 // ── Routes ─────────────────────────────────────────────────────────────────────
@@ -271,132 +274,130 @@ async function startSock() {
 // QR Code
 app.get("/qr", async (_req, res) => {
   if (connectionStatus === "connected") {
-    return res.json({ status: "connected", qr: null, paused: sendingPaused });
+    return res.json({ status: "connected", qr: null, paused: sendingPaused })
   }
   if (qrCodeDataUrl) {
-    return res.json({ status: connectionStatus, qr: qrCodeDataUrl, paused: sendingPaused });
+    return res.json({ status: connectionStatus, qr: qrCodeDataUrl, paused: sendingPaused })
   }
-  return res.json({ status: connectionStatus, qr: null, paused: sendingPaused });
-});
+  return res.json({ status: connectionStatus, qr: null, paused: sendingPaused })
+})
 
 // Status
 app.get("/status", (_req, res) => {
-  res.json({ status: connectionStatus, info: phoneInfo, paused: sendingPaused });
-});
+  res.json({ status: connectionStatus, info: phoneInfo, paused: sendingPaused })
+})
 
 // Pausar os envios (mantém a conexão e o pareamento intactos)
 app.post("/pause", (_req, res) => {
-  sendingPaused = true;
-  savePauseState();
-  console.log("⏸️  Envio de mensagens pausado pelo painel");
-  res.json({ success: true, paused: true });
-});
+  sendingPaused = true
+  savePauseState()
+  console.log("⏸️  Envio de mensagens pausado pelo painel")
+  res.json({ success: true, paused: true })
+})
 
 // Retomar os envios
 app.post("/resume", (_req, res) => {
-  sendingPaused = false;
-  savePauseState();
-  console.log("▶️  Envio de mensagens retomado pelo painel");
-  res.json({ success: true, paused: false });
-});
+  sendingPaused = false
+  savePauseState()
+  console.log("▶️  Envio de mensagens retomado pelo painel")
+  res.json({ success: true, paused: false })
+})
 
 // Send message
 app.post("/send", async (req, res) => {
-  const { phone, message, image } = req.body;
+  const { phone, message, image } = req.body
 
-  console.log(`\n📤 POST /send received — phone: ${phone}`);
-  console.log(`   Message preview: ${message?.slice(0, 100)}...`);
-  console.log(`   Has image: ${!!image}`);
+  console.log(`\n📤 POST /send received — phone: ${phone}`)
+  console.log(`   Message preview: ${message?.slice(0, 100)}...`)
+  console.log(`   Has image: ${!!image}`)
 
   if (!phone || !message) {
-    console.error("   ❌ Missing phone or message");
-    return res
-      .status(400)
-      .json({ error: "phone and message are required" });
+    console.error("   ❌ Missing phone or message")
+    return res.status(400).json({ error: "phone and message are required" })
   }
 
   if (sendingPaused) {
-    console.log("   ⏸️  Envio pausado no painel — mensagem ignorada");
+    console.log("   ⏸️  Envio pausado no painel — mensagem ignorada")
     return res.status(409).json({
       error: "Envio de mensagens pausado no painel do PingOS",
       paused: true,
-    });
+    })
   }
 
   if (!sock || connectionStatus !== "connected") {
-    console.error(`   ❌ WhatsApp not connected (status: ${connectionStatus})`);
-    return res.status(503).json({ error: "WhatsApp not connected" });
+    console.error(`   ❌ WhatsApp not connected (status: ${connectionStatus})`)
+    return res.status(503).json({ error: "WhatsApp not connected" })
   }
 
   try {
-    const jid = formatPhone(phone);
-    const number = jid.replace("@s.whatsapp.net", "");
-    console.log(`   Normalized JID: ${jid}`);
+    const jid = formatPhone(phone)
+    const number = jid.replace("@s.whatsapp.net", "")
+    console.log(`   Normalized JID: ${jid}`)
 
-    const [check] = await sock.onWhatsApp(jid);
+    const [check] = await sock.onWhatsApp(jid)
     if (!check?.exists) {
-      console.error(`   ❌ Phone ${phone} (normalized: ${number}) is not on WhatsApp`);
-      return res.status(400).json({ error: "Phone number is not on WhatsApp" });
+      console.error(`   ❌ Phone ${phone} (normalized: ${number}) is not on WhatsApp`)
+      return res.status(400).json({ error: "Phone number is not on WhatsApp" })
     }
 
     // Keep as-is if valid
 
-    console.log(`   Sending to JID: ${jid}`);
+    console.log(`   Sending to JID: ${jid}`)
 
-    let result;
+    let result
     if (image) {
       // Convert base64 data URL to Buffer
-      let imageBuffer: Buffer;
+      let imageBuffer: Buffer
       if (image.startsWith("data:")) {
-        const base64 = image.split(",")[1];
-        imageBuffer = Buffer.from(base64, "base64");
+        const base64 = image.split(",")[1]
+        imageBuffer = Buffer.from(base64, "base64")
       } else {
-        imageBuffer = Buffer.from(image, "base64");
+        imageBuffer = Buffer.from(image, "base64")
       }
-      console.log(`   📷 Sending image (${imageBuffer.length} bytes) with caption...`);
-      result = await sock.sendMessage(jid, { image: imageBuffer, caption: message });
+      console.log(`   📷 Sending image (${imageBuffer.length} bytes) with caption...`)
+      result = await sock.sendMessage(jid, { image: imageBuffer, caption: message })
     } else {
-      result = await sock.sendMessage(jid, { text: message });
+      result = await sock.sendMessage(jid, { text: message })
     }
-    console.log(`   ✅ Message sent! Key ID: ${result?.key?.id}`);
-    console.log(`   Delivery status will appear in logs shortly.`);
-    res.json({ success: true, message: "Message sent", jid, keyId: result?.key?.id });
+    console.log(`   ✅ Message sent! Key ID: ${result?.key?.id}`)
+    console.log(`   Delivery status will appear in logs shortly.`)
+    res.json({ success: true, message: "Message sent", jid, keyId: result?.key?.id })
   } catch (error) {
-    console.error(`   ❌ Send error:`, error);
+    console.error(`   ❌ Send error:`, error)
     res.status(500).json({
       error: "Failed to send message",
       details: error instanceof Error ? error.message : String(error),
-    });
+    })
   }
-});
+})
 
 // Logout
 app.post("/logout", async (_req, res) => {
   try {
     if (sock) {
-      await sock.logout();
-      sock = null;
+      await sock.logout()
+      sock = null
     }
-    connectionStatus = "disconnected";
-    qrCodeDataUrl = null;
-    phoneInfo = {};
-    reconnectAttempts = 0;
+    connectionStatus = "disconnected"
+    qrCodeDataUrl = null
+    phoneInfo = {}
+    reconnectAttempts = 0
 
     // Clear session files
-    const fs = await import("fs");
+    const fs = await import("fs")
     if (fs.existsSync(SESSION_DIR)) {
-      fs.rmSync(SESSION_DIR, { recursive: true, force: true });
+      fs.rmSync(SESSION_DIR, { recursive: true, force: true })
     }
 
-    console.log("Logged out and session cleared");
-    res.json({ success: true, message: "Logged out" });
+    console.log("Logged out and session cleared")
+    res.json({ success: true, message: "Logged out" })
   } catch (error) {
     res.status(500).json({
       error: "Logout failed",
       details: error instanceof Error ? error.message : String(error),
-    });
+    })
   }
-});
+})
 
 // ── Web console page ───────────────────────────────────────────────────────────
 const PANEL_HTML = `<!doctype html>
@@ -538,7 +539,7 @@ const PANEL_HTML = `<!doctype html>
     var msg = "Erro na página: " + (ev.message || "desconhecido");
     setError(msg);
     try {
-      logsEl.textContent = msg + "\nPressione F5 para recarregar a página.";
+      logsEl.textContent = msg + "\\nPressione F5 para recarregar a página.";
     } catch (_) {}
   });
   function renderLogs(logs) {
@@ -546,7 +547,7 @@ const PANEL_HTML = `<!doctype html>
       logsEl.innerHTML = '<span class="muted">Sem logs ainda...</span>';
       return;
     }
-    logsEl.textContent = logs.join("\n");
+    logsEl.textContent = logs.join("\\n");
     logsEl.scrollTop = logsEl.scrollHeight;
   }
   function fetchJSON(url, opts) {
@@ -580,7 +581,7 @@ const PANEL_HTML = `<!doctype html>
       })
       .catch(function () {
         setStatus("offline");
-        setError("Sem resposta do servidor. Abra esta página no MESMO computador em que o servidor roda (http://localhost:3001) e confirme que o comando \"bun run whatsapp\" continua ativo no terminal.");
+        setError('Sem resposta do servidor. Abra esta página no MESMO computador em que o servidor roda (http://localhost:3001) e confirme que o comando "bun run whatsapp" continua ativo no terminal.');
         logsEl.innerHTML = '<span class="muted">Servidor sem resposta — confira se o processo está rodando (bun run whatsapp).</span>';
       });
   }
@@ -637,43 +638,43 @@ const PANEL_HTML = `<!doctype html>
 })();
 </script>
 </body>
-</html>`;
+</html>`
 
 // Web console page (also served at / so the server root is viewable)
 app.get(["/", "/panel"], (_req, res) => {
   // Never cache: the page embeds the polling script and must always be fresh
   // (a stale cached copy is what makes it look stuck on "Verificando...").
-  res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
-  res.type("html").send(PANEL_HTML);
-});
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+  res.type("html").send(PANEL_HTML)
+})
 
 // Recent server logs (for the web console page)
 app.get("/logs", (_req, res) => {
-  res.json({ logs: logBuffer.slice(-200) });
-});
+  res.json({ logs: logBuffer.slice(-200) })
+})
 
 // Force a fresh connection (generates a new QR code)
 app.post("/reconnect", async (_req, res) => {
   try {
-    await startSock();
-    res.json({ success: true, status: connectionStatus });
+    await startSock()
+    res.json({ success: true, status: connectionStatus })
   } catch (error) {
     res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : String(error),
-    });
+    })
   }
-});
+})
 
 // ── Start ──────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
-  console.log(`\n🚀 WhatsApp Web Bridge running on http://localhost:${PORT}`);
-  console.log(`   GET  /            — Web console (status, QR Code, logs)`);
-  console.log(`   GET  /qr          — QR Code`);
-  console.log(`   GET  /status      — Connection status`);
-  console.log(`   GET  /logs        — Recent server logs`);
-  console.log(`   POST /send        — Send message`);
-  console.log(`   POST /reconnect   — Generate new QR Code`);
-  console.log(`   POST /logout      — Disconnect\n`);
-  startSock().catch(console.error);
-});
+  console.log(`\n🚀 WhatsApp Web Bridge running on http://localhost:${PORT}`)
+  console.log(`   GET  /            — Web console (status, QR Code, logs)`)
+  console.log(`   GET  /qr          — QR Code`)
+  console.log(`   GET  /status      — Connection status`)
+  console.log(`   GET  /logs        — Recent server logs`)
+  console.log(`   POST /send        — Send message`)
+  console.log(`   POST /reconnect   — Generate new QR Code`)
+  console.log(`   POST /logout      — Disconnect\n`)
+  startSock().catch(console.error)
+})

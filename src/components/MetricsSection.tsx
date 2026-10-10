@@ -1,15 +1,7 @@
-import { useState } from "react";
-import { useQuery } from "@/lib/backend/react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-} from "recharts";
-import { api } from "@/lib/backend/api";
+import { useState } from "react"
+import { useQuery } from "@/lib/backend/react"
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts"
+import { api } from "@/lib/backend/api"
 import {
   AlertTriangle,
   CheckCircle2,
@@ -18,7 +10,7 @@ import {
   TrendingUp,
   Wrench,
   XCircle,
-} from "lucide-react";
+} from "lucide-react"
 
 const STATUS_META: { key: string; label: string; color: string }[] = [
   { key: "aberto", label: "Abertos", color: "bg-emerald-500" },
@@ -26,20 +18,19 @@ const STATUS_META: { key: string; label: string; color: string }[] = [
   { key: "aguardando", label: "Aguardando", color: "bg-amber-500" },
   { key: "resolvido", label: "Resolvidos", color: "bg-violet-500" },
   { key: "fechado", label: "Fechados", color: "bg-zinc-400" },
-];
+]
 
 const PRIORITY_META: { key: string; label: string; color: string }[] = [
   { key: "baixa", label: "Baixa", color: "bg-emerald-500" },
   { key: "media", label: "Média", color: "bg-amber-500" },
   { key: "alta", label: "Alta", color: "bg-orange-500" },
   { key: "critica", label: "Crítica", color: "bg-red-500" },
-];
+]
 
-const fmtBRL = (v: number) =>
-  `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+const fmtBRL = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
 
 function pct(part: number, total: number): number {
-  return total > 0 ? Math.round((part / total) * 100) : 0;
+  return total > 0 ? Math.round((part / total) * 100) : 0
 }
 
 function DistBar({
@@ -47,19 +38,17 @@ function DistBar({
   counts,
   total,
 }: {
-  items: { key: string; label: string; color: string }[];
-  counts: Record<string, number> | undefined;
-  total: number;
+  items: { key: string; label: string; color: string }[]
+  counts: Record<string, number> | undefined
+  total: number
 }) {
   return (
     <div className="space-y-2.5">
       {items.map((it) => {
-        const n = counts?.[it.key] ?? 0;
+        const n = counts?.[it.key] ?? 0
         return (
           <div key={it.key} className="flex items-center gap-3">
-            <span className="w-24 shrink-0 text-xs text-muted-foreground">
-              {it.label}
-            </span>
+            <span className="w-24 shrink-0 text-xs text-muted-foreground">{it.label}</span>
             <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
               <div
                 className={`h-full rounded-full ${it.color} transition-all`}
@@ -68,30 +57,27 @@ function DistBar({
             </div>
             <span className="w-12 shrink-0 text-right text-xs font-semibold tabular-nums">
               {n}
-              <span className="ml-1 font-normal text-muted-foreground">
-                {pct(n, total)}%
-              </span>
+              <span className="ml-1 font-normal text-muted-foreground">{pct(n, total)}%</span>
             </span>
           </div>
-        );
+        )
       })}
     </div>
-  );
+  )
 }
 
 export default function MetricsSection() {
-  const metrics = useQuery(api.tickets.dashboardMetrics);
-  const [showDetails, setShowDetails] = useState(false);
-  const [chartMode, setChartMode] = useState<"count" | "valor">("count");
+  const metrics = useQuery(api.tickets.dashboardMetrics)
+  const [chartMode, setChartMode] = useState<"count" | "valor">("count")
 
-  if (!metrics) return null;
+  if (!metrics) return null
 
   const trend =
     metrics.resolvedPrevMonth.count > 0
       ? ((metrics.resolvedThisMonth.count - metrics.resolvedPrevMonth.count) /
           metrics.resolvedPrevMonth.count) *
         100
-      : null;
+      : null
 
   return (
     <div className="mx-auto max-w-[1600px] space-y-4 px-4 pt-6 sm:px-6">
@@ -107,16 +93,10 @@ export default function MetricsSection() {
               <Ticket className="size-4 text-primary" />
             </span>
           </div>
-          <div className="text-2xl font-bold tracking-tight">
-            {metrics.total}
-          </div>
+          <div className="text-2xl font-bold tracking-tight">{metrics.total}</div>
           <div className="mt-1 text-xs text-muted-foreground">
-            <span className="font-semibold text-foreground">{metrics.open}</span>{" "}
-            em aberto ·{" "}
-            <span className="font-semibold text-red-500">
-              {metrics.criticalOpen}
-            </span>{" "}
-            crítico(s)
+            <span className="font-semibold text-foreground">{metrics.open}</span> em aberto ·{" "}
+            <span className="font-semibold text-red-500">{metrics.criticalOpen}</span> crítico(s)
           </div>
         </div>
 
@@ -130,9 +110,7 @@ export default function MetricsSection() {
               <TrendingUp className="size-4 text-blue-600 dark:text-blue-400" />
             </span>
           </div>
-          <div className="text-2xl font-bold tracking-tight">
-            {metrics.createdLast30}
-          </div>
+          <div className="text-2xl font-bold tracking-tight">{metrics.createdLast30}</div>
           <div className="mt-1 text-xs text-muted-foreground">
             {metrics.createdLast90} nos últimos 90 dias
           </div>
@@ -148,9 +126,7 @@ export default function MetricsSection() {
               <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
             </span>
           </div>
-          <div className="text-2xl font-bold tracking-tight">
-            {metrics.resolvedThisMonth.count}
-          </div>
+          <div className="text-2xl font-bold tracking-tight">{metrics.resolvedThisMonth.count}</div>
           <div className="mt-1 text-xs text-muted-foreground">
             {fmtBRL(metrics.resolvedThisMonth.total)}
             {trend !== null && (
@@ -227,10 +203,7 @@ export default function MetricsSection() {
         </div>
         <div className="h-56">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={metrics.breakdown}
-              margin={{ top: 5, right: 10, left: 10, bottom: 0 }}
-            >
+            <BarChart data={metrics.breakdown} margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
               <XAxis
                 dataKey="month"
                 tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
@@ -250,10 +223,7 @@ export default function MetricsSection() {
                 formatter={(value: number, name) =>
                   name === "total"
                     ? [fmtBRL(value), "Valor"]
-                    : [
-                        value,
-                        name === "created" ? "Criados" : "Resolvidos",
-                      ]
+                    : [value, name === "created" ? "Criados" : "Resolvidos"]
                 }
                 contentStyle={{
                   borderRadius: 8,
@@ -264,7 +234,12 @@ export default function MetricsSection() {
                 cursor={{ fill: "hsl(var(--muted) / 0.5)" }}
               />
               {chartMode === "count" ? (
-                <Bar dataKey="created" fill="hsl(var(--primary) / 0.35)" radius={[4, 4, 0, 0]} maxBarSize={22} />
+                <Bar
+                  dataKey="created"
+                  fill="hsl(var(--primary) / 0.35)"
+                  radius={[4, 4, 0, 0]}
+                  maxBarSize={22}
+                />
               ) : (
                 <Bar dataKey="total" radius={[6, 6, 0, 0]} maxBarSize={36}>
                   {metrics.breakdown.map((_, index) => (
@@ -292,11 +267,7 @@ export default function MetricsSection() {
             <Ticket className="size-4 text-muted-foreground" />
             <h3 className="text-sm font-semibold">Por Situação no Kanban</h3>
           </div>
-          <DistBar
-            items={STATUS_META}
-            counts={metrics.byStatus}
-            total={metrics.total}
-          />
+          <DistBar items={STATUS_META} counts={metrics.byStatus} total={metrics.total} />
         </div>
 
         {/* By priority */}
@@ -305,11 +276,7 @@ export default function MetricsSection() {
             <AlertTriangle className="size-4 text-muted-foreground" />
             <h3 className="text-sm font-semibold">Por Prioridade</h3>
           </div>
-          <DistBar
-            items={PRIORITY_META}
-            counts={metrics.byPriority}
-            total={metrics.total}
-          />
+          <DistBar items={PRIORITY_META} counts={metrics.byPriority} total={metrics.total} />
           <div className="mt-4 flex items-center gap-2 rounded-lg border border-red-200/60 bg-red-50/60 px-3 py-2.5 dark:border-red-900/40 dark:bg-red-950/30">
             <XCircle className="size-4 shrink-0 text-red-500" />
             <p className="text-xs text-muted-foreground">
@@ -353,9 +320,7 @@ export default function MetricsSection() {
                       {t.total} chamado(s) · {t.resolved} resolvido(s)
                     </p>
                   </div>
-                  <span className="shrink-0 text-xs font-semibold">
-                    {fmtBRL(t.valor)}
-                  </span>
+                  <span className="shrink-0 text-xs font-semibold">{fmtBRL(t.valor)}</span>
                 </div>
               ))}
             </div>
@@ -372,9 +337,7 @@ export default function MetricsSection() {
               key={m.month}
               className="rounded-lg border border-border/40 bg-muted/20 px-3 py-2.5"
             >
-              <p className="text-xs font-medium capitalize text-muted-foreground">
-                {m.month}
-              </p>
+              <p className="text-xs font-medium capitalize text-muted-foreground">{m.month}</p>
               <p className="mt-0.5 text-sm font-semibold">
                 {m.created} criado{m.created !== 1 ? "s" : ""}
               </p>
@@ -387,5 +350,5 @@ export default function MetricsSection() {
         </div>
       </div>
     </div>
-  );
+  )
 }

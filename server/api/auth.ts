@@ -7,84 +7,86 @@
  * de validade — trocar a senha invalida as sessões abertas.
  */
 
-import { randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
-import { promisify } from "node:util";
-import { Router } from "express";
-import { execute, newId, newSessionToken, query, queryOne } from "../mysql/pool";
-import { badRequest, unauthorized } from "./errors";
-import { asyncHandler } from "./errors";
-import { getEffectivePermissions, type AuthContext } from "./permissions";
-import { toBool, toPublicUser, type UserRow } from "./types";
+import { randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto"
+import { promisify } from "node:util"
+import { Router } from "express"
+import { execute, newId, newSessionToken, query, queryOne } from "../mysql/pool"
+import { badRequest, unauthorized } from "./errors"
+import { asyncHandler } from "./errors"
+import { getEffectivePermissions } from "./permissions"
+import { toBool, toPublicUser, type UserRow } from "./types"
 
 const scrypt = promisify(scryptCallback) as (
   password: string,
   salt: Buffer,
   keylen: number,
-) => Promise<Buffer>;
+) => Promise<Buffer>
 
-const SALT_BYTES = 16;
-const KEY_BYTES = 64;
+const SALT_BYTES = 16
+const KEY_BYTES = 64
 
 /** Hash no formato `scrypt$<salt-hex>$<hash-hex>`. */
 export async function hashPassword(password: string): Promise<string> {
-  const salt = randomBytes(SALT_BYTES);
-  const hash = await scrypt(password, salt, KEY_BYTES);
-  return `scrypt$${salt.toString("hex")}$${hash.toString("hex")}`;
+  const salt = randomBytes(SALT_BYTES)
+  const hash = await scrypt(password, salt, KEY_BYTES)
+  return `scrypt$${salt.toString("hex")}$${hash.toString("hex")}`
 }
 
 /** Compara a senha informada com o hash armazenado (tempo constante). */
 export async function verifyPassword(password: string, stored: string | null): Promise<boolean> {
-  if (!stored) return false;
-  const [scheme, saltHex, hashHex] = stored.split("$");
-  if (scheme !== "scrypt" || !saltHex || !hashHex) return false;
-  const expected = Buffer.from(hashHex, "hex");
-  const actual = await scrypt(password, Buffer.from(saltHex, "hex"), expected.length);
-  return actual.length === expected.length && timingSafeEqual(actual, expected);
+  if (!stored) return false
+  const [scheme, saltHex, hashHex] = stored.split("$")
+  if (scheme !== "scrypt" || !saltHex || !hashHex) return false
+  const expected = Buffer.from(hashHex, "hex")
+  const actual = await scrypt(password, Buffer.from(saltHex, "hex"), expected.length)
+  return actual.length === expected.length && timingSafeEqual(actual, expected)
 }
 
 export function normalizeUsername(value: unknown): string {
-  return String(value ?? "").trim().toLowerCase();
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
 }
 
 function sessionTtlMs(): number {
-  const days = Number.parseInt(process.env.SESSION_TTL_DAYS ?? "30", 10);
-  const safeDays = Number.isFinite(days) && days > 0 ? days : 30;
-  return safeDays * 24 * 60 * 60 * 1000;
+  const days = Number.parseInt(process.env.SESSION_TTL_DAYS ?? "30", 10)
+  const safeDays = Number.isFinite(days) && days > 0 ? days : 30
+  return safeDays * 24 * 60 * 60 * 1000
 }
 
 /** Cria uma sessão e devolve o token. */
 export async function createSession(userId: string, userAgent?: string): Promise<string> {
-  const token = newSessionToken();
-  const now = Date.now();
+  const token = newSessionToken()
+  const now = Date.now()
   await execute(
     "INSERT INTO `sessions` (`token`, `user_id`, `created_at`, `expires_at`, `user_agent`) VALUES (?, ?, ?, ?, ?)",
     [token, userId, now, now + sessionTtlMs(), userAgent?.slice(0, 255) ?? null],
-  );
-  return token;
+  )
+  return token
 }
 
 /** Invalida todas as sessões de um usuário (usado ao trocar a senha). */
 export async function invalidateSessions(userId: string): Promise<void> {
-  await execute("DELETE FROM `sessions` WHERE `user_id` = ?", [userId]);
+  await execute("DELETE FROM `sessions` WHERE `user_id` = ?", [userId])
 }
 
 /** Limpa sessões expiradas (chamado no boot e a cada login). */
 export async function purgeExpiredSessions(): Promise<void> {
-  await execute("DELETE FROM `sessions` WHERE `expires_at` < ?", [Date.now()]);
+  await execute("DELETE FROM `sessions` WHERE `expires_at` < ?", [Date.now()])
 }
 
 function bearerToken(header: string | undefined): string | null {
-  if (!header) return null;
-  const match = /^Bearer\s+(.+)$/i.exec(header.trim());
-  return match ? match[1].trim() : null;
+  if (!header) return null
+  const match = /^Bearer\s+(.+)$/i.exec(header.trim())
+  return match ? match[1].trim() : null
 }
 
 /** Middleware: resolve o usuário da sessão e anexa `req.auth`. */
 export const attachUser = asyncHandler(async (req, _res, next) => {
-  const token = bearerToken(req.headers.authorization);
+  const token = bearerToken(req.headers.authorization)
   if (!token) {
-    next();
-    return;
+    next()
+    return
   }
   const row = await queryOne<UserRow>(
     `SELECT u.* FROM sessions s
@@ -92,77 +94,77 @@ export const attachUser = asyncHandler(async (req, _res, next) => {
       WHERE s.token = ? AND s.expires_at > ?
       LIMIT 1`,
     [token, Date.now()],
-  );
+  )
   if (!row) {
-    next();
-    return;
+    next()
+    return
   }
-  const permissions = await getEffectivePermissions(row);
-  req.auth = { user: row, permissions };
-  next();
-});
+  const permissions = await getEffectivePermissions(row)
+  req.auth = { user: row, permissions }
+  next()
+})
 
 /** Busca o usuário pelo identificador de login (email/username). */
 export async function findUserByLogin(username: string): Promise<UserRow | null> {
   return queryOne<UserRow>(
     "SELECT * FROM `users` WHERE `email` = ? OR `username` = ? ORDER BY `created_at` ASC LIMIT 1",
     [username, username],
-  );
+  )
 }
 
-export const authRouter = Router();
+export const authRouter = Router()
 
 // ── POST /api/auth/login ────────────────────────────────────────────────────
 authRouter.post(
   "/login",
   asyncHandler(async (req, res) => {
-    const username = normalizeUsername((req.body ?? {}).username ?? (req.body ?? {}).email);
-    const password = String((req.body ?? {}).password ?? "");
+    const username = normalizeUsername((req.body ?? {}).username ?? (req.body ?? {}).email)
+    const password = String((req.body ?? {}).password ?? "")
     if (!username || !password) {
-      throw badRequest("Informe usuário e senha.");
+      throw badRequest("Informe usuário e senha.")
     }
 
-    await purgeExpiredSessions();
+    await purgeExpiredSessions()
 
-    const user = await findUserByLogin(username);
+    const user = await findUserByLogin(username)
     // Mensagem única para usuário inexistente e senha errada (não vaza quais
     // nomes de usuário existem).
     if (!user || !(await verifyPassword(password, user.password_hash))) {
-      throw unauthorized("Usuário ou senha inválidos.");
+      throw unauthorized("Usuário ou senha inválidos.")
     }
     if (!toBool(user.active, true)) {
-      throw unauthorized("Usuário inativo. Contate o administrador.");
+      throw unauthorized("Usuário inativo. Contate o administrador.")
     }
 
-    const token = await createSession(user.id, req.headers["user-agent"]);
+    const token = await createSession(user.id, req.headers["user-agent"])
     res.json({
       token,
       user: toPublicUser(user),
       permissions: await getEffectivePermissions(user),
-    });
+    })
   }),
-);
+)
 
 // ── POST /api/auth/logout ───────────────────────────────────────────────────
 authRouter.post(
   "/logout",
   asyncHandler(async (req, res) => {
-    const token = bearerToken(req.headers.authorization);
+    const token = bearerToken(req.headers.authorization)
     if (token) {
-      await execute("DELETE FROM `sessions` WHERE `token` = ?", [token]);
+      await execute("DELETE FROM `sessions` WHERE `token` = ?", [token])
     }
-    res.json({ success: true });
+    res.json({ success: true })
   }),
-);
+)
 
 // ── GET /api/auth/me ────────────────────────────────────────────────────────
 authRouter.get(
   "/me",
   asyncHandler(async (req, res) => {
-    const auth = req.auth;
+    const auth = req.auth
     if (!auth || !toBool(auth.user.active, true)) {
-      res.json(null);
-      return;
+      res.json(null)
+      return
     }
     res.json({
       userId: auth.user.id,
@@ -171,9 +173,9 @@ authRouter.get(
       isAdmin: auth.user.role === "admin",
       active: true,
       permissions: auth.permissions,
-    });
+    })
   }),
-);
+)
 
 // ── GET /api/auth/status — bootstrap público da tela de login ───────────────
 authRouter.get(
@@ -181,51 +183,51 @@ authRouter.get(
   asyncHandler(async (_req, res) => {
     const rows = await query<{ total: number; admins: number }>(
       "SELECT COUNT(*) AS total, SUM(`role` = 'admin') AS admins FROM `users`",
-    );
-    const total = Number(rows[0]?.total ?? 0);
-    const admins = Number(rows[0]?.admins ?? 0);
+    )
+    const total = Number(rows[0]?.total ?? 0)
+    const admins = Number(rows[0]?.admins ?? 0)
     res.json({
       hasUsers: total > 0,
       hasAdmin: admins > 0,
       needsSetup: total === 0,
       // Alias consumido pela tela de login (mesmo nome usado no Convex Auth).
       needsBootstrap: total === 0,
-    });
+    })
   }),
-);
+)
 
 // ── POST /api/auth/setup — cria o primeiro administrador ────────────────────
 authRouter.post(
   "/setup",
   asyncHandler(async (req, res) => {
-    const rows = await query<{ total: number }>("SELECT COUNT(*) AS total FROM `users`");
+    const rows = await query<{ total: number }>("SELECT COUNT(*) AS total FROM `users`")
     if (Number(rows[0]?.total ?? 0) > 0) {
-      throw badRequest("O sistema já foi configurado.");
+      throw badRequest("O sistema já foi configurado.")
     }
 
-    const body = (req.body ?? {}) as Record<string, unknown>;
-    const username = normalizeUsername(body.username ?? "admin");
-    const password = String(body.password ?? "");
-    const name = String(body.name ?? "Administrador").trim() || "Administrador";
+    const body = (req.body ?? {}) as Record<string, unknown>
+    const username = normalizeUsername(body.username ?? "admin")
+    const password = String(body.password ?? "")
+    const name = String(body.name ?? "Administrador").trim() || "Administrador"
 
-    if (!username) throw badRequest("Informe um nome de usuário.");
-    if (password.length < 8) throw badRequest("A senha deve ter pelo menos 8 caracteres.");
+    if (!username) throw badRequest("Informe um nome de usuário.")
+    if (password.length < 8) throw badRequest("A senha deve ter pelo menos 8 caracteres.")
 
-    const id = newId();
-    const now = Date.now();
+    const id = newId()
+    const now = Date.now()
     await execute(
       `INSERT INTO users
          (id, name, email, username, password_hash, email_verification_time, is_anonymous, role, active, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, 0, 'admin', 1, ?, ?)`,
       [id, name, username, username, await hashPassword(password), now, now, now],
-    );
+    )
 
-    const user = await queryOne<UserRow>("SELECT * FROM `users` WHERE `id` = ?", [id]);
-    const token = await createSession(id, req.headers["user-agent"]);
+    const user = await queryOne<UserRow>("SELECT * FROM `users` WHERE `id` = ?", [id])
+    const token = await createSession(id, req.headers["user-agent"])
     res.status(201).json({
       token,
       user: user ? toPublicUser(user) : null,
       permissions: user ? await getEffectivePermissions(user) : [],
-    });
+    })
   }),
-);
+)

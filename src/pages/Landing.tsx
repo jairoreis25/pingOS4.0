@@ -1,14 +1,7 @@
-import { motion, type Variants } from "framer-motion";
-import {
-  ArrowRight,
-  Columns3,
-  Headphones,
-  Shield,
-  Zap,
-  CheckCircle2,
-} from "lucide-react";
-import { useNavigate } from "react-router";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { motion, type Variants } from "framer-motion"
+import { ArrowRight, Columns3, Headphones, Shield, Zap } from "lucide-react"
+import { useNavigate } from "react-router"
+import { ThemeToggle } from "@/components/ThemeToggle"
 
 const features = [
   {
@@ -20,14 +13,12 @@ const features = [
   {
     icon: Zap,
     title: "Rápido e Intuitivo",
-    description:
-      "Abra chamados em segundos. Interface limpa que não atrapalha seu trabalho.",
+    description: "Abra chamados em segundos. Interface limpa que não atrapalha seu trabalho.",
   },
   {
     icon: Shield,
     title: "Controle Total",
-    description:
-      "Defina prioridades, atribua responsáveis e acompanhe cada etapa do atendimento.",
+    description: "Defina prioridades, atribua responsáveis e acompanhe cada etapa do atendimento.",
   },
   {
     icon: Headphones,
@@ -35,7 +26,7 @@ const features = [
     description:
       "Clientes abrem chamados diretamente. A equipe de TI gerencia tudo em um só lugar.",
   },
-];
+]
 
 const steps = [
   {
@@ -53,7 +44,7 @@ const steps = [
     title: "Resolva e feche",
     description: "Marque como resolvido quando o problema for atendido.",
   },
-];
+]
 
 const kanbanColumns = [
   {
@@ -87,7 +78,7 @@ const kanbanColumns = [
     dot: "bg-emerald-500",
     cards: [{ t: "Reinstalar Windows", p: "baixa", n: "Beatriz Rocha" }],
   },
-];
+]
 
 // Pills suaves idênticas às dos cards reais do Kanban (ver ticket-ui.ts).
 const priorityPillClass: Record<string, string> = {
@@ -95,14 +86,14 @@ const priorityPillClass: Record<string, string> = {
   alta: "bg-orange-50 text-orange-600 dark:bg-orange-950/50 dark:text-orange-400",
   media: "bg-amber-50 text-amber-600 dark:bg-amber-950/50 dark:text-amber-400",
   baixa: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400",
-};
+}
 
 const priorityLabel: Record<string, string> = {
   critica: "Crítica",
   alta: "Alta",
   media: "Média",
   baixa: "Baixa",
-};
+}
 
 function getInitials(name: string) {
   return name
@@ -110,13 +101,13 @@ function getInitials(name: string) {
     .map((n) => n[0] ?? "")
     .join("")
     .toUpperCase()
-    .slice(0, 2);
+    .slice(0, 2)
 }
 
 const container: Variants = {
   hidden: {},
   show: { transition: { staggerChildren: 0.08 } },
-};
+}
 
 const item: Variants = {
   hidden: { opacity: 0, y: 20 },
@@ -125,10 +116,10 @@ const item: Variants = {
     y: 0,
     transition: { duration: 0.5, ease: "easeOut" as const },
   },
-};
+}
 
 export default function Landing() {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -139,9 +130,7 @@ export default function Landing() {
             <div className="flex size-7 sm:size-8 items-center justify-center rounded-lg bg-primary">
               <Headphones className="size-3.5 sm:size-4 text-primary-foreground" />
             </div>
-            <span className="text-base sm:text-lg font-semibold tracking-tight">
-              PingOS
-            </span>
+            <span className="text-base sm:text-lg font-semibold tracking-tight">PingOS</span>
           </div>
           <nav className="flex items-center gap-1.5 sm:gap-2">
             <ThemeToggle />
@@ -179,12 +168,11 @@ export default function Landing() {
               Sistema de chamados para equipes de TI
             </div>
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1]">
-              Gerencie chamados de forma{" "}
-              <span className="text-primary">simples</span>
+              Gerencie chamados de forma <span className="text-primary">simples</span>
             </h1>
             <p className="mt-6 text-lg text-muted-foreground max-w-xl leading-relaxed">
-              Abra, acompanhe e resolva chamados de TI com um painel Kanban
-              visual. Seus clientes abrem chamados — você gerencia tudo.
+              Abra, acompanhe e resolva chamados de TI com um painel Kanban visual. Seus clientes
+              abrem chamados — você gerencia tudo.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <button
@@ -194,7 +182,6 @@ export default function Landing() {
                 Começar agora
                 <ArrowRight className="size-4" />
               </button>
-
             </div>
           </motion.div>
 
@@ -209,19 +196,16 @@ export default function Landing() {
               <div className="size-2 sm:size-2.5 rounded-full bg-red-400" />
               <div className="size-2 sm:size-2.5 rounded-full bg-yellow-400" />
               <div className="size-2 sm:size-2.5 rounded-full bg-emerald-400" />
-              <span className="ml-2 text-[10px] sm:text-xs text-muted-foreground font-medium">Kanban Board</span>
+              <span className="ml-2 text-[10px] sm:text-xs text-muted-foreground font-medium">
+                Kanban Board
+              </span>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               {kanbanColumns.map((col) => (
-                <div
-                  key={col.label}
-                  className="rounded-xl bg-muted/50 p-3 sm:p-3.5"
-                >
+                <div key={col.label} className="rounded-xl bg-muted/50 p-3 sm:p-3.5">
                   <div className="flex items-center gap-2 mb-3">
                     <span className={`size-1.5 shrink-0 rounded-full ${col.dot}`} />
-                    <span className="text-xs font-semibold text-foreground">
-                      {col.label}
-                    </span>
+                    <span className="text-xs font-semibold text-foreground">{col.label}</span>
                     <span className="text-xs font-medium text-muted-foreground tabular-nums">
                       {col.count}
                     </span>
@@ -240,11 +224,11 @@ export default function Landing() {
                             {card.n}
                           </span>
                         </div>
-                        <p className="mt-1.5 text-xs font-semibold leading-snug">
-                          {card.t}
-                        </p>
+                        <p className="mt-1.5 text-xs font-semibold leading-snug">{card.t}</p>
                         <div className="mt-2">
-                          <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-medium ${priorityPillClass[card.p]}`}>
+                          <span
+                            className={`rounded-md px-1.5 py-0.5 text-[10px] font-medium ${priorityPillClass[card.p]}`}
+                          >
                             {priorityLabel[card.p]}
                           </span>
                         </div>
@@ -268,14 +252,18 @@ export default function Landing() {
             viewport={{ once: true, margin: "-100px" }}
             className="text-center mb-16"
           >
-            <motion.p variants={item} className="text-xs font-semibold text-primary uppercase tracking-widest mb-3">
+            <motion.p
+              variants={item}
+              className="text-xs font-semibold text-primary uppercase tracking-widest mb-3"
+            >
               Funcionalidades
             </motion.p>
             <motion.h2 variants={item} className="text-3xl sm:text-4xl font-bold tracking-tight">
               Tudo que sua equipe precisa
             </motion.h2>
             <motion.p variants={item} className="mt-4 text-muted-foreground max-w-lg mx-auto">
-              Ferramentas pensadas para equipes de TI que precisam organizar chamados sem complicação.
+              Ferramentas pensadas para equipes de TI que precisam organizar chamados sem
+              complicação.
             </motion.p>
           </motion.div>
           <motion.div
@@ -295,9 +283,7 @@ export default function Landing() {
                   <f.icon className="size-5" />
                 </div>
                 <h3 className="font-semibold mb-2">{f.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {f.description}
-                </p>
+                <p className="text-sm text-muted-foreground leading-relaxed">{f.description}</p>
               </motion.div>
             ))}
           </motion.div>
@@ -314,7 +300,10 @@ export default function Landing() {
             viewport={{ once: true, margin: "-100px" }}
             className="text-center mb-16"
           >
-            <motion.p variants={item} className="text-xs font-semibold text-primary uppercase tracking-widest mb-3">
+            <motion.p
+              variants={item}
+              className="text-xs font-semibold text-primary uppercase tracking-widest mb-3"
+            >
               Como funciona
             </motion.p>
             <motion.h2 variants={item} className="text-3xl sm:text-4xl font-bold tracking-tight">
@@ -337,9 +326,7 @@ export default function Landing() {
                   <span className="text-xl font-bold text-primary">{s.num}</span>
                 </div>
                 <h3 className="font-semibold text-lg mb-2">{s.title}</h3>
-                <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-                  {s.description}
-                </p>
+                <p className="text-sm text-muted-foreground max-w-xs mx-auto">{s.description}</p>
               </motion.div>
             ))}
           </motion.div>
@@ -362,7 +349,8 @@ export default function Landing() {
                 Comece a gerenciar seus chamados
               </h2>
               <p className="mt-4 text-primary-foreground/80 max-w-md mx-auto">
-                Entre com a conta criada pelo administrador e comece a organizar os chamados de TI da sua empresa.
+                Entre com a conta criada pelo administrador e comece a organizar os chamados de TI
+                da sua empresa.
               </p>
               <div className="mt-8 flex flex-wrap justify-center gap-3">
                 <button
@@ -372,7 +360,6 @@ export default function Landing() {
                   Entrar no PingOS
                   <ArrowRight className="size-4" />
                 </button>
-
               </div>
             </div>
           </motion.div>
@@ -394,5 +381,5 @@ export default function Landing() {
         </div>
       </footer>
     </div>
-  );
+  )
 }

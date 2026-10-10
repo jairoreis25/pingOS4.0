@@ -1,0 +1,37 @@
+name: gates
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: gates-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualidade:
+    name: typecheck · lint · format · build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Dependências (mesmo comando do Docker)
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck (app + backend)
+        run: bun run typecheck
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Formatação
+        run: bun run format:check
+
+      - name: Build
+        run: bun run build

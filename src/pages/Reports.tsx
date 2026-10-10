@@ -14,9 +14,9 @@
  * formato) pelo `logReport`.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router";
-import { toast } from "sonner";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useNavigate } from "react-router"
+import { toast } from "sonner"
 import {
   ArrowLeft,
   BarChart3,
@@ -30,37 +30,25 @@ import {
   Ticket,
   Users,
   Wrench,
-} from "lucide-react";
-import {
-  Bar,
-  BarChart,
-  Cell,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from "lucide-react"
+import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { usePermissions } from "@/hooks/use-permissions";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import {
-  TICKET_CATEGORIES,
-  TICKET_CATEGORY_UNSET,
-} from "@/lib/ticket-categories";
-import { COLUMNS, PRIORITY_CONFIG } from "@/lib/ticket-ui";
+} from "@/components/ui/select"
+import { usePermissions } from "@/hooks/use-permissions"
+import { ThemeToggle } from "@/components/ThemeToggle"
+import { TICKET_CATEGORIES, TICKET_CATEGORY_UNSET } from "@/lib/ticket-categories"
+import { COLUMNS, PRIORITY_CONFIG } from "@/lib/ticket-ui"
 import {
   CHANNEL_LABELS,
-  DAY_MS,
   PERIOD_PRESETS,
   REPORT_META,
   STATUS_LABELS,
@@ -88,9 +76,9 @@ import {
   type TechnicianReportRow,
   type TicketsReport,
   type UsersReport,
-} from "@/lib/reports";
+} from "@/lib/reports"
 
-const PAGE_SIZE = 100;
+const PAGE_SIZE = 100
 
 const REPORT_ICONS: Record<ReportId, typeof Ticket> = {
   tickets: Ticket,
@@ -98,29 +86,29 @@ const REPORT_ICONS: Record<ReportId, typeof Ticket> = {
   sectors: Building2,
   users: Users,
   notifications: Bell,
-};
+}
 
 /** Estado dos filtros enquanto o usuário digita (ainda não aplicados). */
 interface Draft {
-  preset: PeriodPreset;
-  start: string;
-  end: string;
-  status: string;
-  priority: string;
-  assigneeId: string;
-  client: string;
-  setor: string;
-  categoria: string;
-  q: string;
+  preset: PeriodPreset
+  start: string
+  end: string
+  status: string
+  priority: string
+  assigneeId: string
+  client: string
+  setor: string
+  categoria: string
+  q: string
 }
 
-const ALL = "__all__";
+const ALL = "__all__"
 
 /** Pill suave com ponto colorido para o status (mesma linguagem do Kanban). */
 function StatusPill({ label }: { label: string }) {
-  const config = COLUMNS.find((column) => column.label === label);
+  const config = COLUMNS.find((column) => column.label === label)
   if (!config) {
-    return <span className="text-xs text-slate-400">{label}</span>;
+    return <span className="text-xs text-slate-400">{label}</span>
   }
   return (
     <span
@@ -129,14 +117,14 @@ function StatusPill({ label }: { label: string }) {
       <span className={`size-1.5 rounded-full ${config.barColor}`} />
       {label}
     </span>
-  );
+  )
 }
 
 /** Pill suave com borda para a prioridade (mesma linguagem do Kanban). */
 function PriorityPill({ label }: { label: string }) {
-  const config = Object.values(PRIORITY_CONFIG).find((item) => item.label === label);
+  const config = Object.values(PRIORITY_CONFIG).find((item) => item.label === label)
   if (!config) {
-    return <span className="text-xs text-slate-400">{label}</span>;
+    return <span className="text-xs text-slate-400">{label}</span>
   }
   return (
     <span
@@ -145,18 +133,14 @@ function PriorityPill({ label }: { label: string }) {
       <span className={`size-1.5 rounded-full ${config.dot}`} />
       {label}
     </span>
-  );
+  )
 }
 
 /** Barra colorida do totalizador: usa a cor do status quando o rótulo é "Status: X". */
 function summaryBarColor(label: string): string {
-  const statusLabel = label.startsWith("Status: ")
-    ? label.slice("Status: ".length)
-    : null;
-  const match = statusLabel
-    ? COLUMNS.find((column) => column.label === statusLabel)
-    : undefined;
-  return match?.barColor ?? "bg-slate-200 dark:bg-slate-700";
+  const statusLabel = label.startsWith("Status: ") ? label.slice("Status: ".length) : null
+  const match = statusLabel ? COLUMNS.find((column) => column.label === statusLabel) : undefined
+  return match?.barColor ?? "bg-slate-200 dark:bg-slate-700"
 }
 
 function buildFilters(draft: Draft): ReportFilters {
@@ -166,7 +150,7 @@ function buildFilters(draft: Draft): ReportFilters {
           start: fromDateInput(draft.start, "start") ?? presetRange("30d").start,
           end: fromDateInput(draft.end, "end") ?? Date.now(),
         }
-      : presetRange(draft.preset);
+      : presetRange(draft.preset)
 
   return {
     start: range.start,
@@ -178,17 +162,17 @@ function buildFilters(draft: Draft): ReportFilters {
     setor: draft.setor || undefined,
     categoria: draft.categoria || undefined,
     q: draft.q.trim() || undefined,
-  };
+  }
 }
 
 export default function Reports() {
-  const navigate = useNavigate();
-  const { can, isAdmin, isLoading: permissionsLoading, userName } = usePermissions();
+  const navigate = useNavigate()
+  const { can, isAdmin, isLoading: permissionsLoading, userName } = usePermissions()
 
-  const allowed = can("reports.view");
-  const canExport = can("reports.export");
+  const allowed = can("reports.view")
+  const canExport = can("reports.export")
 
-  const initial = presetRange("30d");
+  const initial = presetRange("30d")
   const [draft, setDraft] = useState<Draft>({
     preset: "30d",
     start: toDateInput(initial.start),
@@ -200,126 +184,121 @@ export default function Reports() {
     setor: "",
     categoria: "",
     q: "",
-  });
+  })
   const [applied, setApplied] = useState<ReportFilters>(() => ({
     start: initial.start,
     end: initial.end,
-  }));
+  }))
 
   // O relatório de usuários só aparece (e só é buscado) para administradores.
   const tabs = useMemo(
     () => REPORT_META.filter((meta) => meta.id !== "users" || isAdmin),
     [isAdmin],
-  );
+  )
 
-  const [active, setActive] = useState<ReportId>("tickets");
-  const [options, setOptions] = useState<ReportFilterOptions | null>(null);
+  const [active, setActive] = useState<ReportId>("tickets")
+  const [options, setOptions] = useState<ReportFilterOptions | null>(null)
   // O payload carrega junto a QUAL relatório ele pertence. Ao trocar de aba, a
   // resposta antiga continua em memória até a nova chegar — sem essa marca, o
   // gráfico/tabela interpretariam o relatório anterior como se fosse o novo (era
   // isso que estourava a aba "Usuários e Permissões": `byRole` não existe no
   // relatório de chamados).
-  const [data, setData] = useState<{ id: ReportId; payload: unknown } | null>(null);
-  const [page, setPage] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [exporting, setExporting] = useState<"xls" | "pdf" | null>(null);
-  const requestId = useRef(0);
+  const [data, setData] = useState<{ id: ReportId; payload: unknown } | null>(null)
+  const [page, setPage] = useState(0)
+  const [loading, setLoading] = useState(false)
+  const [exporting, setExporting] = useState<"xls" | "pdf" | null>(null)
+  const requestId = useRef(0)
 
   // ── Opções dos filtros (responsáveis, setores) ────────────────────────────
   useEffect(() => {
-    if (!allowed) return;
-    let cancelled = false;
+    if (!allowed) return
+    let cancelled = false
     fetchReportFilterOptions()
       .then((result) => {
-        if (!cancelled) setOptions(result);
+        if (!cancelled) setOptions(result)
       })
       .catch(() => {
         /* os filtros simplesmente ficam sem as listas — não bloqueia o relatório */
-      });
+      })
     return () => {
-      cancelled = true;
-    };
-  }, [allowed]);
+      cancelled = true
+    }
+  }, [allowed])
 
   // ── Busca do relatório ativo ──────────────────────────────────────────────
-  const load = useCallback(
-    async (report: ReportId, filters: ReportFilters, nextPage: number) => {
-      const id = ++requestId.current;
-      setLoading(true);
-      try {
-        const result = await fetchReport<unknown>(report, filters, {
-          limit: PAGE_SIZE,
-          offset: nextPage * PAGE_SIZE,
-        });
-        // Uma resposta antiga (troca rápida de aba/filtro) é descartada.
-        if (id !== requestId.current) return null;
-        setData({ id: report, payload: result });
-        return result;
-      } catch (error) {
-        if (id !== requestId.current) return null;
-        setData(null);
-        toast.error(
-          error instanceof Error ? error.message : "Não foi possível gerar o relatório.",
-        );
-        return null;
-      } finally {
-        if (id === requestId.current) setLoading(false);
-      }
-    },
-    [],
-  );
+  const load = useCallback(async (report: ReportId, filters: ReportFilters, nextPage: number) => {
+    const id = ++requestId.current
+    setLoading(true)
+    try {
+      const result = await fetchReport<unknown>(report, filters, {
+        limit: PAGE_SIZE,
+        offset: nextPage * PAGE_SIZE,
+      })
+      // Uma resposta antiga (troca rápida de aba/filtro) é descartada.
+      if (id !== requestId.current) return null
+      setData({ id: report, payload: result })
+      return result
+    } catch (error) {
+      if (id !== requestId.current) return null
+      setData(null)
+      toast.error(error instanceof Error ? error.message : "Não foi possível gerar o relatório.")
+      return null
+    } finally {
+      if (id === requestId.current) setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
-    if (!allowed || !tabs.some((tab) => tab.id === active)) return;
-    void load(active, applied, page);
-  }, [allowed, active, applied, page, load, tabs]);
+    if (!allowed || !tabs.some((tab) => tab.id === active)) return
+    void load(active, applied, page)
+  }, [allowed, active, applied, page, load, tabs])
 
   // ── Ações ─────────────────────────────────────────────────────────────────
   const handleGenerate = () => {
-    const filters = buildFilters(draft);
-    setPage(0);
-    setApplied(filters);
+    const filters = buildFilters(draft)
+    setPage(0)
+    setApplied(filters)
     // A auditoria registra o relatório com a quantidade de linhas que ele
     // realmente devolveu (e não um zero genérico).
     void load(active, filters, 0).then((result) => {
       const rows = Array.isArray((result as { rows?: unknown[] } | null)?.rows)
         ? ((result as { rows: unknown[] }).rows.length ?? 0)
-        : 0;
-      void logReport({ report: active, format: "tela", filters, rowCount: rows });
-    });
-  };
+        : 0
+      void logReport({ report: active, format: "tela", filters, rowCount: rows })
+    })
+  }
 
   // Só vale o payload que é do relatório ativo (ver comentário do estado).
-  const current = data && data.id === active ? data.payload : null;
-  const currentTable: ReportTable | null = current ? toTable(active, current) : null;
-  const currentSummary = current ? summarize(active, current) : [];
-  const activeMeta = REPORT_META.find((meta) => meta.id === active);
-  const userLabel = userName ?? "usuário";
+  const current = data && data.id === active ? data.payload : null
+  const currentTable: ReportTable | null = current ? toTable(active, current) : null
+  const currentSummary = current ? summarize(active, current) : []
+  const activeMeta = REPORT_META.find((meta) => meta.id === active)
+  const userLabel = userName ?? "usuário"
 
   const exportSheets = useCallback(async (): Promise<ExportSheet[]> => {
     // Sempre com os filtros aplicados e no teto de linhas da API (1000/report).
-    const ids = tabs.map((tab) => tab.id);
+    const ids = tabs.map((tab) => tab.id)
     const results = await Promise.all(
       ids.map(async (id) => ({
         id,
         result: await fetchReport<unknown>(id, applied, { limit: 1000, offset: 0 }),
       })),
-    );
+    )
     return results.map(({ id, result }) => ({
       name: REPORT_META.find((meta) => meta.id === id)?.sheet ?? id,
       table: toTable(id, result),
-    }));
-  }, [applied, tabs]);
+    }))
+  }, [applied, tabs])
 
   const handleExportXls = async () => {
     if (!canExport) {
-      toast.error("Você não tem permissão para exportar relatórios.");
-      return;
+      toast.error("Você não tem permissão para exportar relatórios.")
+      return
     }
-    setExporting("xls");
+    setExporting("xls")
     try {
-      const sheets = await exportSheets();
-      const rows = sheets.reduce((sum, sheet) => sum + sheet.table.rows.length, 0);
+      const sheets = await exportSheets()
+      const rows = sheets.reduce((sum, sheet) => sum + sheet.table.rows.length, 0)
       await exportXls({
         filename: `pingos-relatorios-${toDateInput(Date.now())}.xlsx`,
         title: "Relatórios PingOS",
@@ -330,7 +309,7 @@ export default function Reports() {
             ? currentSummary
             : summarize(active, await fetchReport(active, applied, { limit: 1 })),
         sheets,
-      });
+      })
       // Auditoria: uma linha por relatório exportado.
       for (const meta of tabs) {
         void logReport({
@@ -338,27 +317,25 @@ export default function Reports() {
           format: "xls",
           filters: applied,
           rowCount: sheets.find((sheet) => sheet.name === meta.sheet)?.table.rows.length ?? 0,
-        });
+        })
       }
-      toast.success(`XLS gerado com ${sheets.length} aba(s) e ${rows} linha(s).`);
+      toast.success(`XLS gerado com ${sheets.length} aba(s) e ${rows} linha(s).`)
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Falha ao gerar o XLS.",
-      );
+      toast.error(error instanceof Error ? error.message : "Falha ao gerar o XLS.")
     } finally {
-      setExporting(null);
+      setExporting(null)
     }
-  };
+  }
 
   const handleExportPdf = async () => {
     if (!canExport) {
-      toast.error("Você não tem permissão para exportar relatórios.");
-      return;
+      toast.error("Você não tem permissão para exportar relatórios.")
+      return
     }
-    setExporting("pdf");
+    setExporting("pdf")
     try {
       // Garante que a tabela do relatório ativo está carregada.
-      const table = currentTable ?? toTable(active, await fetchReport(active, applied));
+      const table = currentTable ?? toTable(active, await fetchReport(active, applied))
       await exportPdf({
         filename: `pingos-${active}-${toDateInput(Date.now())}.pdf`,
         title: activeMeta?.label ?? "Relatório",
@@ -366,73 +343,73 @@ export default function Reports() {
         userLabel,
         summary: currentSummary,
         table,
-      });
+      })
       void logReport({
         report: active,
         format: "pdf",
         filters: applied,
         rowCount: table.rows.length,
-      });
-      toast.success("PDF gerado.");
+      })
+      toast.success("PDF gerado.")
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Falha ao gerar o PDF.",
-      );
+      toast.error(error instanceof Error ? error.message : "Falha ao gerar o PDF.")
     } finally {
-      setExporting(null);
+      setExporting(null)
     }
-  };
+  }
 
   // ── Gráfico do relatório ativo ────────────────────────────────────────────
   const chart = useMemo(() => {
-    if (!data || data.id !== active) return null;
-    const payload = data.payload;
+    if (!data || data.id !== active) return null
+    const payload = data.payload
     if (active === "tickets") {
-      const report = payload as TicketsReport;
+      const report = payload as TicketsReport
       return {
         title: "Chamados por status",
         data: Object.entries(STATUS_LABELS).map(([key, label]) => ({
           name: label,
           value: report.totals?.byStatus?.[key] ?? 0,
         })),
-      };
+      }
     }
     if (active === "technicians") {
-      const report = payload as { rows: TechnicianReportRow[] };
+      const report = payload as { rows: TechnicianReportRow[] }
       return {
         title: "Resolvidos por responsável (top 8)",
         data: [...(report.rows ?? [])]
           .sort((a, b) => b.resolved - a.resolved)
           .slice(0, 8)
           .map((row) => ({ name: row.name, value: row.resolved })),
-      };
+      }
     }
     if (active === "sectors") {
-      const report = payload as { rows: SectorReportRow[] };
+      const report = payload as { rows: SectorReportRow[] }
       return {
         title: "Chamados por setor",
-        data: (report.rows ?? []).slice(0, 10).map((row) => ({ name: row.setor, value: row.total })),
-      };
+        data: (report.rows ?? [])
+          .slice(0, 10)
+          .map((row) => ({ name: row.setor, value: row.total })),
+      }
     }
     if (active === "notifications") {
-      const report = payload as NotificationsReport;
+      const report = payload as NotificationsReport
       return {
         title: "Envios por canal",
         data: Object.entries(CHANNEL_LABELS).map(([key, label]) => ({
           name: label,
           value: report.totals?.byChannel?.[key] ?? 0,
         })),
-      };
+      }
     }
-    const report = payload as UsersReport;
+    const report = payload as UsersReport
     return {
       title: "Usuários por papel",
       data: Object.entries(report.totals?.byRole ?? {}).map(([role, value]) => ({
         name: role,
         value,
       })),
-    };
-  }, [active, data]);
+    }
+  }, [active, data])
 
   // ── Permissão ─────────────────────────────────────────────────────────────
   if (!permissionsLoading && !allowed) {
@@ -443,15 +420,15 @@ export default function Reports() {
         </span>
         <h1 className="text-lg font-semibold">Relatórios indisponíveis</h1>
         <p className="text-sm text-muted-foreground">
-          Sua conta não tem a permissão <strong>Ver relatórios</strong>. Peça ao
-          administrador para liberá-la em Configurações → Papéis e permissões.
+          Sua conta não tem a permissão <strong>Ver relatórios</strong>. Peça ao administrador para
+          liberá-la em Configurações → Papéis e permissões.
         </p>
         <Button variant="outline" onClick={() => navigate("/dashboard")} className="gap-1.5">
           <ArrowLeft className="size-4" />
           Voltar ao painel
         </Button>
       </div>
-    );
+    )
   }
 
   return (
@@ -514,8 +491,17 @@ export default function Reports() {
               )}
               Exportar PDF
             </Button>
-            <Button size="sm" className="gap-1.5 rounded-lg bg-blue-600 px-4 text-sm font-medium text-white shadow-sm transition-all duration-150 hover:bg-blue-700" onClick={handleGenerate} disabled={loading}>
-              {loading ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}
+            <Button
+              size="sm"
+              className="gap-1.5 rounded-lg bg-blue-600 px-4 text-sm font-medium text-white shadow-sm transition-all duration-150 hover:bg-blue-700"
+              onClick={handleGenerate}
+              disabled={loading}
+            >
+              {loading ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <RefreshCw className="size-3.5" />
+              )}
               Gerar relatório
             </Button>
           </div>
@@ -526,14 +512,14 @@ export default function Reports() {
         {/* ── Abas ────────────────────────────────────────────────────────── */}
         <div className="flex gap-1.5 overflow-x-auto pb-1">
           {tabs.map((meta) => {
-            const Icon = REPORT_ICONS[meta.id];
-            const isActive = meta.id === active;
+            const Icon = REPORT_ICONS[meta.id]
+            const isActive = meta.id === active
             return (
               <button
                 key={meta.id}
                 onClick={() => {
-                  setActive(meta.id);
-                  setPage(0);
+                  setActive(meta.id)
+                  setPage(0)
                 }}
                 className={`flex shrink-0 items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition-all duration-150 ${
                   isActive
@@ -545,7 +531,7 @@ export default function Reports() {
                 <Icon className="size-3.5" />
                 {meta.label}
               </button>
-            );
+            )
           })}
         </div>
 
@@ -554,7 +540,9 @@ export default function Reports() {
           <div className="mb-4 flex items-center gap-2">
             <Filter className="size-4 text-slate-400" strokeWidth={1.5} />
             <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Filtros</h2>
-            <span className="text-xs text-slate-500 dark:text-slate-400">— {activeMeta?.description}</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400">
+              — {activeMeta?.description}
+            </span>
           </div>
 
           <div className="mb-4 flex flex-wrap gap-1.5">
@@ -562,13 +550,13 @@ export default function Reports() {
               <button
                 key={preset.id}
                 onClick={() => {
-                  const range = presetRange(preset.id);
+                  const range = presetRange(preset.id)
                   setDraft((prev) => ({
                     ...prev,
                     preset: preset.id,
                     start: toDateInput(range.start),
                     end: toDateInput(range.end),
-                  }));
+                  }))
                 }}
                 className={`rounded-lg border px-2.5 py-1.5 text-xs transition-all duration-150 ${
                   draft.preset === preset.id
@@ -737,7 +725,7 @@ export default function Reports() {
                 value={draft.q}
                 onChange={(e) => setDraft((prev) => ({ ...prev, q: e.target.value }))}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") handleGenerate();
+                  if (e.key === "Enter") handleGenerate()
                 }}
               />
             </div>
@@ -758,7 +746,9 @@ export default function Reports() {
                   <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     {item.label}
                   </p>
-                  <p className="mt-1 text-xl font-bold tabular-nums tracking-tight text-slate-900 dark:text-slate-100">{item.value}</p>
+                  <p className="mt-1 text-xl font-bold tabular-nums tracking-tight text-slate-900 dark:text-slate-100">
+                    {item.value}
+                  </p>
                 </div>
               </div>
             ))}
@@ -768,7 +758,9 @@ export default function Reports() {
         {/* ── Gráfico ─────────────────────────────────────────────────────── */}
         {chart && chart.data.some((point) => point.value > 0) && (
           <section className="rounded-xl border border-slate-300 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-            <h2 className="mb-4 text-sm font-semibold text-slate-900 dark:text-slate-100">{chart.title}</h2>
+            <h2 className="mb-4 text-sm font-semibold text-slate-900 dark:text-slate-100">
+              {chart.title}
+            </h2>
             <div className="h-56">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chart.data} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
@@ -800,9 +792,7 @@ export default function Reports() {
                     {chart.data.map((_, index) => (
                       <Cell
                         key={index}
-                        fill={
-                          index === 0 ? "hsl(var(--primary))" : "hsl(var(--primary) / 0.35)"
-                        }
+                        fill={index === 0 ? "hsl(var(--primary))" : "hsl(var(--primary) / 0.35)"}
                       />
                     ))}
                   </Bar>
@@ -815,7 +805,9 @@ export default function Reports() {
         {/* ── Tabela ──────────────────────────────────────────────────────── */}
         <section className="overflow-hidden rounded-xl border border-slate-300 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-300 px-5 py-3 dark:border-slate-700">
-            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{activeMeta?.label}</h2>
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+              {activeMeta?.label}
+            </h2>
             <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
               {loading && <Loader2 className="size-3.5 animate-spin" />}
               <span>
@@ -823,7 +815,10 @@ export default function Reports() {
                   ? `${currentTable.rows.length} linha(s) nesta página`
                   : "Nenhum dado ainda"}
               </span>
-              <Badge variant="outline" className="border-slate-200 font-normal text-slate-500 dark:border-slate-700 dark:text-slate-400">
+              <Badge
+                variant="outline"
+                className="border-slate-200 font-normal text-slate-500 dark:border-slate-700 dark:text-slate-400"
+              >
                 até {PAGE_SIZE} por página
               </Badge>
             </div>
@@ -856,18 +851,16 @@ export default function Reports() {
                         // `cellText` aplica o formato da coluna (moeda em pt-BR,
                         // milhar, uma casa decimal) — a mesma tabela que vai
                         // para o XLS e o PDF.
-                        const text = cellText(column, row[column.key]);
+                        const text = cellText(column, row[column.key])
                         // Status e prioridade ganham a mesma pill do Kanban — só
                         // no relatório de chamados, único com essas colunas.
-                        const isTicketStatus = active === "tickets" && column.key === "status";
-                        const isTicketPriority = active === "tickets" && column.key === "priority";
+                        const isTicketStatus = active === "tickets" && column.key === "status"
+                        const isTicketPriority = active === "tickets" && column.key === "priority"
                         return (
                           <td
                             key={column.key}
                             className={`px-3 py-2 align-top text-slate-700 dark:text-slate-300 ${
-                              column.align === "right"
-                                ? "text-right tabular-nums"
-                                : "text-left"
+                              column.align === "right" ? "text-right tabular-nums" : "text-left"
                             }`}
                           >
                             {isTicketStatus ? (
@@ -880,7 +873,7 @@ export default function Reports() {
                               text
                             )}
                           </td>
-                        );
+                        )
                       })}
                     </tr>
                   ))}
@@ -889,9 +882,7 @@ export default function Reports() {
             </div>
           ) : (
             <div className="px-5 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
-              {loading
-                ? "Gerando relatório…"
-                : "Nenhum registro encontrado com esses filtros."}
+              {loading ? "Gerando relatório…" : "Nenhum registro encontrado com esses filtros."}
             </div>
           )}
 
@@ -916,10 +907,7 @@ export default function Reports() {
                   size="sm"
                   disabled={
                     loading ||
-                    !(
-                      (current as { page?: { hasMore?: boolean } } | null)?.page
-                        ?.hasMore ?? false
-                    )
+                    !((current as { page?: { hasMore?: boolean } } | null)?.page?.hasMore ?? false)
                   }
                   onClick={() => setPage((prev) => prev + 1)}
                 >
@@ -931,11 +919,10 @@ export default function Reports() {
         </section>
 
         <p className="pb-4 text-center text-[11px] text-slate-500 dark:text-slate-400">
-          Toda geração e exportação fica registrada na auditoria (quem, quando,
-          filtros e formato). O XLS sai com uma aba por relatório; o PDF, com o
-          relatório aberto na tela.
+          Toda geração e exportação fica registrada na auditoria (quem, quando, filtros e formato).
+          O XLS sai com uma aba por relatório; o PDF, com o relatório aberto na tela.
         </p>
       </main>
     </div>
-  );
+  )
 }

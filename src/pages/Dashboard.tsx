@@ -1,12 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useMutation, useQuery } from "@/lib/backend/react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import { api } from "@/lib/backend/api";
-import { useAuth } from "@/hooks/use-auth";
-import { usePermissions } from "@/hooks/use-permissions";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useCallback, useEffect, useRef, useState } from "react"
+import { useMutation, useQuery } from "@/lib/backend/react"
+import { api } from "@/lib/backend/api"
+import { useAuth } from "@/hooks/use-auth"
+import { usePermissions } from "@/hooks/use-permissions"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   Dialog,
   DialogContent,
@@ -14,18 +13,17 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/components/ui/dialog";
+} from "@/components/ui/dialog"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+} from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
 import {
   Plus,
   Link2,
@@ -39,7 +37,6 @@ import {
   X,
   UserX,
   Trash2,
-  CheckCircle2,
   Printer,
   Search,
   Smartphone,
@@ -47,22 +44,22 @@ import {
   VolumeX,
   Tag,
   PieChart,
-} from "lucide-react";
-import { useNavigate } from "react-router";
-import { toast } from "sonner";
-import type { Id } from "@/lib/backend/types";
-import NewTicketDialog from "@/components/NewTicketDialog";
-import NotificationSettingsDialog from "@/components/NotificationSettingsDialog";
-import NotificationBell from "@/components/NotificationBell";
-import MetricsSection from "@/components/MetricsSection";
-import StatusChangeConfirmDialog from "@/components/StatusChangeConfirmDialog";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import SlashProductsTextarea from "@/components/SlashProductsTextarea";
-import { useTicketAlerts } from "@/hooks/use-ticket-alerts";
-import { isSoundEnabled, setSoundEnabled } from "@/lib/sound";
-import { compressImage, type TicketPriority } from "@/lib/ticket-utils";
-import { formatBRL, resolveItemsTotal } from "@/lib/currency";
-import { sendWhatsAppWebNotification } from "@/lib/whatsapp-notify";
+} from "lucide-react"
+import { useNavigate } from "react-router"
+import { toast } from "sonner"
+import type { Id } from "@/lib/backend/types"
+import NewTicketDialog from "@/components/NewTicketDialog"
+import NotificationSettingsDialog from "@/components/NotificationSettingsDialog"
+import NotificationBell from "@/components/NotificationBell"
+import MetricsSection from "@/components/MetricsSection"
+import StatusChangeConfirmDialog from "@/components/StatusChangeConfirmDialog"
+import { ThemeToggle } from "@/components/ThemeToggle"
+import SlashProductsTextarea from "@/components/SlashProductsTextarea"
+import { useTicketAlerts } from "@/hooks/use-ticket-alerts"
+import { isSoundEnabled, setSoundEnabled } from "@/lib/sound"
+import { compressImage, type TicketPriority } from "@/lib/ticket-utils"
+import { formatBRL, resolveItemsTotal } from "@/lib/currency"
+import { sendWhatsAppWebNotification } from "@/lib/whatsapp-notify"
 import {
   COLUMNS,
   PRIORITY_CONFIG,
@@ -70,21 +67,18 @@ import {
   statusLabel,
   timeAgo,
   type TicketStatus,
-} from "@/lib/ticket-ui";
-import { KanbanColumn } from "@/components/KanbanColumn";
-import GuestNewTicketDialog from "@/components/GuestNewTicketDialog";
-import CameraTicketButton from "@/components/CameraTicketButton";
-import WhatsAppWebDialog from "@/components/WhatsAppWebDialog";
-import { useMobileCompat } from "@/lib/mobile";
+} from "@/lib/ticket-ui"
+import { KanbanColumn } from "@/components/KanbanColumn"
+import GuestNewTicketDialog from "@/components/GuestNewTicketDialog"
+import CameraTicketButton from "@/components/CameraTicketButton"
+import WhatsAppWebDialog from "@/components/WhatsAppWebDialog"
+import { useMobileCompat } from "@/lib/mobile"
 import {
   STATUS_EQUIPAMENTO_OPTIONS,
   STATUS_EQUIPAMENTO_EMPTY,
   buildTicketMessage,
-} from "@/lib/desc-fields";
-import {
-  TICKET_CATEGORIES,
-  TICKET_CATEGORY_EMPTY,
-} from "@/lib/ticket-categories";
+} from "@/lib/desc-fields"
+import { TICKET_CATEGORIES, TICKET_CATEGORY_EMPTY } from "@/lib/ticket-categories"
 
 // ---- Ticket Detail Dialog ----
 
@@ -94,69 +88,65 @@ function TicketDetailDialog({
   onOpenChange,
   onImageClick,
 }: {
-  ticketId: Id<"tickets"> | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onImageClick: (url: string) => void;
+  ticketId: Id<"tickets"> | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onImageClick: (url: string) => void
 }) {
-  const ticket = useQuery(
-    api.tickets.get,
-    ticketId ? { ticketId } : "skip",
-  );
-  const users = useQuery(api.technicians.list);
-  const updateTicket = useMutation(api.tickets.update);
-  const updateStatus = useMutation(api.tickets.updateStatus);
-  const removeTicket = useMutation(api.tickets.remove);
-  const { can, canMoveTo, canViewStatus, canEditTicket } = usePermissions();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [editing, setEditing] = useState(false);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [solucao, setSolucao] = useState("");
-  const [orcamento, setOrcamento] = useState("");
-  const [obs, setObs] = useState("");
-  const [statusEquipamento, setStatusEquipamento] = useState("");
+  const ticket = useQuery(api.tickets.get, ticketId ? { ticketId } : "skip")
+  const users = useQuery(api.technicians.list)
+  const updateTicket = useMutation(api.tickets.update)
+  const updateStatus = useMutation(api.tickets.updateStatus)
+  const removeTicket = useMutation(api.tickets.remove)
+  const { can, canMoveTo, canViewStatus, canEditTicket } = usePermissions()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [editing, setEditing] = useState(false)
+  const [title, setTitle] = useState("")
+  const [description, setDescription] = useState("")
+  const [solucao, setSolucao] = useState("")
+  const [orcamento, setOrcamento] = useState("")
+  const [obs, setObs] = useState("")
+  const [statusEquipamento, setStatusEquipamento] = useState("")
   // Categoria do chamado (Impressoras, Rede, ...). É só para uso interno: não
   // entra nas mensagens de WhatsApp/notificação nem no cupom impresso.
-  const [categoria, setCategoria] = useState("");
-  const [priority, setPriority] = useState<TicketPriority>("media");
-  const [guestContact, setGuestContact] = useState("");
-  const [valorTotal, setValorTotal] = useState("");
-  const [os, setOs] = useState("");
-  const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [assigneeId, setAssigneeId] = useState<string>("");
-  const [creatorName, setCreatorName] = useState("");
-  const [location, setLocation] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [categoria, setCategoria] = useState("")
+  const [priority, setPriority] = useState<TicketPriority>("media")
+  const [guestContact, setGuestContact] = useState("")
+  const [valorTotal, setValorTotal] = useState("")
+  const [os, setOs] = useState("")
+  const [imageUrl, setImageUrl] = useState<string | undefined>(undefined)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [assigneeId, setAssigneeId] = useState<string>("")
+  const [creatorName, setCreatorName] = useState("")
+  const [location, setLocation] = useState("")
+  const [loading, setLoading] = useState(false)
   // Status aguardando a confirmação do usuário.
-  const [pendingStatus, setPendingStatus] = useState<TicketStatus | null>(null);
-  const initRef = useRef(false);
+  const [pendingStatus, setPendingStatus] = useState<TicketStatus | null>(null)
+  const initRef = useRef(false)
   // Última soma de itens aplicada automaticamente ao Valor Total.
-  const itemsTotalRef = useRef(0);
+  const itemsTotalRef = useRef(0)
   // Itens que o menu "/" escreveu: a Solução manda; sem itens nela, vale o Orçamento.
-  const items = resolveItemsTotal(solucao, orcamento);
-  const itemsSum = items.value;
+  const items = resolveItemsTotal(solucao, orcamento)
+  const itemsSum = items.value
   // Itens já gravados no chamado, pela mesma regra.
-  const ticketItems = resolveItemsTotal(ticket?.solucao, ticket?.orcamento);
-  const ticketItemsSum = ticketItems.value;
+  const ticketItems = resolveItemsTotal(ticket?.solucao, ticket?.orcamento)
+  const ticketItemsSum = ticketItems.value
   /**
    * Valor mostrado ao visualizar: o total gravado ou, quando o chamado nunca
    * teve total salvo, a soma dos itens que já estão na Solução (ou no Orçamento,
    * quando a Solução não tem valores).
    */
-  const derivedValorTotal =
-    ticket?.valorTotal ?? (ticketItemsSum !== 0 ? ticketItemsSum : null);
+  const derivedValorTotal = ticket?.valorTotal ?? (ticketItemsSum !== 0 ? ticketItemsSum : null)
 
   /**
    * Valor que abre no campo ao entrar em edição. Sem total gravado, começa com
    * a soma dos itens para que salvar passe a valer no chamado.
    */
   const prefillValorTotal = (saved: number | null | undefined) => {
-    if (saved != null) return String(saved);
-    itemsTotalRef.current = ticketItemsSum;
-    return ticketItemsSum !== 0 ? String(ticketItemsSum) : "";
-  };
+    if (saved != null) return String(saved)
+    itemsTotalRef.current = ticketItemsSum
+    return ticketItemsSum !== 0 ? String(ticketItemsSum) : ""
+  }
 
   /**
    * A Solução e o Orçamento concentram os itens do serviço (o menu "/" insere
@@ -168,76 +158,81 @@ function TicketDetailDialog({
    * soma pode ficar negativa quando o desconto passa dos itens.
    */
   const applyItemsSum = (nextSolucao: string, nextOrcamento: string) => {
-    const sum = resolveItemsTotal(nextSolucao, nextOrcamento).value;
+    const sum = resolveItemsTotal(nextSolucao, nextOrcamento).value
 
     if (sum !== 0) {
-      itemsTotalRef.current = sum;
-      setValorTotal(String(sum));
-      return;
+      itemsTotalRef.current = sum
+      setValorTotal(String(sum))
+      return
     }
 
     // Os itens saíram e o total ainda era o que eles somavam.
     if (itemsTotalRef.current !== 0 && Number(valorTotal) === itemsTotalRef.current) {
-      itemsTotalRef.current = 0;
-      setValorTotal("");
+      itemsTotalRef.current = 0
+      setValorTotal("")
     }
-  };
+  }
 
   const handleSolucaoChange = (next: string) => {
-    setSolucao(next);
-    applyItemsSum(next, orcamento);
-  };
+    setSolucao(next)
+    applyItemsSum(next, orcamento)
+  }
 
   const handleOrcamentoChange = (next: string) => {
-    setOrcamento(next);
-    applyItemsSum(solucao, next);
-  };
+    setOrcamento(next)
+    applyItemsSum(solucao, next)
+  }
 
   const handleImageFile = async (file: File) => {
-    if (!file.type.startsWith("image/")) { toast.error("Apenas imagens são aceitas."); return; }
+    if (!file.type.startsWith("image/")) {
+      toast.error("Apenas imagens são aceitas.")
+      return
+    }
     try {
-      const base64 = await compressImage(file);
-      setImageUrl(base64);
-      setImagePreview(base64);
-    } catch { toast.error("Erro ao processar imagem."); }
-  };
+      const base64 = await compressImage(file)
+      setImageUrl(base64)
+      setImagePreview(base64)
+    } catch {
+      toast.error("Erro ao processar imagem.")
+    }
+  }
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    await handleImageFile(file);
-  };
+    const file = e.target.files?.[0]
+    if (!file) return
+    await handleImageFile(file)
+  }
 
   // Window-level paste listener so Ctrl+V works without focusing the dropzone
   useEffect(() => {
-    if (!open) return;
+    if (!open) return
     const onPaste = (e: ClipboardEvent) => {
-      const items = e.clipboardData?.items;
-      if (!items) return;
+      const items = e.clipboardData?.items
+      if (!items) return
       for (const item of items) {
         if (item.type.startsWith("image/")) {
-          const file = item.getAsFile();
+          const file = item.getAsFile()
           if (file) {
-            e.preventDefault();
-            void handleImageFile(file);
+            e.preventDefault()
+            void handleImageFile(file)
           }
-          break;
+          break
         }
       }
-    };
-    window.addEventListener("paste", onPaste);
-    return () => window.removeEventListener("paste", onPaste);
-  });
+    }
+    window.addEventListener("paste", onPaste)
+    return () => window.removeEventListener("paste", onPaste)
+  })
 
   const removeImage = () => {
-    setImageUrl(null as unknown as undefined);
-    setImagePreview(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
+    setImageUrl(null as unknown as undefined)
+    setImagePreview(null)
+    if (fileInputRef.current) fileInputRef.current.value = ""
+  }
 
   const handleSave = async () => {
-    if (!ticketId) return;
-    setLoading(true);
+    if (!ticketId) return
+    setLoading(true)
     try {
       await updateTicket({
         ticketId,
@@ -250,111 +245,114 @@ function TicketDetailDialog({
           statusEquipamento && statusEquipamento !== STATUS_EQUIPAMENTO_EMPTY
             ? statusEquipamento
             : "",
-        categoria:
-          categoria && categoria !== TICKET_CATEGORY_EMPTY ? categoria : "",
+        categoria: categoria && categoria !== TICKET_CATEGORY_EMPTY ? categoria : "",
         priority,
         guestContact: guestContact.trim() || undefined,
         imageUrl: imageUrl === null ? "" : imageUrl,
-        valorTotal: valorTotal
-          ? parseFloat(valorTotal.replace(",", "."))
-          : undefined,
+        valorTotal: valorTotal ? parseFloat(valorTotal.replace(",", ".")) : undefined,
         os: os.trim() || undefined,
         creatorName: creatorName.trim() || undefined,
         location: location.trim() || undefined,
         assigneeId:
-          assigneeId === "none"
-            ? null
-            : assigneeId
-              ? (assigneeId as Id<"technicians">)
-              : undefined,
-      });
-      toast.success("Chamado atualizado!");
-      setEditing(false);
+          assigneeId === "none" ? null : assigneeId ? (assigneeId as Id<"technicians">) : undefined,
+      })
+      toast.success("Chamado atualizado!")
+      setEditing(false)
     } catch {
-      toast.error("Erro ao atualizar.");
+      toast.error("Erro ao atualizar.")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   /** Pede a confirmação do usuário antes de gravar o novo status. */
   const handleStatusChange = (status: TicketStatus) => {
-    if (!ticketId) return;
-    if (ticket?.status === status) return;
+    if (!ticketId) return
+    if (ticket?.status === status) return
     if (!canMoveTo(status)) {
-      toast.error("Sem permissão para mover chamados para esta coluna.");
-      return;
+      toast.error("Sem permissão para mover chamados para esta coluna.")
+      return
     }
-    setPendingStatus(status);
-  };
+    setPendingStatus(status)
+  }
 
   /** Grava o status já confirmado. */
   const applyStatusChange = async (status: TicketStatus) => {
-    if (!ticketId) return;
+    if (!ticketId) return
     try {
-      const oldStatus = ticket?.status;
-      await updateStatus({ ticketId, status });
+      const oldStatus = ticket?.status
+      await updateStatus({ ticketId, status })
       // Send WhatsApp Web notification for status change
       if (ticket) {
-        sendWhatsAppWebNotification({
-          number: ticket.number,
-          title: ticket.title,
-          description: ticket.description,
-          solucao: ticket.solucao,
-          orcamento: ticket.orcamento,
-          obs: ticket.obs,
-          statusEquipamento: ticket.statusEquipamento,
-          priority: ticket.priority,
-          status,
-          guestContact: ticket.guestContact,
-          creatorName: ticket.creatorName,
-          location: ticket.location,
-          os: ticket.os,
-          valorTotal: derivedValorTotal,
-          assigneeName: ticket.assigneeName,
-          imageUrl: ticket.imageUrl,
-        }, "status_changed", oldStatus ?? undefined);
+        sendWhatsAppWebNotification(
+          {
+            number: ticket.number,
+            title: ticket.title,
+            description: ticket.description,
+            solucao: ticket.solucao,
+            orcamento: ticket.orcamento,
+            obs: ticket.obs,
+            statusEquipamento: ticket.statusEquipamento,
+            priority: ticket.priority,
+            status,
+            guestContact: ticket.guestContact,
+            creatorName: ticket.creatorName,
+            location: ticket.location,
+            os: ticket.os,
+            valorTotal: derivedValorTotal,
+            assigneeName: ticket.assigneeName,
+            imageUrl: ticket.imageUrl,
+          },
+          "status_changed",
+          oldStatus ?? undefined,
+        )
       }
-      toast.success(
-        `Status alterado de "${statusLabel(oldStatus)}" para "${statusLabel(status)}".`,
-      );
+      toast.success(`Status alterado de "${statusLabel(oldStatus)}" para "${statusLabel(status)}".`)
     } catch {
-      toast.error("Erro ao mudar status.");
+      toast.error("Erro ao mudar status.")
     }
-  };
+  }
 
   const handleDelete = async () => {
-    if (!ticketId) return;
+    if (!ticketId) return
     if (!can("tickets.delete")) {
-      toast.error("Sem permissão para excluir chamados.");
-      return;
+      toast.error("Sem permissão para excluir chamados.")
+      return
     }
-    if (!window.confirm("Tem certeza que deseja excluir este chamado? Esta ação não pode ser desfeita.")) return;
-    setLoading(true);
+    if (
+      !window.confirm(
+        "Tem certeza que deseja excluir este chamado? Esta ação não pode ser desfeita.",
+      )
+    )
+      return
+    setLoading(true)
     try {
-      await removeTicket({ ticketId });
-      toast.success("Chamado excluído com sucesso!");
-      onOpenChange(false);
+      await removeTicket({ ticketId })
+      toast.success("Chamado excluído com sucesso!")
+      onOpenChange(false)
     } catch {
-      toast.error("Erro ao excluir chamado.");
+      toast.error("Erro ao excluir chamado.")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const handleShareWhatsApp = () => {
-    if (!ticket) return;
-    const msg = buildTicketMessage(ticket, "created", { greeting: false });
-    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
-    window.open(url, "_blank");
-  };
+    if (!ticket) return
+    const msg = buildTicketMessage(ticket, "created", { greeting: false })
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`
+    window.open(url, "_blank")
+  }
 
   const handlePrint = () => {
-    if (!ticket) return;
-    const priorityLabel = PRIORITY_CONFIG[ticket.priority]?.label ?? ticket.priority;
-    const statusLabel = COLUMNS.find((c) => c.id === ticket.status)?.label ?? ticket.status;
-    const printWindow = window.open("", "_blank", "width=320,height=600");
-    if (!printWindow) { toast.error("Bloqueado pelo navegador. Permita pop-ups."); return; }
+    if (!ticket) return
+    const priorityLabel = PRIORITY_CONFIG[ticket.priority]?.label ?? ticket.priority
+    const statusLabel = COLUMNS.find((c) => c.id === ticket.status)?.label ?? ticket.status
+    const printWindow = window.open("", "_blank", "width=320,height=600")
+    if (!printWindow) {
+      toast.error("Bloqueado pelo navegador. Permita pop-ups.")
+      return
+    }
     printWindow.document.write(`<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>Chamado #${ticket.number}</title>
 <style>
@@ -409,75 +407,76 @@ function TicketDetailDialog({
   ${ticket.imageUrl ? `<div class="line"></div><div class="label">Imagem</div><img src="${ticket.imageUrl}" />` : ""}
   <div class="footer">PingOS • ${new Date().toLocaleDateString("pt-BR")}</div>
   <script>window.onload = () => { window.print(); }</script>
-</body></html>`);
-    printWindow.document.close();
-  };
+</body></html>`)
+    printWindow.document.close()
+  }
 
   // Sync form state when ticket loads
   useEffect(() => {
     if (ticket && !editing && !initRef.current) {
-      initRef.current = true;
-      setTitle(ticket.title ?? "");
-      setDescription(ticket.description ?? "");
-      setSolucao(ticket.solucao ?? "");
-      setOrcamento(ticket.orcamento ?? "");
-      setObs(ticket.obs ?? "");
-      setStatusEquipamento(ticket.statusEquipamento ?? "");
-      setCategoria(ticket.categoria ?? "");
-      setGuestContact(ticket.guestContact ?? "");
-      setImageUrl(ticket.imageUrl ?? undefined);
-      setImagePreview(ticket.imageUrl ?? null);
-      setAssigneeId(ticket.assigneeId ?? "");
-      setCreatorName(ticket.creatorName ?? "");
-      setValorTotal(prefillValorTotal(ticket.valorTotal));
-      setOs(ticket.os ?? "");
-      setLocation(ticket.location ?? "");
-      setPriority(ticket.priority);
+      initRef.current = true
+      setTitle(ticket.title ?? "")
+      setDescription(ticket.description ?? "")
+      setSolucao(ticket.solucao ?? "")
+      setOrcamento(ticket.orcamento ?? "")
+      setObs(ticket.obs ?? "")
+      setStatusEquipamento(ticket.statusEquipamento ?? "")
+      setCategoria(ticket.categoria ?? "")
+      setGuestContact(ticket.guestContact ?? "")
+      setImageUrl(ticket.imageUrl ?? undefined)
+      setImagePreview(ticket.imageUrl ?? null)
+      setAssigneeId(ticket.assigneeId ?? "")
+      setCreatorName(ticket.creatorName ?? "")
+      setValorTotal(prefillValorTotal(ticket.valorTotal))
+      setOs(ticket.os ?? "")
+      setLocation(ticket.location ?? "")
+      setPriority(ticket.priority)
     }
-  }, [ticket, editing]);
+  }, [ticket, editing])
 
-  const statusMeta =
-    COLUMNS.find((c) => c.id === ticket?.status) ?? COLUMNS[0];
-  const priorityConfig = PRIORITY_CONFIG[ticket?.priority ?? "media"];
+  const statusMeta = COLUMNS.find((c) => c.id === ticket?.status) ?? COLUMNS[0]
+  const priorityConfig = PRIORITY_CONFIG[ticket?.priority ?? "media"]
 
   return (
     <Dialog
-      open={open}        onOpenChange={(v) => {
+      open={open}
+      onOpenChange={(v) => {
         if (!v) {
-          setEditing(false);
-          setTitle("");
-          setDescription("");
-          setSolucao("");
-          setOrcamento("");
-          setObs("");
-          setStatusEquipamento("");
-          setCategoria("");
-          setImageUrl(undefined);
-          setImagePreview(null);
-          setGuestContact("");
-          setValorTotal("");
-          setOs("");          setAssigneeId("");
-          setCreatorName("");
+          setEditing(false)
+          setTitle("")
+          setDescription("")
+          setSolucao("")
+          setOrcamento("")
+          setObs("")
+          setStatusEquipamento("")
+          setCategoria("")
+          setImageUrl(undefined)
+          setImagePreview(null)
+          setGuestContact("")
+          setValorTotal("")
+          setOs("")
+          setAssigneeId("")
+          setCreatorName("")
 
-          initRef.current = false;
+          initRef.current = false
         }
-        onOpenChange(v);
+        onOpenChange(v)
       }}
     >
       <DialogContent className="sm:max-w-xl max-h-[92vh] sm:max-h-[85vh] overflow-y-auto [&_[data-slot=dialog-close]]:top-5 [&_[data-slot=dialog-close]]:right-5 [&_[data-slot=dialog-close]]:flex [&_[data-slot=dialog-close]]:size-10 [&_[data-slot=dialog-close]]:items-center [&_[data-slot=dialog-close]]:justify-center [&_[data-slot=dialog-close]]:rounded-full [&_[data-slot=dialog-close]]:bg-muted/80 [&_[data-slot=dialog-close]]:opacity-100 [&_[data-slot=dialog-close]]:touch-manipulation">
         <StatusChangeConfirmDialog
           open={pendingStatus !== null}
           onOpenChange={(open) => {
-            if (!open) setPendingStatus(null);
+            if (!open) setPendingStatus(null)
           }}
           ticketLabel={ticket ? `chamado #${ticket.number} · ${ticket.title}` : undefined}
           requesterName={ticket?.creatorName || ticket?.guestName || undefined}
           fromLabel={statusLabel(ticket?.status)}
           toLabel={statusLabel(pendingStatus)}
           onConfirm={() => {
-            const status = pendingStatus;
-            setPendingStatus(null);
-            if (status) void applyStatusChange(status);
+            const status = pendingStatus
+            setPendingStatus(null)
+            if (status) void applyStatusChange(status)
           }}
         />
         {ticket ? (
@@ -605,17 +604,13 @@ function TicketDetailDialog({
                       <Label className="text-xs text-muted-foreground">Categoria</Label>
                       <Select
                         value={categoria || TICKET_CATEGORY_EMPTY}
-                        onValueChange={(v) =>
-                          setCategoria(v === TICKET_CATEGORY_EMPTY ? "" : v)
-                        }
+                        onValueChange={(v) => setCategoria(v === TICKET_CATEGORY_EMPTY ? "" : v)}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione a categoria" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value={TICKET_CATEGORY_EMPTY}>
-                            (sem categoria)
-                          </SelectItem>
+                          <SelectItem value={TICKET_CATEGORY_EMPTY}>(sem categoria)</SelectItem>
                           {TICKET_CATEGORIES.map((option) => (
                             <SelectItem key={option} value={option}>
                               {option}
@@ -628,14 +623,23 @@ function TicketDetailDialog({
                       </p>
                     </div>
                     <div>
-                      <Select value={statusEquipamento || STATUS_EQUIPAMENTO_EMPTY} onValueChange={(v) => setStatusEquipamento(v === STATUS_EQUIPAMENTO_EMPTY ? "" : v)}>
+                      <Select
+                        value={statusEquipamento || STATUS_EQUIPAMENTO_EMPTY}
+                        onValueChange={(v) =>
+                          setStatusEquipamento(v === STATUS_EQUIPAMENTO_EMPTY ? "" : v)
+                        }
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="(sem opção selecionada)" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value={STATUS_EQUIPAMENTO_EMPTY}>(sem opção selecionada)</SelectItem>
+                          <SelectItem value={STATUS_EQUIPAMENTO_EMPTY}>
+                            (sem opção selecionada)
+                          </SelectItem>
                           {STATUS_EQUIPAMENTO_OPTIONS.map((opt) => (
-                            <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                            <SelectItem key={opt} value={opt}>
+                              {opt}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -646,36 +650,60 @@ function TicketDetailDialog({
                     <p className="text-sm leading-relaxed text-foreground/80 whitespace-pre-wrap rounded-lg border border-border/40 bg-muted/30 p-3">
                       {ticket.description || "Sem descrição."}
                     </p>
-                    {(ticket.solucao?.trim() || ticket.orcamento?.trim() || ticket.obs?.trim() || ticket.statusEquipamento?.trim() || ticket.categoria?.trim()) && (
+                    {(ticket.solucao?.trim() ||
+                      ticket.orcamento?.trim() ||
+                      ticket.obs?.trim() ||
+                      ticket.statusEquipamento?.trim() ||
+                      ticket.categoria?.trim()) && (
                       <div className="rounded-lg border border-border/40 bg-muted/30 divide-y divide-border/40">
                         {ticket.solucao?.trim() && (
                           <div className="p-3">
-                            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Solução</p>
-                            <p className="mt-1 text-sm leading-relaxed text-foreground/80 whitespace-pre-wrap">{ticket.solucao}</p>
+                            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                              Solução
+                            </p>
+                            <p className="mt-1 text-sm leading-relaxed text-foreground/80 whitespace-pre-wrap">
+                              {ticket.solucao}
+                            </p>
                           </div>
                         )}
                         {ticket.orcamento?.trim() && (
                           <div className="p-3">
-                            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Orçamento</p>
-                            <p className="mt-1 text-sm leading-relaxed text-foreground/80 whitespace-pre-wrap">{ticket.orcamento}</p>
+                            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                              Orçamento
+                            </p>
+                            <p className="mt-1 text-sm leading-relaxed text-foreground/80 whitespace-pre-wrap">
+                              {ticket.orcamento}
+                            </p>
                           </div>
                         )}
                         {ticket.obs?.trim() && (
                           <div className="p-3">
-                            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Obs</p>
-                            <p className="mt-1 text-sm leading-relaxed text-foreground/80 whitespace-pre-wrap">{ticket.obs}</p>
+                            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                              Obs
+                            </p>
+                            <p className="mt-1 text-sm leading-relaxed text-foreground/80 whitespace-pre-wrap">
+                              {ticket.obs}
+                            </p>
                           </div>
                         )}
                         {ticket.statusEquipamento?.trim() && (
                           <div className="p-3">
-                            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Situação</p>
-                            <p className="mt-1 text-sm leading-relaxed text-foreground/80">{ticket.statusEquipamento}</p>
+                            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                              Situação
+                            </p>
+                            <p className="mt-1 text-sm leading-relaxed text-foreground/80">
+                              {ticket.statusEquipamento}
+                            </p>
                           </div>
                         )}
                         {ticket.categoria?.trim() && (
                           <div className="p-3">
-                            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Categoria</p>
-                            <p className="mt-1 text-sm leading-relaxed text-foreground/80">{ticket.categoria}</p>
+                            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                              Categoria
+                            </p>
+                            <p className="mt-1 text-sm leading-relaxed text-foreground/80">
+                              {ticket.categoria}
+                            </p>
                           </div>
                         )}
                       </div>
@@ -690,10 +718,7 @@ function TicketDetailDialog({
                   <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Prioridade
                   </Label>
-                  <Select
-                    value={priority}
-                    onValueChange={(v) => setPriority(v as TicketPriority)}
-                  >
+                  <Select value={priority} onValueChange={(v) => setPriority(v as TicketPriority)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -716,24 +741,60 @@ function TicketDetailDialog({
                   <>
                     {imagePreview ? (
                       <div className="relative inline-block">
-                        <img src={imagePreview} alt="Preview" title="Toque para ampliar" className="rounded-xl border border-border/40 max-h-48 object-cover cursor-pointer transition-opacity hover:opacity-90" onClick={() => imagePreview && onImageClick(imagePreview)} />
-                        <button type="button" aria-label="Remover imagem" onClick={removeImage} className="absolute -top-3 -right-3 flex size-9 items-center justify-center rounded-full bg-foreground text-background shadow-md transition-opacity hover:opacity-80 touch-manipulation sm:size-7"><X className="size-4" /></button>
+                        <img
+                          src={imagePreview}
+                          alt="Preview"
+                          title="Toque para ampliar"
+                          className="rounded-xl border border-border/40 max-h-48 object-cover cursor-pointer transition-opacity hover:opacity-90"
+                          onClick={() => imagePreview && onImageClick(imagePreview)}
+                        />
+                        <button
+                          type="button"
+                          aria-label="Remover imagem"
+                          onClick={removeImage}
+                          className="absolute -top-3 -right-3 flex size-9 items-center justify-center rounded-full bg-foreground text-background shadow-md transition-opacity hover:opacity-80 touch-manipulation sm:size-7"
+                        >
+                          <X className="size-4" />
+                        </button>
                       </div>
                     ) : (
-                      <button type="button" onClick={() => fileInputRef.current?.click()} onDrop={(e) => { e.preventDefault(); const file = e.dataTransfer.files?.[0]; if (file) handleImageChange({ target: { files: [file] } } as any); }} onDragOver={(e) => e.preventDefault()} className="flex w-full flex-col items-center gap-2 rounded-xl border-2 border-dashed border-border/50 bg-muted/20 p-6 text-muted-foreground transition-colors hover:border-border hover:bg-muted/40">
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        onDrop={(e) => {
+                          e.preventDefault()
+                          const file = e.dataTransfer.files?.[0]
+                          if (file) void handleImageFile(file)
+                        }}
+                        onDragOver={(e) => e.preventDefault()}
+                        className="flex w-full flex-col items-center gap-2 rounded-xl border-2 border-dashed border-border/50 bg-muted/20 p-6 text-muted-foreground transition-colors hover:border-border hover:bg-muted/40"
+                      >
                         <ImagePlus className="size-5" />
-                        <span className="text-sm font-medium">Clique, arraste ou cole (Ctrl+V) uma imagem</span>
-                        <span className="text-[11px] text-muted-foreground/60">PNG, JPG ou WebP · Máx. 5MB</span>
+                        <span className="text-sm font-medium">
+                          Clique, arraste ou cole (Ctrl+V) uma imagem
+                        </span>
+                        <span className="text-[11px] text-muted-foreground/60">
+                          PNG, JPG ou WebP · Máx. 5MB
+                        </span>
                       </button>
                     )}
-                    <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={handleImageChange} className="hidden" />
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      onChange={handleImageChange}
+                      className="hidden"
+                    />
                   </>
+                ) : ticket.imageUrl ? (
+                  <img
+                    src={ticket.imageUrl}
+                    alt="Imagem do chamado"
+                    className="rounded-xl border border-border/40 max-h-64 object-cover cursor-pointer transition-opacity hover:opacity-90"
+                    onClick={() => onImageClick(ticket.imageUrl!)}
+                  />
                 ) : (
-                  ticket.imageUrl ? (
-                    <img src={ticket.imageUrl} alt="Imagem do chamado" className="rounded-xl border border-border/40 max-h-64 object-cover cursor-pointer transition-opacity hover:opacity-90" onClick={() => onImageClick(ticket.imageUrl!)} />
-                  ) : (
-                    <p className="text-xs text-muted-foreground/60">Nenhuma imagem anexada.</p>
-                  )
+                  <p className="text-xs text-muted-foreground/60">Nenhuma imagem anexada.</p>
                 )}
               </div>
 
@@ -819,9 +880,8 @@ function TicketDetailDialog({
                       <p className="text-[11px] text-muted-foreground">
                         Soma dos itens{" "}
                         {items.source === "orcamento" ? "do Orçamento" : "da Solução"}:{" "}
-                        {formatBRL(itemsSum)} — o campo acima acompanha esse
-                        valor. Valores negativos (ex.: -R$ 50,00) entram como
-                        desconto.
+                        {formatBRL(itemsSum)} — o campo acima acompanha esse valor. Valores
+                        negativos (ex.: -R$ 50,00) entram como desconto.
                       </p>
                     )}
                   </>
@@ -850,26 +910,38 @@ function TicketDetailDialog({
                   Atribuído a
                 </Label>
                 {editing ? (
-                  <Select value={assigneeId} onValueChange={setAssigneeId} disabled={!can("tickets.assign")}>
-                    <SelectTrigger><SelectValue placeholder="Ninguém atribuído" /></SelectTrigger>
+                  <Select
+                    value={assigneeId}
+                    onValueChange={setAssigneeId}
+                    disabled={!can("tickets.assign")}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Ninguém atribuído" />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Ninguém</SelectItem>
-                      {users?.filter((t) => t.active || t._id === assigneeId).map((t) => (
-                        <SelectItem key={t._id} value={t._id}>
-                          {t.name}{t.funcao ? ` — ${t.funcao}` : ""}
-                        </SelectItem>
-                      ))}
+                      {users
+                        ?.filter((t) => t.active || t._id === assigneeId)
+                        .map((t) => (
+                          <SelectItem key={t._id} value={t._id}>
+                            {t.name}
+                            {t.funcao ? ` — ${t.funcao}` : ""}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
+                ) : ticket.assigneeName ? (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Avatar className="size-5">
+                      <AvatarImage src={ticket.assigneeImage ?? undefined} />
+                      <AvatarFallback className="text-[9px]">
+                        {getInitials(ticket.assigneeName)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span>{ticket.assigneeName}</span>
+                  </div>
                 ) : (
-                  ticket.assigneeName ? (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Avatar className="size-5"><AvatarImage src={ticket.assigneeImage ?? undefined} /><AvatarFallback className="text-[9px]">{getInitials(ticket.assigneeName)}</AvatarFallback></Avatar>
-                      <span>{ticket.assigneeName}</span>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-muted-foreground/60">Não atribuído.</p>
-                  )
+                  <p className="text-xs text-muted-foreground/60">Não atribuído.</p>
                 )}
               </div>
 
@@ -912,11 +984,7 @@ function TicketDetailDialog({
                     <X className="size-4" />
                     Fechar
                   </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => setEditing(false)}
-                    disabled={loading}
-                  >
+                  <Button variant="outline" onClick={() => setEditing(false)} disabled={loading}>
                     Cancelar
                   </Button>
                   <Button onClick={handleSave} disabled={loading}>
@@ -967,41 +1035,33 @@ function TicketDetailDialog({
                         Imprimir
                       </Button>
                       {can("tickets.edit") &&
-                        canEditTicket(
-                          ticket.status,
-                          ticket.assigneeId,
-                          ticket.assigneeName,
-                        ) && (
-                        <Button
-                          variant="outline"
-                          className="h-10 flex-1 gap-1.5 px-2.5 sm:h-9 sm:flex-none sm:px-4"
-                          onClick={() => {
-                            setTitle(ticket.title ?? "");
-                            setDescription(ticket.description ?? "");
-                            setPriority(ticket.priority);
-                            setGuestContact(ticket.guestContact ?? "");
-                            setImageUrl(ticket.imageUrl ?? undefined);
-                            setImagePreview(ticket.imageUrl ?? null);
-                            setAssigneeId(ticket.assigneeId ?? "");
-                            setValorTotal(prefillValorTotal(ticket.valorTotal));
-                            setOs(ticket.os ?? "");
-                            setCreatorName(ticket.creatorName ?? "");
-                            setEditing(true);
-                          }}
-                        >
-                          Editar chamado
-                        </Button>
-                      )}
+                        canEditTicket(ticket.status, ticket.assigneeId, ticket.assigneeName) && (
+                          <Button
+                            variant="outline"
+                            className="h-10 flex-1 gap-1.5 px-2.5 sm:h-9 sm:flex-none sm:px-4"
+                            onClick={() => {
+                              setTitle(ticket.title ?? "")
+                              setDescription(ticket.description ?? "")
+                              setPriority(ticket.priority)
+                              setGuestContact(ticket.guestContact ?? "")
+                              setImageUrl(ticket.imageUrl ?? undefined)
+                              setImagePreview(ticket.imageUrl ?? null)
+                              setAssigneeId(ticket.assigneeId ?? "")
+                              setValorTotal(prefillValorTotal(ticket.valorTotal))
+                              setOs(ticket.os ?? "")
+                              setCreatorName(ticket.creatorName ?? "")
+                              setEditing(true)
+                            }}
+                          >
+                            Editar chamado
+                          </Button>
+                        )}
                     </div>
                     {can("tickets.edit") &&
-                      !canEditTicket(
-                        ticket.status,
-                        ticket.assigneeId,
-                        ticket.assigneeName,
-                      ) && (
+                      !canEditTicket(ticket.status, ticket.assigneeId, ticket.assigneeName) && (
                         <span className="block w-full text-center text-[11px] text-muted-foreground/70">
-                          Você não tem permissão para editar este chamado (coluna ou
-                          responsável não permitido).
+                          Você não tem permissão para editar este chamado (coluna ou responsável não
+                          permitido).
                         </span>
                       )}
                   </div>
@@ -1022,138 +1082,135 @@ function TicketDetailDialog({
         )}
       </DialogContent>
     </Dialog>
-  );
+  )
 }
 
 // ---- WhatsApp Web Connection Dialog ----
 
-
-
 // ---- Main Dashboard ----
 
 export default function Dashboard() {
-  const { user, signOut } = useAuth();
-  const navigate = useNavigate();
-  const { isMobile } = useMobileCompat();
-  const { can, canMoveTo, canMoveAny, canViewStatus, isAdmin } = usePermissions();
-  const canDrag = canMoveAny();
-  const canViewTickets = can("tickets.view");
+  const { user, signOut } = useAuth()
+  const navigate = useNavigate()
+  const { isMobile } = useMobileCompat()
+  const { can, canMoveTo, canMoveAny, canViewStatus } = usePermissions()
+  const canDrag = canMoveAny()
+  const canViewTickets = can("tickets.view")
   // Colunas visíveis conforme a regra de visualização por status.
-  const visibleColumns = COLUMNS.filter((c) => canViewStatus(c.id));
+  const visibleColumns = COLUMNS.filter((c) => canViewStatus(c.id))
   // Sem permissão de visualização, não assina a query (que exigiria a
   // permissão e derrubaria a tela "Sem acesso").
-  const tickets = useQuery(api.tickets.list, canViewTickets ? {} : "skip");
-  useTicketAlerts(tickets);
-  const updateStatus = useMutation(api.tickets.updateStatus);
+  const tickets = useQuery(api.tickets.list, canViewTickets ? {} : "skip")
+  useTicketAlerts(tickets)
+  const updateStatus = useMutation(api.tickets.updateStatus)
 
-  const [newTicketOpen, setNewTicketOpen] = useState(false);
-  const [guestTicketOpen, setGuestTicketOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [soundOn, setSoundOn] = useState(isSoundEnabled);
-  const [whatsappWebOpen, setWhatsappWebOpen] = useState(false);
-  const [showMetrics, setShowMetrics] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
-  const [selectedTicketId, setSelectedTicketId] = useState<Id<"tickets"> | null>(null);
-  const [dragOverColumn, setDragOverColumn] = useState<TicketStatus | null>(null);
-  const [mobileColumn, setMobileColumn] = useState<TicketStatus>("aberto");
-  const dragTicketRef = useRef<Id<"tickets"> | null>(null);
+  const [newTicketOpen, setNewTicketOpen] = useState(false)
+  const [guestTicketOpen, setGuestTicketOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [soundOn, setSoundOn] = useState(isSoundEnabled)
+  const [whatsappWebOpen, setWhatsappWebOpen] = useState(false)
+  const [showMetrics, setShowMetrics] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null)
+  const [selectedTicketId, setSelectedTicketId] = useState<Id<"tickets"> | null>(null)
+  const [dragOverColumn, setDragOverColumn] = useState<TicketStatus | null>(null)
+  const [mobileColumn, setMobileColumn] = useState<TicketStatus>("aberto")
+  const dragTicketRef = useRef<Id<"tickets"> | null>(null)
 
   // Se a coluna selecionada no mobile ficar oculta, cai para a primeira visível.
   const effectiveMobileColumn = visibleColumns.some((c) => c.id === mobileColumn)
     ? mobileColumn
-    : (visibleColumns[0]?.id ?? "aberto");
+    : (visibleColumns[0]?.id ?? "aberto")
 
   const handleSignOut = async () => {
-    await signOut();
-    navigate("/");
-  };
+    await signOut()
+    navigate("/")
+  }
 
-  const handleDragStart = useCallback(
-    (e: React.DragEvent, ticketId: Id<"tickets">) => {
-      dragTicketRef.current = ticketId;
-      e.dataTransfer.effectAllowed = "move";
-      e.dataTransfer.setData("text/plain", ticketId);
-    },
-    [],
-  );
+  const handleDragStart = useCallback((e: React.DragEvent, ticketId: Id<"tickets">) => {
+    dragTicketRef.current = ticketId
+    e.dataTransfer.effectAllowed = "move"
+    e.dataTransfer.setData("text/plain", ticketId)
+  }, [])
 
   const handleDrop = useCallback(
     async (e: React.DragEvent, status: TicketStatus) => {
-      e.preventDefault();
-      setDragOverColumn(null);
-      const ticketId = dragTicketRef.current;
+      e.preventDefault()
+      setDragOverColumn(null)
+      const ticketId = dragTicketRef.current
       if (ticketId) {
-        dragTicketRef.current = null;
+        dragTicketRef.current = null
         if (!canMoveTo(status)) {
-          toast.error("Sem permissão para mover chamados para esta coluna.");
-          return;
+          toast.error("Sem permissão para mover chamados para esta coluna.")
+          return
         }
         try {
-          const oldTicket = tickets?.find((t) => t._id === ticketId);
-          const oldStatus = oldTicket?.status;
-          await updateStatus({ ticketId, status });
+          const oldTicket = tickets?.find((t) => t._id === ticketId)
+          const oldStatus = oldTicket?.status
+          await updateStatus({ ticketId, status })
           if (oldTicket) {
-            sendWhatsAppWebNotification({
-              number: oldTicket.number,
-              title: oldTicket.title,
-              description: oldTicket.description,
-              solucao: oldTicket.solucao,
-              orcamento: oldTicket.orcamento,
-              obs: oldTicket.obs,
-              statusEquipamento: oldTicket.statusEquipamento,
-              priority: oldTicket.priority,
-              status,
-              guestContact: oldTicket.guestContact,
-              creatorName: oldTicket.creatorName,
-              location: oldTicket.location,
-              os: oldTicket.os,
-              valorTotal: oldTicket.valorTotal,
-              assigneeName: oldTicket.assigneeName,
-              imageUrl: oldTicket.imageUrl,
-            }, "status_changed", oldStatus ?? undefined);
+            sendWhatsAppWebNotification(
+              {
+                number: oldTicket.number,
+                title: oldTicket.title,
+                description: oldTicket.description,
+                solucao: oldTicket.solucao,
+                orcamento: oldTicket.orcamento,
+                obs: oldTicket.obs,
+                statusEquipamento: oldTicket.statusEquipamento,
+                priority: oldTicket.priority,
+                status,
+                guestContact: oldTicket.guestContact,
+                creatorName: oldTicket.creatorName,
+                location: oldTicket.location,
+                os: oldTicket.os,
+                valorTotal: oldTicket.valorTotal,
+                assigneeName: oldTicket.assigneeName,
+                imageUrl: oldTicket.imageUrl,
+              },
+              "status_changed",
+              oldStatus ?? undefined,
+            )
           }
-          toast.success(`Chamado movido para "${COLUMNS.find((c) => c.id === status)?.label}"`);
+          toast.success(`Chamado movido para "${COLUMNS.find((c) => c.id === status)?.label}"`)
         } catch {
-          toast.error("Erro ao mover chamado.");
+          toast.error("Erro ao mover chamado.")
         }
       }
     },
     [updateStatus, tickets, canMoveTo],
-  );
+  )
 
-  const handleDragOver = useCallback(
-    (e: React.DragEvent, status: TicketStatus) => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = "move";
-      setDragOverColumn(status);
-    },
-    [],
-  );
+  const handleDragOver = useCallback((e: React.DragEvent, status: TicketStatus) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = "move"
+    setDragOverColumn(status)
+  }, [])
 
   const handleDragLeave = useCallback(() => {
-    setDragOverColumn(null);
-  }, []);
+    setDragOverColumn(null)
+  }, [])
 
-  const filteredTickets = tickets?.filter((t) => {
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
-    return (
-      (t.title?.toLowerCase().includes(q)) ||
-      (t.description?.toLowerCase().includes(q)) ||
-      (String(t.number).includes(q)) ||
-      (t.os?.toLowerCase().includes(q)) ||
-      (t.guestContact?.toLowerCase().includes(q)) ||
-      (t.guestName?.toLowerCase().includes(q))
-    );
-  }) ?? [];
+  const filteredTickets =
+    tickets?.filter((t) => {
+      if (!searchQuery.trim()) return true
+      const q = searchQuery.toLowerCase()
+      return (
+        t.title?.toLowerCase().includes(q) ||
+        t.description?.toLowerCase().includes(q) ||
+        String(t.number).includes(q) ||
+        t.os?.toLowerCase().includes(q) ||
+        t.guestContact?.toLowerCase().includes(q) ||
+        t.guestName?.toLowerCase().includes(q)
+      )
+    }) ?? []
 
   const ticketsByStatus = (status: TicketStatus) =>
-    filteredTickets.filter((t) => t.status === status);
+    filteredTickets.filter((t) => t.status === status)
 
-  const totalTickets = tickets?.length ?? 0;
-  const openTickets = tickets?.filter((t) => t.status === "aberto").length ?? 0;
-  const inProgressTickets = tickets?.filter((t) => t.status === "em_andamento").length ?? 0;
+  const totalTickets = tickets?.length ?? 0
+  const openTickets = tickets?.filter((t) => t.status === "aberto").length ?? 0
+  const inProgressTickets = tickets?.filter((t) => t.status === "em_andamento").length ?? 0
 
   // Sem permissão de visualização → tela bloqueada (nunca depende só do frontend).
   if (!can("tickets.view")) {
@@ -1165,15 +1222,15 @@ export default function Dashboard() {
           </div>
           <h1 className="text-lg font-semibold">Sem acesso ao painel</h1>
           <p className="text-sm text-muted-foreground">
-            Sua conta não possui permissão para visualizar os chamados. Entre em
-            contato com o administrador do sistema.
+            Sua conta não possui permissão para visualizar os chamados. Entre em contato com o
+            administrador do sistema.
           </p>
           <Button variant="outline" onClick={handleSignOut}>
             Sair
           </Button>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -1185,27 +1242,39 @@ export default function Dashboard() {
               <div className="flex size-8 items-center justify-center rounded-lg bg-blue-600 shadow-sm">
                 <span className="text-sm font-semibold text-white">P</span>
               </div>
-              <span className="text-base font-semibold tracking-tight text-slate-900 dark:text-slate-100">PingOS</span>
+              <span className="text-base font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+                PingOS
+              </span>
             </div>
             <div className="hidden items-center gap-2 rounded-lg bg-slate-100 px-3 py-1.5 md:flex dark:bg-slate-800">
               <span className="flex items-center gap-1.5">
                 <span className="size-1.5 rounded-full bg-slate-400" />
-                <span className="font-semibold text-slate-900 tabular-nums dark:text-slate-100">{String(totalTickets)}</span>
+                <span className="font-semibold text-slate-900 tabular-nums dark:text-slate-100">
+                  {String(totalTickets)}
+                </span>
                 <span className="text-xs text-slate-500 dark:text-slate-400">chamados</span>
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="size-1.5 rounded-full bg-blue-500" />
-                <span className="font-semibold text-slate-900 tabular-nums dark:text-slate-100">{String(openTickets)}</span>
+                <span className="font-semibold text-slate-900 tabular-nums dark:text-slate-100">
+                  {String(openTickets)}
+                </span>
                 <span className="text-xs text-slate-500 dark:text-slate-400">abertos</span>
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="size-1.5 rounded-full bg-amber-500" />
-                <span className="font-semibold text-slate-900 tabular-nums dark:text-slate-100">{String(inProgressTickets)}</span>
+                <span className="font-semibold text-slate-900 tabular-nums dark:text-slate-100">
+                  {String(inProgressTickets)}
+                </span>
                 <span className="text-xs text-slate-500 dark:text-slate-400">em andamento</span>
               </span>
             </div>
             {can("tickets.create") && (
-              <Button onClick={() => setNewTicketOpen(true)} title="Abrir novo chamado" className="shrink-0 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-150 hover:bg-blue-700">
+              <Button
+                onClick={() => setNewTicketOpen(true)}
+                title="Abrir novo chamado"
+                className="shrink-0 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-150 hover:bg-blue-700"
+              >
                 <Plus className="size-4" strokeWidth={1.5} />
                 <span className="hidden sm:inline">Novo chamado</span>
               </Button>
@@ -1215,9 +1284,17 @@ export default function Dashboard() {
             )}
             <div className="relative flex-1 sm:mx-auto sm:w-72 sm:flex-none">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-              <Input placeholder="Buscar chamados..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="h-9 w-full rounded-lg border border-slate-300 bg-slate-100 pl-9 pr-8 text-sm transition-all duration-150 focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/20 sm:w-72 dark:border-slate-700 dark:bg-slate-800" />
+              <Input
+                placeholder="Buscar chamados..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-9 w-full rounded-lg border border-slate-300 bg-slate-100 pl-9 pr-8 text-sm transition-all duration-150 focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/20 sm:w-72 dark:border-slate-700 dark:bg-slate-800"
+              />
               {searchQuery && (
-                <button onClick={() => setSearchQuery("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
                   <X className="size-3.5" />
                 </button>
               )}
@@ -1225,8 +1302,17 @@ export default function Dashboard() {
           </div>
           <div className="order-1 flex items-center justify-end gap-1 sm:order-2">
             {can("settings.manage") && (
-              <Button variant="ghost" size="icon" className="size-8 rounded-lg text-slate-500 transition-all duration-150 hover:text-blue-600" onClick={() => setWhatsappWebOpen(true)} title="WhatsApp Web">
-                <Smartphone className="size-4 text-green-600 dark:text-green-400" strokeWidth={1.5} />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-8 rounded-lg text-slate-500 transition-all duration-150 hover:text-blue-600"
+                onClick={() => setWhatsappWebOpen(true)}
+                title="WhatsApp Web"
+              >
+                <Smartphone
+                  className="size-4 text-green-600 dark:text-green-400"
+                  strokeWidth={1.5}
+                />
               </Button>
             )}
             <ThemeToggle />
@@ -1236,21 +1322,37 @@ export default function Dashboard() {
               className="size-8 rounded-lg text-slate-500 transition-all duration-150 hover:text-blue-600"
               title={soundOn ? "Desativar alerta sonoro" : "Ativar alerta sonoro"}
               onClick={() => {
-                const next = !soundOn;
-                setSoundOn(next);
-                setSoundEnabled(next);
+                const next = !soundOn
+                setSoundOn(next)
+                setSoundEnabled(next)
               }}
             >
-              {soundOn ? <Volume2 className="size-4" strokeWidth={1.5} /> : <VolumeX className="size-4" strokeWidth={1.5} />}
+              {soundOn ? (
+                <Volume2 className="size-4" strokeWidth={1.5} />
+              ) : (
+                <VolumeX className="size-4" strokeWidth={1.5} />
+              )}
             </Button>
             <NotificationBell onTicketClick={(id) => setSelectedTicketId(id)} />
             {can("settings.manage") && (
-              <Button variant="ghost" size="icon" className="size-8 rounded-lg text-slate-500 transition-all duration-150 hover:text-blue-600" onClick={() => setSettingsOpen(true)} title="Configurações">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-8 rounded-lg text-slate-500 transition-all duration-150 hover:text-blue-600"
+                onClick={() => setSettingsOpen(true)}
+                title="Configurações"
+              >
                 <Settings className="size-4" strokeWidth={1.5} />
               </Button>
             )}
             {can("metrics.view") && (
-              <Button variant="ghost" size="icon" className="size-8 rounded-lg text-slate-500 transition-all duration-150 hover:text-blue-600" onClick={() => setShowMetrics(!showMetrics)} title={showMetrics ? "Ocultar métricas" : "Mostrar métricas"}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-8 rounded-lg text-slate-500 transition-all duration-150 hover:text-blue-600"
+                onClick={() => setShowMetrics(!showMetrics)}
+                title={showMetrics ? "Ocultar métricas" : "Mostrar métricas"}
+              >
                 <BarChart3 className="size-4" strokeWidth={1.5} />
               </Button>
             )}
@@ -1265,12 +1367,33 @@ export default function Dashboard() {
                 <PieChart className="size-4" strokeWidth={1.5} />
               </Button>
             )}
-            <Button variant="ghost" size="icon" className="hidden sm:inline-flex size-8 rounded-lg text-slate-500 transition-all duration-150 hover:text-blue-600" title="Copiar link para clientes" onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/chamado/novo`).then(() => { toast.success("Link copiado para compartilhar com clientes!"); }).catch(() => { toast.error("Não foi possível copiar o link."); }); }}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hidden sm:inline-flex size-8 rounded-lg text-slate-500 transition-all duration-150 hover:text-blue-600"
+              title="Copiar link para clientes"
+              onClick={() => {
+                navigator.clipboard
+                  .writeText(`${window.location.origin}/chamado/novo`)
+                  .then(() => {
+                    toast.success("Link copiado para compartilhar com clientes!")
+                  })
+                  .catch(() => {
+                    toast.error("Não foi possível copiar o link.")
+                  })
+              }}
+            >
               <Link2 className="size-4" strokeWidth={1.5} />
               <span className="sr-only">Link para clientes</span>
             </Button>
             {can("tickets.create") && (
-              <Button variant="ghost" size="icon" className="hidden sm:inline-flex size-8 rounded-lg text-slate-500 transition-all duration-150 hover:text-blue-600" onClick={() => setGuestTicketOpen(true)} title="Abrir chamado convidado">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="hidden sm:inline-flex size-8 rounded-lg text-slate-500 transition-all duration-150 hover:text-blue-600"
+                onClick={() => setGuestTicketOpen(true)}
+                title="Abrir chamado convidado"
+              >
                 <UserX className="size-4" strokeWidth={1.5} />
                 <span className="sr-only">Chamado convidado</span>
               </Button>
@@ -1278,12 +1401,26 @@ export default function Dashboard() {
             <div className="hidden sm:flex items-center gap-1.5 pl-1.5">
               <Avatar className="size-8">
                 <AvatarImage src={user?.image} />
-                <AvatarFallback className="text-xs">{user?.name ? getInitials(user.name) : user?.email ? user.email[0].toUpperCase() : "?"}</AvatarFallback>
+                <AvatarFallback className="text-xs">
+                  {user?.name
+                    ? getInitials(user.name)
+                    : user?.email
+                      ? user.email[0].toUpperCase()
+                      : "?"}
+                </AvatarFallback>
               </Avatar>
               {user?.name && (
-                <span className="hidden max-w-28 truncate text-sm font-medium text-slate-900 lg:inline dark:text-slate-100">{user.name}</span>
+                <span className="hidden max-w-28 truncate text-sm font-medium text-slate-900 lg:inline dark:text-slate-100">
+                  {user.name}
+                </span>
               )}
-              <Button variant="ghost" size="icon" className="size-8 rounded-lg text-slate-500 transition-all duration-150 hover:text-blue-600" onClick={handleSignOut} title="Sair">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-8 rounded-lg text-slate-500 transition-all duration-150 hover:text-blue-600"
+                onClick={handleSignOut}
+                title="Sair"
+              >
                 <LogOut className="size-4" strokeWidth={1.5} />
               </Button>
             </div>
@@ -1300,8 +1437,8 @@ export default function Dashboard() {
           <div className="space-y-4">
             <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
               {visibleColumns.map((column) => {
-                const count = ticketsByStatus(column.id).length;
-                const active = effectiveMobileColumn === column.id;
+                const count = ticketsByStatus(column.id).length
+                const active = effectiveMobileColumn === column.id
                 return (
                   <button
                     key={column.id}
@@ -1321,17 +1458,41 @@ export default function Dashboard() {
                       {count}
                     </span>
                   </button>
-                );
+                )
               })}
             </div>
-            {visibleColumns.filter((c) => c.id === effectiveMobileColumn).map((column) => (
-              <KanbanColumn key={column.id} column={column} tickets={ticketsByStatus(column.id)} onDragStart={handleDragStart} onDrop={handleDrop} onDragOver={(e) => handleDragOver(e, column.id)} onDragLeave={handleDragLeave} isDragOver={dragOverColumn === column.id} onTicketClick={(id) => setSelectedTicketId(id)} canDrag={canDrag} />
-            ))}
+            {visibleColumns
+              .filter((c) => c.id === effectiveMobileColumn)
+              .map((column) => (
+                <KanbanColumn
+                  key={column.id}
+                  column={column}
+                  tickets={ticketsByStatus(column.id)}
+                  onDragStart={handleDragStart}
+                  onDrop={handleDrop}
+                  onDragOver={(e) => handleDragOver(e, column.id)}
+                  onDragLeave={handleDragLeave}
+                  isDragOver={dragOverColumn === column.id}
+                  onTicketClick={(id) => setSelectedTicketId(id)}
+                  canDrag={canDrag}
+                />
+              ))}
           </div>
         ) : (
           <div className="flex gap-4 overflow-x-auto pb-4">
             {visibleColumns.map((column) => (
-              <KanbanColumn key={column.id} column={column} tickets={ticketsByStatus(column.id)} onDragStart={handleDragStart} onDrop={handleDrop} onDragOver={(e) => handleDragOver(e, column.id)} onDragLeave={handleDragLeave} isDragOver={dragOverColumn === column.id} onTicketClick={(id) => setSelectedTicketId(id)} canDrag={canDrag} />
+              <KanbanColumn
+                key={column.id}
+                column={column}
+                tickets={ticketsByStatus(column.id)}
+                onDragStart={handleDragStart}
+                onDrop={handleDrop}
+                onDragOver={(e) => handleDragOver(e, column.id)}
+                onDragLeave={handleDragLeave}
+                isDragOver={dragOverColumn === column.id}
+                onTicketClick={(id) => setSelectedTicketId(id)}
+                canDrag={canDrag}
+              />
             ))}
           </div>
         )}
@@ -1358,7 +1519,14 @@ export default function Dashboard() {
       )}
       <WhatsAppWebDialog open={whatsappWebOpen} onOpenChange={setWhatsappWebOpen} />
       {selectedTicketId && (
-        <TicketDetailDialog ticketId={selectedTicketId} open={true} onOpenChange={(open) => { if (!open) setSelectedTicketId(null); }} onImageClick={(url) => setLightboxImage(url)} />
+        <TicketDetailDialog
+          ticketId={selectedTicketId}
+          open={true}
+          onOpenChange={(open) => {
+            if (!open) setSelectedTicketId(null)
+          }}
+          onImageClick={(url) => setLightboxImage(url)}
+        />
       )}
       {lightboxImage && (
         <div
@@ -1368,10 +1536,17 @@ export default function Dashboard() {
           aria-modal="true"
           aria-label="Imagem ampliada"
         >
-          <img src={lightboxImage} alt="Imagem ampliada" className="pointer-events-none max-h-[72vh] max-w-[90vw] rounded-lg object-contain shadow-2xl" />
+          <img
+            src={lightboxImage}
+            alt="Imagem ampliada"
+            className="pointer-events-none max-h-[72vh] max-w-[90vw] rounded-lg object-contain shadow-2xl"
+          />
           <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); setLightboxImage(null); }}
+            onClick={(e) => {
+              e.stopPropagation()
+              setLightboxImage(null)
+            }}
             className="inline-flex items-center gap-2 rounded-full bg-white/20 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-white/30 active:scale-95 touch-manipulation"
           >
             <X className="size-4" />
@@ -1380,7 +1555,10 @@ export default function Dashboard() {
           <button
             type="button"
             aria-label="Fechar imagem"
-            onClick={(e) => { e.stopPropagation(); setLightboxImage(null); }}
+            onClick={(e) => {
+              e.stopPropagation()
+              setLightboxImage(null)
+            }}
             className="absolute right-4 top-4 z-20 flex size-11 items-center justify-center rounded-full bg-white/25 text-white transition-colors hover:bg-white/35 active:scale-95 touch-manipulation sm:size-10"
           >
             <X className="size-5" />
@@ -1388,5 +1566,5 @@ export default function Dashboard() {
         </div>
       )}
     </div>
-  );
+  )
 }
