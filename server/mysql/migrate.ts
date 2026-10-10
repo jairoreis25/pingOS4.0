@@ -21,7 +21,10 @@ import {
 } from "../../src/lib/permissions"
 import { loadEnvFile } from "../api/env"
 import { hashPassword, normalizeUsername } from "../api/auth"
-import { applySchema, ensureDatabase, execute, newId, query, queryOne } from "./pool"
+import { applySchema, ensureDatabase, execute, newId, query, queryOne, withNamedLock } from "./pool"
+
+/** Nome do lock que serializa migrações entre réplicas/processos. */
+const MIGRATION_LOCK = "pingos:migrate"
 
 /**
  * Colunas que precisam de mais espaço do que o schema original previa.
@@ -237,8 +240,18 @@ export async function ensureSchema(): Promise<void> {
   }
 }
 
-/** Garante schema, papéis padrão, registros únicos e (opcional) o 1º admin. */
+/**
+ * Aplica as migrações segurando o lock `pingos:migrate`.
+ *
+ * O boot de cada réplica da API e o `bun run mysql:seed` podem rodar ao mesmo
+ * tempo; sem lock, dois processos disputam `ALTER TABLE` e os `INSERT` únicos.
+ */
 export async function runMigrations(): Promise<void> {
+  await withNamedLock(MIGRATION_LOCK, 30, runMigrationsLocked)
+}
+
+/** Garante schema, papéis padrão, registros únicos e (opcional) o 1º admin. */
+async function runMigrationsLocked(): Promise<void> {
   const envInfo = loadEnvFile()
   console.log(`[migrate] env: ${envInfo.file ?? "(nenhum — usando o ambiente)"}`)
 

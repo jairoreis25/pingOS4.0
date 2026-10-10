@@ -9,7 +9,7 @@
  */
 
 import { randomBytes, randomUUID } from "node:crypto"
-import mysql, { type Pool, type ResultSetHeader } from "mysql2/promise"
+import mysql, { type Pool, type ResultSetHeader, type RowDataPacket } from "mysql2/promise"
 
 function toPositiveInt(value: string | undefined, fallback: number): number {
   const parsed = Number.parseInt(String(value ?? ""), 10)
@@ -106,6 +106,40 @@ export async function withTransaction<T>(
       /* ignora erro de rollback */
     }
     throw error
+  } finally {
+    conn.release()
+  }
+}
+
+/**
+ * Executa `fn` segurando um lock nomeado do MySQL (`GET_LOCK`).
+ *
+ * Várias réplicas da API podem subir ao mesmo tempo (Docker/Dokploy) e rodar a
+ * migração em paralelo, disputando `ALTER TABLE` e `INSERT` únicos. O lock do
+ * MySQL é por conexão, então ele fica preso numa conexão dedicada enquanto `fn`
+ * roda pelas conexões do pool — o que basta para serializar processos distintos.
+ */
+export async function withNamedLock<T>(
+  name: string,
+  timeoutSeconds: number,
+  fn: () => Promise<T>,
+): Promise<T> {
+  const conn = await getPool().getConnection()
+  try {
+    const [rows] = await conn.query<RowDataPacket[]>("SELECT GET_LOCK(?, ?) AS acquired", [
+      name,
+      timeoutSeconds,
+    ])
+    if (Number(rows[0]?.acquired ?? 0) !== 1) {
+      throw new Error(
+        `[db] não foi possível obter o lock "${name}" em ${timeoutSeconds}s — outra instância está migrando.`,
+      )
+    }
+    try {
+      return await fn()
+    } finally {
+      await conn.query("SELECT RELEASE_LOCK(?)", [name])
+    }
   } finally {
     conn.release()
   }
