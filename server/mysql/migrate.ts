@@ -222,15 +222,21 @@ async function ensureBotPersonalidades(): Promise<void> {
  * sozinho (o `bot` do Telegram sem o `api`, por exemplo) usava tabelas que só a
  * migração da API criava — `acoes_pendentes`, `audit_log` — e quebrava com
  * "Table doesn't exist". Sem permissão de DDL, quem chama apenas segue.
+ *
+ * Usa o MESMO lock da migração: o `bot` e a `api` sobem juntos no Docker e as
+ * duas rotinas fazem "checa se o índice existe / cria" — sem serializar, a
+ * segunda leva `Duplicate key name` (visto em runtime ao subir o stack local).
  */
 export async function ensureSchema(): Promise<void> {
   try {
-    await ensureDatabase()
-    await applySchema(fileURLToPath(new URL("./schema.sql", import.meta.url)))
-    await ensureWideColumns()
-    await ensureAddedColumns()
-    await ensureAddedIndexes()
-    await ensureBotPersonalidades()
+    await withNamedLock(MIGRATION_LOCK, 30, async () => {
+      await ensureDatabase()
+      await applySchema(fileURLToPath(new URL("./schema.sql", import.meta.url)))
+      await ensureWideColumns()
+      await ensureAddedColumns()
+      await ensureAddedIndexes()
+      await ensureBotPersonalidades()
+    })
     console.log("[migrate] schema verificado (tabelas, colunas e índices).")
   } catch (error) {
     console.warn(
