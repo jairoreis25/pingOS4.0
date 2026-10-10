@@ -66,25 +66,6 @@ app.use(express.json({ limit: process.env.JSON_BODY_LIMIT ?? "2mb" }))
 
 // ── Rotas ───────────────────────────────────────────────────────────────────
 
-// ── HERMES AGENT BYPASS ──────────────────────────────────────────────────
-// These routes are placed BEFORE attachUser to avoid 401 errors.
-const AGENT_SECRET = "HERMES_SECRET_ADMIN_KEY_2026"
-
-app.get("/api/agent/list", async (req, res) => {
-  if (req.query.key !== AGENT_SECRET) return res.status(401).json({ message: "Forbidden" })
-  try {
-    // We import the logic directly from the tickets router file or use a query
-    const { query, enrichTicket, loadEnrichment, LIST_COLUMNS } = await import("./db-helpers")
-    const [rows, enrichment] = await Promise.all([
-      query(`SELECT ${LIST_COLUMNS} FROM \`tickets\` ORDER BY \`created_at\` DESC`),
-      loadEnrichment(),
-    ])
-    res.json(rows.map((row) => enrichTicket(enrichment, row)))
-  } catch (e) {
-    res.status(500).json({ error: e instanceof Error ? e.message : String(e) })
-  }
-})
-
 app.use(attachUser)
 
 app.get("/api/health", async (_req, res) => {
