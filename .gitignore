@@ -1,0 +1,16 @@
+# Segredos — nunca versionar
+api key git.txt
+config.yaml
+.env
+.env.*
+*.pem
+*.key
+
+# Sistema / editor
+Thumbs.db
+desktop.ini
+.DS_Store
+*.tmp
+*.log
+.vscode/
+.idea/
