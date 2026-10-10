@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useMutation, useQuery, useQueryState } from "@/lib/backend/react"
 import { api } from "@/lib/backend/api"
 import { useAuth } from "@/hooks/use-auth"
@@ -1104,7 +1104,17 @@ export default function Dashboard() {
   // `useQueryState` para tratar falha: antes, API fora do ar deixava o quadro
   // preso em "carregando" para sempre.
   const ticketsState = useQueryState(api.tickets.list, canViewTickets ? {} : "skip")
-  const tickets = ticketsState.data
+  // Update otimista: com o arraste (ou a mudança pelo diálogo) o status já vale
+  // na tela, sem esperar o poll de 10s — antes o card voltava para a coluna
+  // antiga por alguns segundos, parecendo perda de dado.
+  const [pendingMoves, setPendingMoves] = useState<Record<string, TicketStatus>>({})
+  const tickets = useMemo(() => {
+    const list = ticketsState.data
+    if (!list) return list
+    return list.map((ticket) =>
+      pendingMoves[ticket._id] ? { ...ticket, status: pendingMoves[ticket._id] } : ticket,
+    )
+  }, [ticketsState.data, pendingMoves])
   useTicketAlerts(tickets)
   const updateStatus = useMutation(api.tickets.updateStatus)
 
@@ -1151,6 +1161,7 @@ export default function Dashboard() {
         try {
           const oldTicket = tickets?.find((t) => t._id === ticketId)
           const oldStatus = oldTicket?.status
+          setPendingMoves((prev) => ({ ...prev, [ticketId]: status }))
           await updateStatus({ ticketId, status })
           if (oldTicket) {
             sendWhatsAppWebNotification(
@@ -1179,6 +1190,15 @@ export default function Dashboard() {
           toast.success(`Chamado movido para "${COLUMNS.find((c) => c.id === status)?.label}"`)
         } catch {
           toast.error("Erro ao mover chamado.")
+        } finally {
+          // Sucesso: o próximo dado do servidor já traz o status novo. Falha: o
+          // card volta para a coluna original.
+          setPendingMoves((prev) => {
+            if (!(ticketId in prev)) return prev
+            const next = { ...prev }
+            delete next[ticketId]
+            return next
+          })
         }
       }
     },
