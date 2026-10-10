@@ -7,8 +7,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { ArrowRight, ArrowRightLeft } from "lucide-react";
+} from "@/components/ui/alert-dialog"
+import { ArrowRight, ArrowRightLeft } from "lucide-react"
 
 /**
  * Mensagem de confirmação exibida sempre que um chamado muda de status.
@@ -30,17 +30,17 @@ export default function StatusChangeConfirmDialog({
   toLabel,
   onConfirm,
 }: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  open: boolean
+  onOpenChange: (open: boolean) => void
   /** Ex.: "chamado #12 · Impressora sem rede" */
-  ticketLabel?: string;
+  ticketLabel?: string
   /** Solicitante do chamado (mesmo campo exibido no cartão e no cupom). */
-  requesterName?: string;
+  requesterName?: string
   /** Status atual do chamado, quando conhecido. */
-  fromLabel?: string;
+  fromLabel?: string
   /** Status de destino. */
-  toLabel: string;
-  onConfirm: () => void;
+  toLabel: string
+  onConfirm: () => void
 }) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -74,8 +74,7 @@ export default function StatusChangeConfirmDialog({
               </div>
               {requesterName && (
                 <p className="text-xs text-muted-foreground">
-                  Solicitante:{" "}
-                  <span className="font-medium text-foreground">{requesterName}</span>
+                  Solicitante: <span className="font-medium text-foreground">{requesterName}</span>
                 </p>
               )}
               <p>Deseja confirmar esta alteração?</p>
@@ -88,5 +87,5 @@ export default function StatusChangeConfirmDialog({
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-  );
+  )
 }

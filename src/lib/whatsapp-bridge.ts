@@ -23,33 +23,33 @@
  * custom URL must be reachable from the browser over HTTPS (mixed content
  * would be blocked on the https site otherwise).
  */
-import { runtimeConfig } from "./runtime-config";
+import { runtimeConfig } from "./runtime-config"
 
-const ENV_BRIDGE = runtimeConfig.whatsappWebUrl.replace(/\/+$/, "");
+const ENV_BRIDGE = runtimeConfig.whatsappWebUrl.replace(/\/+$/, "")
 
-const STORAGE_KEY = "whatsapp-bridge-url";
+const STORAGE_KEY = "whatsapp-bridge-url"
 
 function normalizeUrl(value: string): string {
-  return value.trim().replace(/\/+$/, "");
+  return value.trim().replace(/\/+$/, "")
 }
 
 /** Runtime override set from the WhatsApp Web dialog, or "" when none. */
 export function getBridgeOverride(): string {
-  if (typeof window === "undefined") return "";
+  if (typeof window === "undefined") return ""
   try {
-    return normalizeUrl(window.localStorage.getItem(STORAGE_KEY) ?? "");
+    return normalizeUrl(window.localStorage.getItem(STORAGE_KEY) ?? "")
   } catch {
-    return "";
+    return ""
   }
 }
 
 /** Persist (or clear, when empty) the runtime bridge URL override. */
 export function setBridgeOverride(url: string): void {
-  if (typeof window === "undefined") return;
-  const value = normalizeUrl(url);
+  if (typeof window === "undefined") return
+  const value = normalizeUrl(url)
   try {
-    if (value) window.localStorage.setItem(STORAGE_KEY, value);
-    else window.localStorage.removeItem(STORAGE_KEY);
+    if (value) window.localStorage.setItem(STORAGE_KEY, value)
+    else window.localStorage.removeItem(STORAGE_KEY)
   } catch {
     // Ignore storage errors (private mode, quota, ...) — calls keep working
     // with the env-var/proxy fallback.
@@ -58,30 +58,30 @@ export function setBridgeOverride(url: string): void {
 
 /** Base URL of the bridge, or "" to use the same-origin dev proxy. */
 export function getBridgeBase(): string {
-  return getBridgeOverride() || ENV_BRIDGE;
+  return getBridgeOverride() || ENV_BRIDGE
 }
 
 /** True when the app points at a remote always-on bridge (not the dev proxy). */
 export function whatsappBridgeConfigured(): boolean {
-  return getBridgeBase().length > 0;
+  return getBridgeBase().length > 0
 }
 
 /** Absolute URL for a bridge endpoint, e.g. waBridgeUrl("/status"). */
 export function waBridgeUrl(path: string): string {
-  const p = path.startsWith("/") ? path : `/${path}`;
-  const base = getBridgeBase();
-  return base ? `${base}${p}` : `/whatsapp-api${p}`;
+  const p = path.startsWith("/") ? path : `/${path}`
+  const base = getBridgeBase()
+  return base ? `${base}${p}` : `/whatsapp-api${p}`
 }
 
 /** URL of the bridge web console page (status, QR Code and logs). */
 export function waConsoleUrl(): string {
-  const base = getBridgeBase();
-  return base ? `${base}/` : `${window.location.origin}/whatsapp-api/`;
+  const base = getBridgeBase()
+  return base ? `${base}/` : `${window.location.origin}/whatsapp-api/`
 }
 
 /** Where the current bridge base comes from — for the settings UI. */
 export function bridgeSourceLabel(): string {
-  if (getBridgeOverride()) return "URL personalizada (este navegador)";
-  if (ENV_BRIDGE) return "Configuração do servidor (config.js / VITE_WHATSAPP_WEB_URL)";
-  return "Proxy de desenvolvimento";
+  if (getBridgeOverride()) return "URL personalizada (este navegador)"
+  if (ENV_BRIDGE) return "Configuração do servidor (config.js / VITE_WHATSAPP_WEB_URL)"
+  return "Proxy de desenvolvimento"
 }

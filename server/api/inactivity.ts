@@ -18,23 +18,23 @@
  *   - manualmente, por `POST /api/inactivity/run` (botão "verificar agora").
  */
 
-import { execute, newId, query } from "../mysql/pool";
-import { notifyInactivity } from "./notify";
-import { parseJsonArray, type TicketRow } from "./types";
+import { execute, newId, query } from "../mysql/pool"
+import { notifyInactivity } from "./notify"
+import { parseJsonArray, type TicketRow } from "./types"
 
 /** Status que podem "parar" (os mesmos aceitos nas regras). */
-const RULE_STATUSES = ["aberto", "em_andamento", "aguardando"] as const;
+const RULE_STATUSES = ["aberto", "em_andamento", "aguardando"] as const
 
-const DAY_MS = 24 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000
 
 interface RuleRow {
-  id: string;
-  name: string;
-  statuses: unknown;
-  days_inactive: number;
-  recipient: string;
-  channels: unknown;
-  active: number;
+  id: string
+  name: string
+  statuses: unknown
+  days_inactive: number
+  recipient: string
+  channels: unknown
+  active: number
 }
 
 /**
@@ -43,17 +43,17 @@ interface RuleRow {
  */
 export interface InactivityRunResult {
   /** Regras ativas consideradas. */
-  rulesChecked: number;
+  rulesChecked: number
   /** Chamados que receberam alerta nesta execução. */
-  ticketsNotified: number;
+  ticketsNotified: number
   /** Notificações criadas no sino. */
-  inAppCreated: number;
+  inAppCreated: number
   /** E-mails enviados (quantidade de destinatários atendidos). */
-  emailsScheduled: number;
+  emailsScheduled: number
   /** Mensagens de WhatsApp enviadas. */
-  whatsappScheduled: number;
+  whatsappScheduled: number
   /** Chamados já alertados antes por esta regra (anti-spam). */
-  skipped: number;
+  skipped: number
 }
 
 /**
@@ -63,7 +63,7 @@ export interface InactivityRunResult {
 export async function runInactivityCheck(): Promise<InactivityRunResult> {
   const rules = await query<RuleRow>(
     "SELECT * FROM `notification_rules` WHERE `active` = 1 ORDER BY `created_at` ASC",
-  );
+  )
 
   const result: InactivityRunResult = {
     rulesChecked: rules.length,
@@ -72,22 +72,22 @@ export async function runInactivityCheck(): Promise<InactivityRunResult> {
     emailsScheduled: 0,
     whatsappScheduled: 0,
     skipped: 0,
-  };
-  if (rules.length === 0) return result;
+  }
+  if (rules.length === 0) return result
 
   for (const rule of rules) {
     const statuses = parseJsonArray(rule.statuses).filter((status) =>
       (RULE_STATUSES as readonly string[]).includes(status),
-    );
-    if (statuses.length === 0) continue;
+    )
+    if (statuses.length === 0) continue
 
-    const cutoff = Date.now() - Math.max(1, rule.days_inactive) * DAY_MS;
-    const placeholders = statuses.map(() => "?").join(", ");
+    const cutoff = Date.now() - Math.max(1, rule.days_inactive) * DAY_MS
+    const placeholders = statuses.map(() => "?").join(", ")
     const tickets = await query<TicketRow>(
       `SELECT * FROM \`tickets\` WHERE \`status\` IN (${placeholders}) AND \`updated_at\` <= ?`,
       [...statuses, cutoff],
-    );
-    if (tickets.length === 0) continue;
+    )
+    if (tickets.length === 0) continue
 
     // Anti-spam: 1 alerta por chamado+regra até o chamado mudar de status ou
     // ser editado (as duas ações limpam os logs do chamado).
@@ -98,14 +98,14 @@ export async function runInactivityCheck(): Promise<InactivityRunResult> {
           [rule.id],
         )
       ).map((row) => row.ticket_id),
-    );
+    )
 
-    const channels = parseJsonArray(rule.channels);
+    const channels = parseJsonArray(rule.channels)
 
     for (const ticket of tickets) {
       if (alreadyLogged.has(ticket.id)) {
-        result.skipped++;
-        continue;
+        result.skipped++
+        continue
       }
 
       const counts = await notifyInactivity(ticket, {
@@ -114,18 +114,18 @@ export async function runInactivityCheck(): Promise<InactivityRunResult> {
         days: rule.days_inactive,
         recipient: rule.recipient,
         channels,
-      });
-      result.ticketsNotified++;
-      result.inAppCreated += counts.inApp;
-      result.emailsScheduled += counts.email;
-      result.whatsappScheduled += counts.whatsapp;
+      })
+      result.ticketsNotified++
+      result.inAppCreated += counts.inApp
+      result.emailsScheduled += counts.email
+      result.whatsappScheduled += counts.whatsapp
 
       // Registra o alerta ANTES da próxima execução (mesmo se o envio falhar,
       // não fica reenviando a cada hora — o erro fica em `notifications`).
       await execute(
         "INSERT INTO `inactivity_logs` (`id`, `ticket_id`, `rule_id`, `sent_at`) VALUES (?, ?, ?, ?)",
         [newId(), ticket.id, rule.id, Date.now()],
-      );
+      )
     }
   }
 
@@ -134,28 +134,28 @@ export async function runInactivityCheck(): Promise<InactivityRunResult> {
       `[inatividade] ${result.ticketsNotified} alerta(s) enviado(s) — ` +
         `${result.inAppCreated} no sino, ${result.emailsScheduled} e-mail(s), ` +
         `${result.whatsappScheduled} WhatsApp.`,
-    );
+    )
   }
-  return result;
+  return result
 }
 
 /** Liga o agendador periódico (usado no start da API). */
 export function startInactivityScheduler(): NodeJS.Timeout | null {
-  const minutes = Number.parseInt(process.env.INACTIVITY_INTERVAL_MINUTES ?? "60", 10);
+  const minutes = Number.parseInt(process.env.INACTIVITY_INTERVAL_MINUTES ?? "60", 10)
   if (!Number.isFinite(minutes) || minutes <= 0) {
-    console.log("[inatividade] agendador desligado (INACTIVITY_INTERVAL_MINUTES=0).");
-    return null;
+    console.log("[inatividade] agendador desligado (INACTIVITY_INTERVAL_MINUTES=0).")
+    return null
   }
 
-  const intervalMs = minutes * 60 * 1000;
+  const intervalMs = minutes * 60 * 1000
   const timer = setInterval(() => {
     runInactivityCheck().catch((error) =>
       console.error("[inatividade] falha na verificação periódica:", error),
-    );
-  }, intervalMs);
+    )
+  }, intervalMs)
   // Não impede o processo de encerrar (SIGTERM do Docker encerra normalmente).
-  timer.unref?.();
+  timer.unref?.()
 
-  console.log(`[inatividade] verificando chamados parados a cada ${minutes} minuto(s).`);
-  return timer;
+  console.log(`[inatividade] verificando chamados parados a cada ${minutes} minuto(s).`)
+  return timer
 }

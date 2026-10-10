@@ -8,10 +8,10 @@
  * daqui, então não há como um deles ficar apontando para um modelo morto.
  */
 
-import OpenAI from "openai";
+import OpenAI from "openai"
 
 /** Endpoint compatível com a API da OpenAI (o SDK aponta para cá). */
-export const NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1";
+export const NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1"
 
 /**
  * Modelo usado quando o dashboard não define um.
@@ -19,14 +19,14 @@ export const NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1";
  * Atenção: `meta/llama-3.3-70b-instruct` (o padrão antigo) foi aposentado em
  * 2026-08-26 e hoje responde 410 Gone — não volte para ele.
  */
-export const DEFAULT_MODEL = "nvidia/nemotron-3-super-120b-a12b";
+export const DEFAULT_MODEL = "nvidia/nemotron-3-super-120b-a12b"
 
 /** Sugestões mostradas primeiro no dropdown do dashboard. */
 export const SUGGESTED_MODELS = [
   "nvidia/nemotron-3-super-120b-a12b",
   "nvidia/nemotron-3.5-lightning-30b-a3b",
   "nvidia/nemotron-3-ultra-550b-a55b",
-];
+]
 
 /**
  * Modelo de **visão** usado para ler fotos de O.S. impressas.
@@ -42,14 +42,14 @@ export const SUGGESTED_MODELS = [
  * base64 (`data:image/jpeg;base64,...`) e é o padrão aqui. É um modelo de
  * raciocínio — o `enable_thinking: false` do `nvidiaChat` também se aplica.
  */
-export const DEFAULT_VISION_MODEL = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning";
+export const DEFAULT_VISION_MODEL = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning"
 
 /**
  * Sugestões iniciais do dropdown de visão. Só o padrão: `nemotron-parse` tem
  * saída própria de parsing (não é chat JSON) e confundiria a extração — o resto
  * da lista vem do catálogo vivo da conta NVIDIA.
  */
-export const VISION_SUGGESTED_MODELS = [DEFAULT_VISION_MODEL];
+export const VISION_SUGGESTED_MODELS = [DEFAULT_VISION_MODEL]
 
 /**
  * Normaliza o modelo de visão: vazio vira o padrão. Diferente do texto, aqui
@@ -58,8 +58,8 @@ export const VISION_SUGGESTED_MODELS = [DEFAULT_VISION_MODEL];
  * valida de verdade é o teste de visão no dashboard.
  */
 export function resolveVisionModel(model: string | null | undefined): string {
-  const value = (model ?? "").trim();
-  return value || DEFAULT_VISION_MODEL;
+  const value = (model ?? "").trim()
+  return value || DEFAULT_VISION_MODEL
 }
 
 /** IDs que a NVIDIA já aposentou (410 Gone) e que não podem mais ser usados. */
@@ -71,11 +71,11 @@ const RETIRED_MODELS = new Set([
   "nvidia/nemotron-3-nano-30b-a3b",
   "nvidia/nvidia-nemotron-nano-9b-v2",
   "nvidia/nemotron-nano-12b-v2-vl",
-]);
+])
 
 /** `true` se a NVIDIA já aposentou este modelo. */
 export function isRetiredModel(model: string | null | undefined): boolean {
-  return RETIRED_MODELS.has((model ?? "").trim());
+  return RETIRED_MODELS.has((model ?? "").trim())
 }
 
 /**
@@ -84,15 +84,15 @@ export function isRetiredModel(model: string | null | undefined): boolean {
  * llama-3.3) se curar sozinha ao ser lida, sem o administrador mexer em nada.
  */
 export function resolveModel(model: string | null | undefined): string {
-  const value = (model ?? "").trim();
-  if (!value || isRetiredModel(value)) return DEFAULT_MODEL;
-  return value;
+  const value = (model ?? "").trim()
+  if (!value || isRetiredModel(value)) return DEFAULT_MODEL
+  return value
 }
 
 /** Corpo da chamada de chat, com o parâmetro extra aceito pela NVIDIA. */
 type NvidiaChatParams = OpenAI.ChatCompletionCreateParamsNonStreaming & {
-  chat_template_kwargs?: { enable_thinking?: boolean };
-};
+  chat_template_kwargs?: { enable_thinking?: boolean }
+}
 
 /**
  * Chamada de chat na NVIDIA com o raciocínio desligado.
@@ -109,18 +109,18 @@ export async function nvidiaChat(
   params: NvidiaChatParams,
   options: { timeoutMs?: number } = {},
 ): Promise<OpenAI.ChatCompletion> {
-  const timeout = options.timeoutMs ?? 60_000;
+  const timeout = options.timeoutMs ?? 60_000
   const body: NvidiaChatParams = {
     ...params,
     chat_template_kwargs: { enable_thinking: false },
-  };
+  }
 
   try {
-    return await client.chat.completions.create(body, { timeout });
+    return await client.chat.completions.create(body, { timeout })
   } catch (error) {
-    const status = (error as { status?: number }).status;
-    if (status !== 400 && status !== 422) throw error;
-    return client.chat.completions.create(params, { timeout });
+    const status = (error as { status?: number }).status
+    if (status !== 400 && status !== 422) throw error
+    return client.chat.completions.create(params, { timeout })
   }
 }
 
@@ -128,9 +128,9 @@ export async function nvidiaChat(
 export function extractText(message: OpenAI.ChatCompletionMessage): string {
   const content = (message.content ?? "")
     .replace(/<think(?:ing)?>[\s\S]*?<\/think(?:ing)?>/gi, "")
-    .trim();
-  if (content) return content;
+    .trim()
+  if (content) return content
 
-  const reasoning = (message as { reasoning_content?: string }).reasoning_content;
-  return reasoning?.trim() ?? "";
+  const reasoning = (message as { reasoning_content?: string }).reasoning_content
+  return reasoning?.trim() ?? ""
 }

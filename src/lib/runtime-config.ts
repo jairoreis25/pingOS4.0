@@ -21,28 +21,25 @@
  */
 
 export interface PingosRuntimeConfig {
-  apiUrl?: string;
-  whatsappWebUrl?: string;
+  apiUrl?: string
+  whatsappWebUrl?: string
 }
 
 /** Lê o objeto injetado pelo `/config.js` (vazio quando ausente). */
 function runtime(): PingosRuntimeConfig {
-  if (typeof window === "undefined") return {};
-  const scope = window as unknown as { __PINGOS_CONFIG__?: PingosRuntimeConfig };
-  return scope.__PINGOS_CONFIG__ ?? {};
+  if (typeof window === "undefined") return {}
+  const scope = window as unknown as { __PINGOS_CONFIG__?: PingosRuntimeConfig }
+  return scope.__PINGOS_CONFIG__ ?? {}
 }
 
 /** Valor de runtime quando preenchido; senão o valor embutido no build. */
-function pick(
-  runtimeValue: string | undefined,
-  envValue: string | undefined,
-): string {
-  const fromRuntime = (runtimeValue ?? "").trim();
-  if (fromRuntime) return fromRuntime;
-  return (envValue ?? "").trim();
+function pick(runtimeValue: string | undefined, envValue: string | undefined): string {
+  const fromRuntime = (runtimeValue ?? "").trim()
+  if (fromRuntime) return fromRuntime
+  return (envValue ?? "").trim()
 }
 
-const injected = runtime();
+const injected = runtime()
 
 /** Configuração efetiva do frontend (runtime → build). */
 export const runtimeConfig = {
@@ -53,11 +50,11 @@ export const runtimeConfig = {
     injected.whatsappWebUrl,
     import.meta.env.VITE_WHATSAPP_WEB_URL as string | undefined,
   ),
-};
+}
 
 /** True quando os valores vieram do `config.js` gerado pelo container. */
 export function usingRuntimeConfig(): boolean {
   return Object.keys(injected).some((key) =>
     Boolean((injected[key as keyof PingosRuntimeConfig] ?? "").trim()),
-  );
+  )
 }

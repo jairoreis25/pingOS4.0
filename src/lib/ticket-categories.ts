@@ -18,12 +18,12 @@ export const TICKET_CATEGORIES = [
   "Rede",
   "Suporte",
   "Outros",
-] as const;
+] as const
 
-export type TicketCategory = (typeof TICKET_CATEGORIES)[number];
+export type TicketCategory = (typeof TICKET_CATEGORIES)[number]
 
 /** Sentinela da opção "sem categoria" no dropdown. */
-export const TICKET_CATEGORY_EMPTY = "—";
+export const TICKET_CATEGORY_EMPTY = "—"
 
 /**
  * Sentinela usada nos **filtros** para achar os chamados ainda sem categoria.
@@ -32,7 +32,7 @@ export const TICKET_CATEGORY_EMPTY = "—";
  * enviada na query da API — por isso o valor precisa ser seguro em URL e
  * compartilhado entre a tela e o backend.
  */
-export const TICKET_CATEGORY_UNSET = "sem_categoria";
+export const TICKET_CATEGORY_UNSET = "sem_categoria"
 
 /**
  * Converte qualquer entrada na categoria canônica.
@@ -42,16 +42,14 @@ export const TICKET_CATEGORY_UNSET = "sem_categoria";
  * quem precisa recusar usa `isTicketCategory` antes.
  */
 export function normalizeTicketCategory(value: unknown): TicketCategory | null {
-  if (value === undefined || value === null) return null;
-  const trimmed = String(value).trim();
-  if (!trimmed || trimmed === TICKET_CATEGORY_EMPTY) return null;
-  const found = TICKET_CATEGORIES.find(
-    (option) => option.toLowerCase() === trimmed.toLowerCase(),
-  );
-  return found ?? null;
+  if (value === undefined || value === null) return null
+  const trimmed = String(value).trim()
+  if (!trimmed || trimmed === TICKET_CATEGORY_EMPTY) return null
+  const found = TICKET_CATEGORIES.find((option) => option.toLowerCase() === trimmed.toLowerCase())
+  return found ?? null
 }
 
 /** `true` quando o valor é uma das opções da lista (ignorando a caixa). */
 export function isTicketCategory(value: unknown): boolean {
-  return normalizeTicketCategory(value) !== null;
+  return normalizeTicketCategory(value) !== null
 }

@@ -1,255 +1,269 @@
-import { useState, useRef, useCallback, useEffect } from "react";
-import { useMutation } from "@/lib/backend/react";
-import { api } from "@/lib/backend/api";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import {
-  Headphones,
-  ArrowRight,
-  CheckCircle2,
-  ArrowLeft,
-  ImagePlus,
-  X,
-} from "lucide-react";
-import { useNavigate } from "react-router";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { toast } from "sonner";
-import { waBridgeUrl } from "@/lib/whatsapp-bridge";
+import { useState, useRef, useCallback, useEffect } from "react"
+import { useMutation } from "@/lib/backend/react"
+import { api } from "@/lib/backend/api"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
+import { Headphones, ArrowRight, CheckCircle2, ArrowLeft, ImagePlus, X } from "lucide-react"
+import { useNavigate } from "react-router"
+import { ThemeToggle } from "@/components/ThemeToggle"
+import { toast } from "sonner"
+import { waBridgeUrl } from "@/lib/whatsapp-bridge"
 
-type TicketPriority = "baixa" | "media" | "alta" | "critica";
+type TicketPriority = "baixa" | "media" | "alta" | "critica"
 
 // WhatsApp Web notification helper — sends via the local bridge server
-async function sendWhatsAppWebNotification(ticket: {
-  number?: number | null;
-  title?: string | null;
-  description?: string | null;
-  priority: string;
-  status: string;
-  guestContact?: string | null;
-  creatorName?: string | null;
-  location?: string | null;
-  os?: string | null;
-  valorTotal?: number | null;
-  assigneeName?: string | null;
-  imageUrl?: string | null;
-}, type: "created" | "status_changed", oldStatus?: string | null) {
+async function sendWhatsAppWebNotification(
+  ticket: {
+    number?: number | null
+    title?: string | null
+    description?: string | null
+    priority: string
+    status: string
+    guestContact?: string | null
+    creatorName?: string | null
+    location?: string | null
+    os?: string | null
+    valorTotal?: number | null
+    assigneeName?: string | null
+    imageUrl?: string | null
+  },
+  type: "created" | "status_changed",
+  oldStatus?: string | null,
+) {
   try {
-    const statusRes = await fetch(waBridgeUrl("/status"));
-    const statusData = await statusRes.json();
-    if (statusData.status !== "connected") return;
+    const statusRes = await fetch(waBridgeUrl("/status"))
+    const statusData = await statusRes.json()
+    if (statusData.status !== "connected") return
 
-    const contact = ticket.guestContact;
-    if (!contact) return;
+    const contact = ticket.guestContact
+    if (!contact) return
 
-    const digits = contact.replace(/\D/g, "");
-    if (digits.length < 8) return;
-    const phone = digits.length > 13 ? digits.slice(-13) : digits;
+    const digits = contact.replace(/\D/g, "")
+    if (digits.length < 8) return
+    const phone = digits.length > 13 ? digits.slice(-13) : digits
 
     const SL: Record<string, string> = {
-      aberto: "🟢 Aberto", em_andamento: "🔵 Em Andamento",
-      aguardando: "🟡 Aguardando", resolvido: "✅ Resolvido", fechado: "⬜ Fechado",
-    };
+      aberto: "🟢 Aberto",
+      em_andamento: "🔵 Em Andamento",
+      aguardando: "🟡 Aguardando",
+      resolvido: "✅ Resolvido",
+      fechado: "⬜ Fechado",
+    }
     const PL: Record<string, string> = {
-      baixa: "🟢 Baixa", media: "🟡 Média", alta: "🟠 Alta", critica: "🔴 Crítica",
-    };
-
-    let msg: string;
-    if (type === "created") {
-      msg = `📋 *Olá ${ticket.creatorName ?? "Solicitante"}, Seu chamado foi aberto no PingOS*\n\n`;
-      msg += `*Título:* ${ticket.title ?? "Sem título"}\n`;
-      msg += `*Prioridade:* ${PL[ticket.priority] ?? ticket.priority}\n`;
-      msg += `*Status:* ${SL[ticket.status] ?? ticket.status}\n`;
-      if (ticket.os) msg += `*O.S:* ${ticket.os}\n`;
-      if (ticket.valorTotal != null) msg += `*Valor Total:* R$ ${ticket.valorTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}\n`;
-      msg += `*Solicitante:* ${ticket.creatorName}\n`;
-      if (ticket.location) msg += `*Localização:* ${ticket.location}\n`;
-      if (ticket.assigneeName) msg += `*Responsável:* ${ticket.assigneeName}\n`;
-      msg += `\n*Descrição:*\n${(ticket.description ?? "Sem descrição.").slice(0, 500)}`;
-    } else {
-      const name = ticket.creatorName ?? "Solicitante";
-      const osRef = ticket.os ? ` #${ticket.os}` : ` #${ticket.number ?? "?"}`;
-      msg = `🔄 *Olá ${name}, tudo bem?! Sua Ordem de Serviço${osRef} teve o status atualizado*\n\n`;
-      msg += `*Título:* ${ticket.title ?? "Sem título"}\n`;
-      msg += `*Status:* ${SL[oldStatus ?? ""] ?? oldStatus} → *${SL[ticket.status] ?? ticket.status}*\n`;
-      msg += `*Prioridade:* ${PL[ticket.priority] ?? ticket.priority}\n`;
-      if (ticket.os) msg += `*O.S:* ${ticket.os}\n`;
-      if (ticket.valorTotal != null) msg += `*Valor Total:* R$ ${ticket.valorTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}\n`;
-      msg += `*Solicitante:* ${ticket.creatorName}\n`;
-      if (ticket.location) msg += `*Localização:* ${ticket.location}\n`;
-      if (ticket.assigneeName) msg += `*Responsável:* ${ticket.assigneeName}\n`;
-      msg += `\n*Descrição:*\n${(ticket.description ?? "Sem descrição.").slice(0, 500)}`;
+      baixa: "🟢 Baixa",
+      media: "🟡 Média",
+      alta: "🟠 Alta",
+      critica: "🔴 Crítica",
     }
 
-    const payload: Record<string, unknown> = { phone, message: msg };
+    let msg: string
+    if (type === "created") {
+      msg = `📋 *Olá ${ticket.creatorName ?? "Solicitante"}, Seu chamado foi aberto no PingOS*\n\n`
+      msg += `*Título:* ${ticket.title ?? "Sem título"}\n`
+      msg += `*Prioridade:* ${PL[ticket.priority] ?? ticket.priority}\n`
+      msg += `*Status:* ${SL[ticket.status] ?? ticket.status}\n`
+      if (ticket.os) msg += `*O.S:* ${ticket.os}\n`
+      if (ticket.valorTotal != null)
+        msg += `*Valor Total:* R$ ${ticket.valorTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}\n`
+      msg += `*Solicitante:* ${ticket.creatorName}\n`
+      if (ticket.location) msg += `*Localização:* ${ticket.location}\n`
+      if (ticket.assigneeName) msg += `*Responsável:* ${ticket.assigneeName}\n`
+      msg += `\n*Descrição:*\n${(ticket.description ?? "Sem descrição.").slice(0, 500)}`
+    } else {
+      const name = ticket.creatorName ?? "Solicitante"
+      const osRef = ticket.os ? ` #${ticket.os}` : ` #${ticket.number ?? "?"}`
+      msg = `🔄 *Olá ${name}, tudo bem?! Sua Ordem de Serviço${osRef} teve o status atualizado*\n\n`
+      msg += `*Título:* ${ticket.title ?? "Sem título"}\n`
+      msg += `*Status:* ${SL[oldStatus ?? ""] ?? oldStatus} → *${SL[ticket.status] ?? ticket.status}*\n`
+      msg += `*Prioridade:* ${PL[ticket.priority] ?? ticket.priority}\n`
+      if (ticket.os) msg += `*O.S:* ${ticket.os}\n`
+      if (ticket.valorTotal != null)
+        msg += `*Valor Total:* R$ ${ticket.valorTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}\n`
+      msg += `*Solicitante:* ${ticket.creatorName}\n`
+      if (ticket.location) msg += `*Localização:* ${ticket.location}\n`
+      if (ticket.assigneeName) msg += `*Responsável:* ${ticket.assigneeName}\n`
+      msg += `\n*Descrição:*\n${(ticket.description ?? "Sem descrição.").slice(0, 500)}`
+    }
+
+    const payload: Record<string, unknown> = { phone, message: msg }
     if (ticket.imageUrl) {
-      payload.image = ticket.imageUrl;
+      payload.image = ticket.imageUrl
     }
     await fetch(waBridgeUrl("/send"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
-    });
+    })
   } catch {
     // Silent fail — notification is best-effort
   }
 }
 
 const PRIORITY_OPTIONS: {
-  value: TicketPriority;
-  label: string;
-  emoji: string;
+  value: TicketPriority
+  label: string
+  emoji: string
 }[] = [
   { value: "baixa", label: "Baixa", emoji: "🟢" },
   { value: "media", label: "Média", emoji: "🟡" },
   { value: "alta", label: "Alta", emoji: "🟠" },
   { value: "critica", label: "Crítica", emoji: "🔴" },
-];
+]
 
-const MAX_DIMENSION = 1200;
-const JPEG_QUALITY = 0.8;
+const MAX_DIMENSION = 1200
+const JPEG_QUALITY = 0.8
 
 function compressImage(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
+    const img = new Image()
+    const url = URL.createObjectURL(file)
     img.onload = () => {
-      URL.revokeObjectURL(url);
-      let { width, height } = img;
+      URL.revokeObjectURL(url)
+      let { width, height } = img
       if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
         if (width > height) {
-          height = Math.round((height / width) * MAX_DIMENSION);
-          width = MAX_DIMENSION;
+          height = Math.round((height / width) * MAX_DIMENSION)
+          width = MAX_DIMENSION
         } else {
-          width = Math.round((width / height) * MAX_DIMENSION);
-          height = MAX_DIMENSION;
+          width = Math.round((width / height) * MAX_DIMENSION)
+          height = MAX_DIMENSION
         }
       }
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) { reject(new Error("Canvas not supported")); return; }
-      ctx.drawImage(img, 0, 0, width, height);
-      const compressed = canvas.toDataURL("image/jpeg", JPEG_QUALITY);
-      resolve(compressed);
-    };
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Failed to load image")); };
-    img.src = url;
-  });
+      const canvas = document.createElement("canvas")
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext("2d")
+      if (!ctx) {
+        reject(new Error("Canvas not supported"))
+        return
+      }
+      ctx.drawImage(img, 0, 0, width, height)
+      const compressed = canvas.toDataURL("image/jpeg", JPEG_QUALITY)
+      resolve(compressed)
+    }
+    img.onerror = () => {
+      URL.revokeObjectURL(url)
+      reject(new Error("Failed to load image"))
+    }
+    img.src = url
+  })
 }
 
 export default function PublicTicket() {
-  const createAsGuest = useMutation(api.tickets.createAsGuest);
-  const navigate = useNavigate();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const createAsGuest = useMutation(api.tickets.createAsGuest)
+  const navigate = useNavigate()
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [priority, setPriority] = useState<TicketPriority>("media");
-  const [guestName, setGuestName] = useState("");
-  const [guestContact, setGuestContact] = useState("");
-  const [location, setLocation] = useState("");
-  const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [title, setTitle] = useState("")
+  const [description, setDescription] = useState("")
+  const [priority, setPriority] = useState<TicketPriority>("media")
+  const [guestName, setGuestName] = useState("")
+  const [guestContact, setGuestContact] = useState("")
+  const [location, setLocation] = useState("")
+  const [imageUrl, setImageUrl] = useState<string | undefined>(undefined)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
 
-  const canSubmit =
-    guestName.trim() &&
-    guestContact.trim() &&
-    !loading;
+  const canSubmit = guestName.trim() && guestContact.trim() && !loading
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const file = e.target.files?.[0]
+    if (!file) return
 
     if (!file.type.startsWith("image/")) {
-      toast.error("Apenas imagens são aceitas.");
-      return;
+      toast.error("Apenas imagens são aceitas.")
+      return
     }
 
     try {
-      toast.info("Processando imagem...");
-      const base64 = await compressImage(file);
-      setImageUrl(base64);
-      setImagePreview(base64);
+      toast.info("Processando imagem...")
+      const base64 = await compressImage(file)
+      setImageUrl(base64)
+      setImagePreview(base64)
     } catch {
-      toast.error("Erro ao processar imagem.");
+      toast.error("Erro ao processar imagem.")
     }
-  };
+  }
 
   const removeImage = () => {
-    setImageUrl(undefined);
-    setImagePreview(null);
+    setImageUrl(undefined)
+    setImagePreview(null)
     if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+      fileInputRef.current.value = ""
     }
-  };
+  }
 
   const processFile = useCallback(async (file: File) => {
     if (!file.type.startsWith("image/")) {
-      toast.error("Apenas imagens são aceitas.");
-      return;
+      toast.error("Apenas imagens são aceitas.")
+      return
     }
     try {
-      toast.info("Processando imagem...");
-      const base64 = await compressImage(file);
-      setImageUrl(base64);
-      setImagePreview(base64);
+      toast.info("Processando imagem...")
+      const base64 = await compressImage(file)
+      setImageUrl(base64)
+      setImagePreview(base64)
     } catch {
-      toast.error("Erro ao processar imagem.");
+      toast.error("Erro ao processar imagem.")
     }
-  }, []);
+  }, [])
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files?.[0];
-    if (file) processFile(file);
-  }, [processFile]);
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault()
+      const file = e.dataTransfer.files?.[0]
+      if (file) processFile(file)
+    },
+    [processFile],
+  )
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-  }, []);
+    e.preventDefault()
+  }, [])
 
-  const handlePaste = useCallback((e: React.ClipboardEvent) => {
-    const items = e.clipboardData.items;
-    for (const item of items) {
-      if (item.type.startsWith("image/")) {
-        const file = item.getAsFile();
-        if (file) processFile(file);
-        break;
+  const handlePaste = useCallback(
+    (e: React.ClipboardEvent) => {
+      const items = e.clipboardData.items
+      for (const item of items) {
+        if (item.type.startsWith("image/")) {
+          const file = item.getAsFile()
+          if (file) processFile(file)
+          break
+        }
       }
-    }
-  }, [processFile]);
+    },
+    [processFile],
+  )
 
   // Window-level paste listener so Ctrl+V works anywhere on the page,
   // even when the dropzone button is not focused
   useEffect(() => {
     const onPaste = (e: ClipboardEvent) => {
       // Skip if the event was already handled by a focused element
-      const items = e.clipboardData?.items;
-      if (!items) return;
+      const items = e.clipboardData?.items
+      if (!items) return
       for (const item of items) {
         if (item.type.startsWith("image/")) {
-          const file = item.getAsFile();
+          const file = item.getAsFile()
           if (file) {
-            e.preventDefault();
-            void processFile(file);
+            e.preventDefault()
+            void processFile(file)
           }
-          break;
+          break
         }
       }
-    };
-    window.addEventListener("paste", onPaste);
-    return () => window.removeEventListener("paste", onPaste);
-  }, [processFile]);
+    }
+    window.addEventListener("paste", onPaste)
+    return () => window.removeEventListener("paste", onPaste)
+  }, [processFile])
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!canSubmit) return;
-    setLoading(true);
+    e.preventDefault()
+    if (!canSubmit) return
+    setLoading(true)
     try {
       await createAsGuest({
         title: title.trim() || undefined,
@@ -259,25 +273,28 @@ export default function PublicTicket() {
         guestContact: guestContact.trim(),
         location: location.trim() || undefined,
         imageUrl: imageUrl ?? undefined,
-      });
+      })
       // Send WhatsApp Web notification
-      await sendWhatsAppWebNotification({
-        title: title.trim() || undefined,
-        description: description.trim() || undefined,
-        priority,
-        status: "aberto",
-        guestContact: guestContact.trim(),
-        creatorName: guestName.trim(),
-        location: location.trim() || undefined,
-        imageUrl: imageUrl ?? undefined,
-      }, "created");
-      setSubmitted(true);
+      await sendWhatsAppWebNotification(
+        {
+          title: title.trim() || undefined,
+          description: description.trim() || undefined,
+          priority,
+          status: "aberto",
+          guestContact: guestContact.trim(),
+          creatorName: guestName.trim(),
+          location: location.trim() || undefined,
+          imageUrl: imageUrl ?? undefined,
+        },
+        "created",
+      )
+      setSubmitted(true)
     } catch {
-      toast.error("Erro ao enviar chamado. Tente novamente.");
+      toast.error("Erro ao enviar chamado. Tente novamente.")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   if (submitted) {
     return (
@@ -288,9 +305,7 @@ export default function PublicTicket() {
               <div className="flex size-8 items-center justify-center rounded-lg bg-foreground">
                 <Headphones className="size-4 text-background" />
               </div>
-              <span className="text-lg font-semibold tracking-tight">
-                PingOS
-              </span>
+              <span className="text-lg font-semibold tracking-tight">PingOS</span>
             </div>
             <ThemeToggle />
           </div>
@@ -300,12 +315,9 @@ export default function PublicTicket() {
             <div className="mx-auto mb-6 flex size-16 items-center justify-center rounded-2xl bg-emerald-50 dark:bg-emerald-950/40">
               <CheckCircle2 className="size-8 text-emerald-600 dark:text-emerald-400" />
             </div>
-            <h1 className="text-2xl font-bold tracking-tight">
-              Chamado enviado!
-            </h1>
+            <h1 className="text-2xl font-bold tracking-tight">Chamado enviado!</h1>
             <p className="mt-3 text-muted-foreground leading-relaxed">
-              Seu chamado foi registrado com sucesso. A equipe de TI irá
-              analisá-lo em breve.
+              Seu chamado foi registrado com sucesso. A equipe de TI irá analisá-lo em breve.
             </p>
             <div className="mt-6 rounded-xl border border-border/50 bg-card p-4 text-left">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
@@ -313,9 +325,8 @@ export default function PublicTicket() {
               </p>
               <p className="text-sm font-semibold">{title}</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Prioridade:{" "}
-                {PRIORITY_OPTIONS.find((p) => p.value === priority)?.label} ·{" "}
-                Enviado por {guestName}
+                Prioridade: {PRIORITY_OPTIONS.find((p) => p.value === priority)?.label} · Enviado
+                por {guestName}
               </p>
               {imageUrl && (
                 <div className="mt-3">
@@ -335,15 +346,15 @@ export default function PublicTicket() {
               <Button
                 variant="outline"
                 onClick={() => {
-                  setSubmitted(false);
-                  setTitle("");
-                  setDescription("");
-                  setPriority("media");
-                  setGuestName("");
-                  setGuestContact("");
-                  setLocation("");
-                  setImageUrl(undefined);
-                  setImagePreview(null);
+                  setSubmitted(false)
+                  setTitle("")
+                  setDescription("")
+                  setPriority("media")
+                  setGuestName("")
+                  setGuestContact("")
+                  setLocation("")
+                  setImageUrl(undefined)
+                  setImagePreview(null)
                 }}
               >
                 Abrir outro chamado
@@ -352,7 +363,7 @@ export default function PublicTicket() {
           </div>
         </main>
       </div>
-    );
+    )
   }
 
   return (
@@ -364,9 +375,7 @@ export default function PublicTicket() {
             <div className="flex size-8 items-center justify-center rounded-lg bg-foreground">
               <Headphones className="size-4 text-background" />
             </div>
-            <span className="text-lg font-semibold tracking-tight">
-              PingOS
-            </span>
+            <span className="text-lg font-semibold tracking-tight">PingOS</span>
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2">
             <ThemeToggle />
@@ -389,12 +398,10 @@ export default function PublicTicket() {
               <span className="size-1.5 rounded-full bg-emerald-500" />
               Acesso público
             </div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
-              Abrir chamado
-            </h1>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Abrir chamado</h1>
             <p className="mt-2 text-muted-foreground text-sm leading-relaxed">
-              Descreva seu problema e envie diretamente para a equipe de TI.
-              Não é necessário criar conta.
+              Descreva seu problema e envie diretamente para a equipe de TI. Não é necessário criar
+              conta.
             </p>
           </div>
 
@@ -527,11 +534,7 @@ export default function PublicTicket() {
               </div>
             </div>
 
-            <Button
-              type="submit"
-              className="w-full gap-2"
-              disabled={!canSubmit}
-            >
+            <Button type="submit" className="w-full gap-2" disabled={!canSubmit}>
               {loading ? (
                 <>
                   <div className="size-4 animate-spin rounded-full border-2 border-background border-t-transparent" />
@@ -567,5 +570,5 @@ export default function PublicTicket() {
         </div>
       </footer>
     </div>
-  );
+  )
 }

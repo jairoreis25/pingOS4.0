@@ -14,55 +14,55 @@
  * aqui só ficam a configuração, o CRUD das regras e o sino in-app.
  */
 
-import { Router } from "express";
-import { execute, newId, query, queryOne } from "../../mysql/pool";
-import { asyncHandler, badRequest, notFound } from "../errors";
-import { runInactivityCheck } from "../inactivity";
-import { requireAuth, requirePermission } from "../permissions";
-import { parseJsonArray, toBool } from "../types";
+import { Router } from "express"
+import { execute, newId, query, queryOne } from "../../mysql/pool"
+import { asyncHandler, badRequest, notFound } from "../errors"
+import { runInactivityCheck } from "../inactivity"
+import { requireAuth, requirePermission } from "../permissions"
+import { parseJsonArray, toBool } from "../types"
 
-export const notificationsRouter = Router();
-export const inactivityRouter = Router();
+export const notificationsRouter = Router()
+export const inactivityRouter = Router()
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 interface SettingsRow {
-  email_enabled: number;
-  email_recipients: unknown;
-  telegram_enabled: number;
-  telegram_bot_token: string | null;
-  telegram_chat_id: string | null;
-  whatsapp_enabled: number;
-  whatsapp_token: string | null;
-  whatsapp_phone_number_id: string | null;
-  whatsapp_recipients: unknown;
+  email_enabled: number
+  email_recipients: unknown
+  telegram_enabled: number
+  telegram_bot_token: string | null
+  telegram_chat_id: string | null
+  whatsapp_enabled: number
+  whatsapp_token: string | null
+  whatsapp_phone_number_id: string | null
+  whatsapp_recipients: unknown
 }
 
 interface RuleRow {
-  id: string;
-  name: string;
-  statuses: unknown;
-  days_inactive: number;
-  recipient: string;
-  channels: unknown;
-  active: number;
-  created_at: number;
-  updated_at: number;
+  id: string
+  name: string
+  statuses: unknown
+  days_inactive: number
+  recipient: string
+  channels: unknown
+  active: number
+  created_at: number
+  updated_at: number
 }
 
 interface InAppRow {
-  id: string;
-  ticket_id: string;
-  rule_id: string | null;
-  title: string;
-  message: string;
-  is_read: number;
-  created_at: number;
-  ticket_number: number | null;
-  ticket_title: string | null;
+  id: string
+  ticket_id: string
+  rule_id: string | null
+  title: string
+  message: string
+  is_read: number
+  created_at: number
+  ticket_number: number | null
+  ticket_title: string | null
 }
 
 function toSettings(row: SettingsRow | null) {
-  if (!row) return null;
+  if (!row) return null
   return {
     _id: "notification_settings",
     _creationTime: 0,
@@ -75,7 +75,7 @@ function toSettings(row: SettingsRow | null) {
     whatsappToken: row.whatsapp_token ?? undefined,
     whatsappPhoneNumberId: row.whatsapp_phone_number_id ?? undefined,
     whatsappRecipients: parseJsonArray(row.whatsapp_recipients),
-  };
+  }
 }
 
 function toRule(row: RuleRow) {
@@ -90,52 +90,52 @@ function toRule(row: RuleRow) {
     active: toBool(row.active, true),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-  };
+  }
 }
 
 /** Normaliza uma lista que pode vir como array ou como texto separado por vírgula. */
 function toStringList(value: unknown): string[] {
-  if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
+  if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean)
   if (typeof value === "string") {
     return value
       .split(",")
       .map((item) => item.trim())
-      .filter(Boolean);
+      .filter(Boolean)
   }
-  return [];
+  return []
 }
 
-const ALLOWED_STATUSES = ["aberto", "em_andamento", "aguardando"];
-const ALLOWED_CHANNELS = ["email", "inapp", "whatsapp"];
-const ALLOWED_RECIPIENTS = ["cliente", "responsavel", "ambos"];
+const ALLOWED_STATUSES = ["aberto", "em_andamento", "aguardando"]
+const ALLOWED_CHANNELS = ["email", "inapp", "whatsapp"]
+const ALLOWED_RECIPIENTS = ["cliente", "responsavel", "ambos"]
 
 interface RuleInput {
-  name: string;
-  statuses: string[];
-  days: number;
-  recipient: string;
-  channels: string[];
+  name: string
+  statuses: string[]
+  days: number
+  recipient: string
+  channels: string[]
 }
 
 /** Mesmas validações do `validateRule` do Convex. */
 function validateRule(input: RuleInput): RuleInput {
-  const name = input.name.trim();
-  if (!name) throw badRequest("Informe um nome para a regra.");
-  if (input.statuses.length === 0) throw badRequest("Selecione pelo menos um status.");
+  const name = input.name.trim()
+  if (!name) throw badRequest("Informe um nome para a regra.")
+  if (input.statuses.length === 0) throw badRequest("Selecione pelo menos um status.")
   for (const status of input.statuses) {
-    if (!ALLOWED_STATUSES.includes(status)) throw badRequest(`Status inválido: ${status}`);
+    if (!ALLOWED_STATUSES.includes(status)) throw badRequest(`Status inválido: ${status}`)
   }
   if (!Number.isFinite(input.days) || input.days < 1 || input.days > 365) {
-    throw badRequest("O tempo de inatividade deve ser entre 1 e 365 dias.");
+    throw badRequest("O tempo de inatividade deve ser entre 1 e 365 dias.")
   }
   if (!ALLOWED_RECIPIENTS.includes(input.recipient)) {
-    throw badRequest("Destinatário inválido.");
+    throw badRequest("Destinatário inválido.")
   }
   if (input.channels.length === 0) {
-    throw badRequest("Selecione pelo menos um canal de notificação.");
+    throw badRequest("Selecione pelo menos um canal de notificação.")
   }
   for (const channel of input.channels) {
-    if (!ALLOWED_CHANNELS.includes(channel)) throw badRequest(`Canal inválido: ${channel}`);
+    if (!ALLOWED_CHANNELS.includes(channel)) throw badRequest(`Canal inválido: ${channel}`)
   }
   return {
     name,
@@ -143,7 +143,7 @@ function validateRule(input: RuleInput): RuleInput {
     days: Math.floor(input.days),
     recipient: input.recipient,
     channels: [...new Set(input.channels)],
-  };
+  }
 }
 
 // ── GET /api/notification-settings ──────────────────────────────────────────
@@ -152,24 +152,22 @@ notificationsRouter.get(
   asyncHandler(async (req, res) => {
     // Leitura restrita (como no Convex): sem `settings.manage` devolve null em
     // vez de 403, para a UI saber que não deve exibir a configuração.
-    const ctx = req.auth;
+    const ctx = req.auth
     if (!ctx || !ctx.permissions.includes("settings.manage")) {
-      res.json(null);
-      return;
+      res.json(null)
+      return
     }
-    const row = await queryOne<SettingsRow>(
-      "SELECT * FROM `notification_settings` WHERE `id` = 1",
-    );
-    res.json(toSettings(row));
+    const row = await queryOne<SettingsRow>("SELECT * FROM `notification_settings` WHERE `id` = 1")
+    res.json(toSettings(row))
   }),
-);
+)
 
 // ── PUT /api/notification-settings ──────────────────────────────────────────
 notificationsRouter.put(
   "/notification-settings",
   asyncHandler(async (req, res) => {
-    requirePermission(req, "settings.manage");
-    const body = (req.body ?? {}) as Record<string, unknown>;
+    requirePermission(req, "settings.manage")
+    const body = (req.body ?? {}) as Record<string, unknown>
 
     await execute(
       `INSERT INTO notification_settings
@@ -198,43 +196,41 @@ notificationsRouter.put(
         String(body.whatsappPhoneNumberId ?? "").trim() || null,
         JSON.stringify(toStringList(body.whatsappRecipients)),
       ],
-    );
+    )
 
-    const row = await queryOne<SettingsRow>(
-      "SELECT * FROM `notification_settings` WHERE `id` = 1",
-    );
-    res.json(toSettings(row));
+    const row = await queryOne<SettingsRow>("SELECT * FROM `notification_settings` WHERE `id` = 1")
+    res.json(toSettings(row))
   }),
-);
+)
 
 // ── GET /api/notification-rules ─────────────────────────────────────────────
 notificationsRouter.get(
   "/notification-rules",
   asyncHandler(async (req, res) => {
-    requirePermission(req, "settings.manage");
+    requirePermission(req, "settings.manage")
     const rows = await query<RuleRow>(
       "SELECT * FROM `notification_rules` ORDER BY `created_at` ASC",
-    );
-    res.json(rows.map(toRule));
+    )
+    res.json(rows.map(toRule))
   }),
-);
+)
 
 // ── POST /api/notification-rules ────────────────────────────────────────────
 notificationsRouter.post(
   "/notification-rules",
   asyncHandler(async (req, res) => {
-    requirePermission(req, "settings.manage");
-    const body = (req.body ?? {}) as Record<string, unknown>;
+    requirePermission(req, "settings.manage")
+    const body = (req.body ?? {}) as Record<string, unknown>
     const rule = validateRule({
       name: String(body.name ?? ""),
       statuses: toStringList(body.statuses),
       days: Number(body.days ?? body.daysInactive ?? 0),
       recipient: String(body.recipient ?? ""),
       channels: toStringList(body.channels),
-    });
+    })
 
-    const id = newId();
-    const now = Date.now();
+    const id = newId()
+    const now = Date.now()
     await execute(
       `INSERT INTO notification_rules
          (id, name, statuses, days_inactive, recipient, channels, active, created_at, updated_at)
@@ -250,30 +246,35 @@ notificationsRouter.post(
         now,
         now,
       ],
-    );
-    res.status(201).json({ _id: id, success: true });
+    )
+    res.status(201).json({ _id: id, success: true })
   }),
-);
+)
 
 // ── PATCH /api/notification-rules/:id ───────────────────────────────────────
 notificationsRouter.patch(
   "/notification-rules/:id",
   asyncHandler(async (req, res) => {
-    requirePermission(req, "settings.manage");
-    const existing = await queryOne<RuleRow>(
-      "SELECT * FROM `notification_rules` WHERE `id` = ?",
-      [req.params.id],
-    );
-    if (!existing) throw notFound("Regra não encontrada.");
+    requirePermission(req, "settings.manage")
+    const existing = await queryOne<RuleRow>("SELECT * FROM `notification_rules` WHERE `id` = ?", [
+      req.params.id,
+    ])
+    if (!existing) throw notFound("Regra não encontrada.")
 
-    const body = (req.body ?? {}) as Record<string, unknown>;
+    const body = (req.body ?? {}) as Record<string, unknown>
     const rule = validateRule({
       name: String(body.name ?? existing.name),
-      statuses: body.statuses === undefined ? parseJsonArray(existing.statuses) : toStringList(body.statuses),
+      statuses:
+        body.statuses === undefined
+          ? parseJsonArray(existing.statuses)
+          : toStringList(body.statuses),
       days: Number(body.days ?? body.daysInactive ?? existing.days_inactive),
       recipient: String(body.recipient ?? existing.recipient),
-      channels: body.channels === undefined ? parseJsonArray(existing.channels) : toStringList(body.channels),
-    });
+      channels:
+        body.channels === undefined
+          ? parseJsonArray(existing.channels)
+          : toStringList(body.channels),
+    })
 
     await execute(
       `UPDATE notification_rules
@@ -290,33 +291,33 @@ notificationsRouter.patch(
         Date.now(),
         existing.id,
       ],
-    );
-    res.json({ success: true });
+    )
+    res.json({ success: true })
   }),
-);
+)
 
 // ── DELETE /api/notification-rules/:id ──────────────────────────────────────
 notificationsRouter.delete(
   "/notification-rules/:id",
   asyncHandler(async (req, res) => {
-    requirePermission(req, "settings.manage");
+    requirePermission(req, "settings.manage")
     const existing = await queryOne<{ id: string }>(
       "SELECT `id` FROM `notification_rules` WHERE `id` = ?",
       [req.params.id],
-    );
-    if (!existing) throw notFound("Regra não encontrada.");
+    )
+    if (!existing) throw notFound("Regra não encontrada.")
     // O anti-spam da regra some junto (FK também tem ON DELETE CASCADE).
-    await execute("DELETE FROM `inactivity_logs` WHERE `rule_id` = ?", [existing.id]);
-    await execute("DELETE FROM `notification_rules` WHERE `id` = ?", [existing.id]);
-    res.json({ success: true });
+    await execute("DELETE FROM `inactivity_logs` WHERE `rule_id` = ?", [existing.id])
+    await execute("DELETE FROM `notification_rules` WHERE `id` = ?", [existing.id])
+    res.json({ success: true })
   }),
-);
+)
 
 // ── GET /api/in-app-notifications ───────────────────────────────────────────
 notificationsRouter.get(
   "/in-app-notifications",
   asyncHandler(async (req, res) => {
-    const ctx = requireAuth(req);
+    const ctx = requireAuth(req)
     const rows = await query<InAppRow>(
       `SELECT n.id, n.ticket_id, n.rule_id, n.title, n.message, n.is_read, n.created_at,
               t.number AS ticket_number, t.title AS ticket_title
@@ -326,7 +327,7 @@ notificationsRouter.get(
         ORDER BY n.created_at DESC
         LIMIT 100`,
       [ctx.user.id],
-    );
+    )
 
     const items = rows.map((row) => ({
       _id: row.id,
@@ -337,43 +338,43 @@ notificationsRouter.get(
       createdAt: row.created_at,
       ticketNumber: row.ticket_number ?? null,
       ticketTitle: row.ticket_title ?? null,
-    }));
-    const unreadCount = items.filter((item) => !item.read).length;
+    }))
+    const unreadCount = items.filter((item) => !item.read).length
 
-    res.json({ items, unreadCount });
+    res.json({ items, unreadCount })
   }),
-);
+)
 
 // ── POST /api/in-app-notifications/:id/read ─────────────────────────────────
 notificationsRouter.post(
   "/in-app-notifications/:id/read",
   asyncHandler(async (req, res) => {
-    const ctx = requireAuth(req);
+    const ctx = requireAuth(req)
     const row = await queryOne<{ id: string; user_id: string }>(
       "SELECT `id`, `user_id` FROM `in_app_notifications` WHERE `id` = ?",
       [req.params.id],
-    );
-    if (!row) throw notFound("Notificação não encontrada.");
+    )
+    if (!row) throw notFound("Notificação não encontrada.")
     if (row.user_id !== ctx.user.id) {
-      throw badRequest("Sem permissão para alterar esta notificação.");
+      throw badRequest("Sem permissão para alterar esta notificação.")
     }
-    await execute("UPDATE `in_app_notifications` SET `is_read` = 1 WHERE `id` = ?", [row.id]);
-    res.json({ success: true });
+    await execute("UPDATE `in_app_notifications` SET `is_read` = 1 WHERE `id` = ?", [row.id])
+    res.json({ success: true })
   }),
-);
+)
 
 // ── POST /api/in-app-notifications/read-all ─────────────────────────────────
 notificationsRouter.post(
   "/in-app-notifications/read-all",
   asyncHandler(async (req, res) => {
-    const ctx = requireAuth(req);
+    const ctx = requireAuth(req)
     const result = await execute(
       "UPDATE `in_app_notifications` SET `is_read` = 1 WHERE `user_id` = ? AND `is_read` = 0",
       [ctx.user.id],
-    );
-    res.json({ success: true, count: result.affectedRows });
+    )
+    res.json({ success: true, count: result.affectedRows })
   }),
-);
+)
 
 // ── POST /api/inactivity/run (disparo manual) ───────────────────────────────
 // Roda exatamente a mesma verificação do agendador periódico. O resultado
@@ -381,8 +382,8 @@ notificationsRouter.post(
 inactivityRouter.post(
   "/run",
   asyncHandler(async (req, res) => {
-    requirePermission(req, "settings.manage");
-    const result = await runInactivityCheck();
+    requirePermission(req, "settings.manage")
+    const result = await runInactivityCheck()
     res.json({
       success: true,
       ...result,
@@ -391,6 +392,6 @@ inactivityRouter.post(
           ? "Nenhuma regra de inatividade ativa."
           : `${result.ticketsNotified} chamado(s) alertado(s)` +
             (result.skipped > 0 ? ` (${result.skipped} já alertado(s) antes).` : "."),
-    });
+    })
   }),
-);
+)

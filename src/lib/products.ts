@@ -11,18 +11,17 @@
  * dois nunca discordam sobre o que é um tipo válido.
  */
 
-export const PRODUCT_SERVICE_TYPES = ["produto", "servico"] as const;
+export const PRODUCT_SERVICE_TYPES = ["produto", "servico"] as const
 
-export type ProductServiceType = (typeof PRODUCT_SERVICE_TYPES)[number];
+export type ProductServiceType = (typeof PRODUCT_SERVICE_TYPES)[number]
 
-export const PRODUCT_SERVICE_TYPE_LABELS: Record<ProductServiceType, string> =
-  {
-    produto: "Produto",
-    servico: "Serviço",
-  };
+export const PRODUCT_SERVICE_TYPE_LABELS: Record<ProductServiceType, string> = {
+  produto: "Produto",
+  servico: "Serviço",
+}
 
 /** Tipo de um item novo quando nada é informado (num Help Desk, a maioria é serviço). */
-export const DEFAULT_PRODUCT_SERVICE_TYPE: ProductServiceType = "servico";
+export const DEFAULT_PRODUCT_SERVICE_TYPE: ProductServiceType = "servico"
 
 /**
  * Aceita "Produto", "produto", "SERVIÇO", "servico"… e devolve o valor canônico.
@@ -37,7 +36,7 @@ export function normalizeProductServiceType(
     .trim()
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, ""); // "Serviço" → "servico"
+    .replace(/[\u0300-\u036f]/g, "") // "Serviço" → "servico"
 
-  return PRODUCT_SERVICE_TYPES.find((type) => type === raw) ?? fallback;
+  return PRODUCT_SERVICE_TYPES.find((type) => type === raw) ?? fallback
 }

@@ -1,9 +1,6 @@
-import { Package, Wrench } from "lucide-react";
-import { cn } from "@/lib/utils";
-import {
-  PRODUCT_SERVICE_TYPE_LABELS,
-  type ProductServiceType,
-} from "@/lib/products";
+import { Package, Wrench } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { PRODUCT_SERVICE_TYPE_LABELS, type ProductServiceType } from "@/lib/products"
 
 /**
  * Etiqueta do tipo de um item do catálogo: **Produto** (peça, equipamento) x
@@ -14,11 +11,11 @@ export default function ItemTypeBadge({
   type,
   className,
 }: {
-  type: ProductServiceType;
-  className?: string;
+  type: ProductServiceType
+  className?: string
 }) {
-  const isProduct = type === "produto";
-  const Icon = isProduct ? Package : Wrench;
+  const isProduct = type === "produto"
+  const Icon = isProduct ? Package : Wrench
 
   return (
     <span
@@ -34,5 +31,5 @@ export default function ItemTypeBadge({
       <Icon className="size-3" />
       {PRODUCT_SERVICE_TYPE_LABELS[type]}
     </span>
-  );
+  )
 }

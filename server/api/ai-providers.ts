@@ -19,7 +19,7 @@
  * provedor escolhido em `provider`.
  */
 
-import OpenAI from "openai";
+import OpenAI from "openai"
 import {
   DEFAULT_MODEL as NVIDIA_DEFAULT_MODEL,
   DEFAULT_VISION_MODEL as NVIDIA_DEFAULT_VISION_MODEL,
@@ -28,41 +28,41 @@ import {
   resolveVisionModel as resolveNvidiaVisionModel,
   SUGGESTED_MODELS as NVIDIA_SUGGESTED_MODELS,
   VISION_SUGGESTED_MODELS as NVIDIA_VISION_SUGGESTED_MODELS,
-} from "./nvidia";
+} from "./nvidia"
 
 export interface AiProvider {
   /** Identificador gravado em `bot_config.provider`. */
-  id: string;
+  id: string
   /** Nome mostrado no dropdown do dashboard. */
-  label: string;
+  label: string
   /** URL base do endpoint compatível com a OpenAI. */
-  baseUrl: string;
+  baseUrl: string
   /** Rótulo do campo da chave ("OpenAI API Key"). */
-  apiKeyLabel: string;
+  apiKeyLabel: string
   /** Placeholder do campo (o prefixo da chave, quando o provedor usa um). */
-  apiKeyHint: string;
+  apiKeyHint: string
   /** Onde o administrador cria a chave. */
-  docsUrl: string;
+  docsUrl: string
   /** Modelo de texto usado quando o dashboard não define nenhum. */
-  defaultModel: string;
-  suggestedModels: string[];
+  defaultModel: string
+  suggestedModels: string[]
   /** Modelo multimodal padrão — `null` quando o provedor não lê imagem. */
-  defaultVisionModel: string | null;
-  visionSuggestedModels: string[];
+  defaultVisionModel: string | null
+  visionSuggestedModels: string[]
   /**
    * `true` só na NVIDIA: lá os modelos de raciocínio (Nemotron 3) precisam do
    * parâmetro extra `chat_template_kwargs` para não gastar o orçamento de
    * tokens "pensando" e devolver texto vazio.
    */
-  thinkingParam?: boolean;
+  thinkingParam?: boolean
   /** Cabeçalhos padrão da chamada (o OpenRouter usa para atribuir o app). */
-  headers?: Record<string, string>;
+  headers?: Record<string, string>
   /** Teto do catálogo vivo mostrado no dropdown (OpenRouter tem 500+ IDs). */
-  catalogLimit?: number;
+  catalogLimit?: number
   /** `true` quando a URL base pode ser editada (servidor próprio, Azure...). */
-  customBaseUrl?: boolean;
+  customBaseUrl?: boolean
   /** Linha de ajuda embaixo do campo no dashboard. */
-  hint?: string;
+  hint?: string
 }
 
 /**
@@ -139,11 +139,7 @@ export const PROVIDERS: AiProvider[] = [
     apiKeyHint: "gsk_...",
     docsUrl: "console.groq.com/keys",
     defaultModel: "llama-3.3-70b-versatile",
-    suggestedModels: [
-      "llama-3.3-70b-versatile",
-      "llama-3.1-8b-instant",
-      "openai/gpt-oss-120b",
-    ],
+    suggestedModels: ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "openai/gpt-oss-120b"],
     defaultVisionModel: "meta-llama/llama-4-scout-17b-16e-instruct",
     visionSuggestedModels: ["meta-llama/llama-4-scout-17b-16e-instruct"],
     hint: "Obtenha em console.groq.com → API Keys. Tem cota gratuita.",
@@ -218,27 +214,27 @@ export const PROVIDERS: AiProvider[] = [
       "Qualquer endpoint compatível com a OpenAI (/chat/completions). " +
       "Informe a URL base e digite o ID do modelo.",
   },
-];
+]
 
 /** Provedor padrão (o que uma configuração antiga/vazia recebe). */
-export const DEFAULT_PROVIDER = "nvidia";
+export const DEFAULT_PROVIDER = "nvidia"
 
-const BY_ID = new Map(PROVIDERS.map((provider) => [provider.id, provider]));
+const BY_ID = new Map(PROVIDERS.map((provider) => [provider.id, provider]))
 
 /** Provedor pelo id, ou `null` se não existir no catálogo. */
 export function getProvider(id: string | null | undefined): AiProvider | null {
-  const key = (id ?? "").trim().toLowerCase();
-  return BY_ID.get(key) ?? null;
+  const key = (id ?? "").trim().toLowerCase()
+  return BY_ID.get(key) ?? null
 }
 
 /** Nunca falha: id desconhecido ou vazio cai no provedor padrão (NVIDIA). */
 export function resolveProvider(id: string | null | undefined): AiProvider {
-  return getProvider(id) ?? BY_ID.get(DEFAULT_PROVIDER)!;
+  return getProvider(id) ?? BY_ID.get(DEFAULT_PROVIDER)!
 }
 
 /** Nome do provedor para mensagens ("NVIDIA", "OpenAI"...). */
 export function providerLabel(id: string | null | undefined): string {
-  return resolveProvider(id).label.split(" (")[0];
+  return resolveProvider(id).label.split(" (")[0]
 }
 
 /**
@@ -249,9 +245,9 @@ export function resolveBaseUrl(
   provider: string | null | undefined,
   baseUrl: string | null | undefined,
 ): string {
-  const custom = (baseUrl ?? "").trim();
-  if (custom) return custom.replace(/\/+$/, "");
-  return resolveProvider(provider).baseUrl;
+  const custom = (baseUrl ?? "").trim()
+  if (custom) return custom.replace(/\/+$/, "")
+  return resolveProvider(provider).baseUrl
 }
 
 /**
@@ -264,9 +260,9 @@ export function resolveModelFor(
   model: string | null | undefined,
 ): string {
   if (resolveProvider(provider).id === DEFAULT_PROVIDER) {
-    return resolveNvidiaModel(model);
+    return resolveNvidiaModel(model)
   }
-  return (model ?? "").trim() || resolveProvider(provider).defaultModel;
+  return (model ?? "").trim() || resolveProvider(provider).defaultModel
 }
 
 /**
@@ -278,15 +274,15 @@ export function resolveVisionModelFor(
   provider: string | null | undefined,
   model: string | null | undefined,
 ): string {
-  const info = resolveProvider(provider);
-  const value = (model ?? "").trim();
-  if (value) return info.id === DEFAULT_PROVIDER ? resolveNvidiaVisionModel(value) : value;
-  return info.defaultVisionModel ?? "";
+  const info = resolveProvider(provider)
+  const value = (model ?? "").trim()
+  if (value) return info.id === DEFAULT_PROVIDER ? resolveNvidiaVisionModel(value) : value
+  return info.defaultVisionModel ?? ""
 }
 
 /** `true` quando o provedor tem (ou aceita) modelo de visão. */
 export function providerSupportsVision(provider: string | null | undefined): boolean {
-  return Boolean(resolveProvider(provider).defaultVisionModel);
+  return Boolean(resolveProvider(provider).defaultVisionModel)
 }
 
 /**
@@ -294,17 +290,17 @@ export function providerSupportsVision(provider: string | null | undefined): boo
  * os endpoints do catálogo falam o mesmo dialeto.
  */
 export function createAiClient(options: {
-  provider?: string | null;
-  apiKey: string;
-  baseUrl?: string | null;
+  provider?: string | null
+  apiKey: string
+  baseUrl?: string | null
 }): OpenAI {
-  const info = resolveProvider(options.provider);
-  const baseURL = resolveBaseUrl(info.id, options.baseUrl);
+  const info = resolveProvider(options.provider)
+  const baseURL = resolveBaseUrl(info.id, options.baseUrl)
   return new OpenAI({
     apiKey: options.apiKey,
     ...(baseURL ? { baseURL } : {}),
     ...(info.headers ? { defaultHeaders: info.headers } : {}),
-  });
+  })
 }
 
 /** `true` quando `base_url` está em branco num provedor que exige a URL. */
@@ -312,14 +308,14 @@ export function missingBaseUrl(
   provider: string | null | undefined,
   baseUrl: string | null | undefined,
 ): boolean {
-  const info = resolveProvider(provider);
-  return Boolean(info.customBaseUrl) && !(baseUrl ?? "").trim();
+  const info = resolveProvider(provider)
+  return Boolean(info.customBaseUrl) && !(baseUrl ?? "").trim()
 }
 
 /** Corpo da chamada de chat, com o parâmetro extra aceito pela NVIDIA. */
 type AiChatParams = OpenAI.ChatCompletionCreateParamsNonStreaming & {
-  chat_template_kwargs?: { enable_thinking?: boolean };
-};
+  chat_template_kwargs?: { enable_thinking?: boolean }
+}
 
 /**
  * Chamada de chat no provedor escolhido.
@@ -333,30 +329,30 @@ export async function aiChat(
   params: AiChatParams,
   options: { provider?: string | null; timeoutMs?: number } = {},
 ): Promise<OpenAI.ChatCompletion> {
-  const timeout = options.timeoutMs ?? 60_000;
+  const timeout = options.timeoutMs ?? 60_000
   if (resolveProvider(options.provider).id === DEFAULT_PROVIDER) {
-    return nvidiaChat(client, params, { timeoutMs: options.timeoutMs });
+    return nvidiaChat(client, params, { timeoutMs: options.timeoutMs })
   }
-  const body = { ...params } as AiChatParams;
-  delete body.chat_template_kwargs;
+  const body = { ...params } as AiChatParams
+  delete body.chat_template_kwargs
   try {
-    return await client.chat.completions.create(body, { timeout });
+    return await client.chat.completions.create(body, { timeout })
   } catch (error) {
     // Os modelos mais novos da OpenAI (família o/gpt-5) recusam `max_tokens` e
     // exigem `max_completion_tokens`: em vez de devolver um 400 confuso para o
     // administrador, a chamada é repetida com o nome novo do parâmetro.
-    const status = (error as { status?: number }).status;
-    const mensagem = String((error as { message?: string }).message ?? "");
-    if (status !== 400 || !/max_tokens/i.test(mensagem)) throw error;
-    if (body.max_completion_tokens || !body.max_tokens) throw error;
-    const { max_tokens } = body;
+    const status = (error as { status?: number }).status
+    const mensagem = String((error as { message?: string }).message ?? "")
+    if (status !== 400 || !/max_tokens/i.test(mensagem)) throw error
+    if (body.max_completion_tokens || !body.max_tokens) throw error
+    const { max_tokens } = body
     console.warn(
       `[ai] o modelo ${body.model} recusou max_tokens — repetindo com max_completion_tokens.`,
-    );
+    )
     return client.chat.completions.create(
       { ...body, max_tokens: undefined, max_completion_tokens: max_tokens } as AiChatParams,
       { timeout },
-    );
+    )
   }
 }
 
@@ -369,21 +365,21 @@ export async function aiChat(
  * atualizar o frontend.
  */
 export interface ProviderModels {
-  provider: string;
-  label: string;
-  defaultModel: string;
-  suggested: string[];
-  defaultVisionModel: string;
-  visionSuggested: string[];
-  supportsVision: boolean;
-  catalogLimit: number;
+  provider: string
+  label: string
+  defaultModel: string
+  suggested: string[]
+  defaultVisionModel: string
+  visionSuggested: string[]
+  supportsVision: boolean
+  catalogLimit: number
 }
 
 /** Teto padrão do catálogo vivo mostrado no dropdown. */
-export const DEFAULT_CATALOG_LIMIT = 300;
+export const DEFAULT_CATALOG_LIMIT = 300
 
 export function providerModels(id: string | null | undefined): ProviderModels {
-  const info = resolveProvider(id);
+  const info = resolveProvider(id)
   return {
     provider: info.id,
     label: info.label,
@@ -393,19 +389,19 @@ export function providerModels(id: string | null | undefined): ProviderModels {
     visionSuggested: info.visionSuggestedModels,
     supportsVision: providerSupportsVision(info.id),
     catalogLimit: info.catalogLimit ?? DEFAULT_CATALOG_LIMIT,
-  };
+  }
 }
 
 /** Catálogo inteiro no formato que o dashboard consome (sem segredos). */
 export function providerCatalogForDashboard(): {
-  id: string;
-  label: string;
-  apiKeyLabel: string;
-  apiKeyHint: string;
-  docsUrl: string;
-  baseUrl: string;
-  customBaseUrl: boolean;
-  hint: string;
+  id: string
+  label: string
+  apiKeyLabel: string
+  apiKeyHint: string
+  docsUrl: string
+  baseUrl: string
+  customBaseUrl: boolean
+  hint: string
 }[] {
   return PROVIDERS.map((provider) => ({
     id: provider.id,
@@ -416,5 +412,5 @@ export function providerCatalogForDashboard(): {
     baseUrl: provider.baseUrl,
     customBaseUrl: Boolean(provider.customBaseUrl),
     hint: provider.hint ?? "",
-  }));
+  }))
 }

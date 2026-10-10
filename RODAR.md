@@ -2,20 +2,20 @@
 
 Três formas de subir o mesmo código. Escolha pela coluna **quando usar**:
 
-| Forma | Arquivo/Comando | Quando usar |
-|---|---|---|
-| **1. Local sem Docker** | `bun run dev` + `bun run mysql:api` | desenvolvimento do dia a dia (mais rápido) |
-| **2. Local com Docker** | `docker-compose.local.yml` | testar a stack igual à produção, sem Dokploy |
-| **3. Produção (Dokploy)** | `docker-compose.yml` | servidor — passo a passo em `DOKPLOY.md` |
+| Forma                     | Arquivo/Comando                     | Quando usar                                  |
+| ------------------------- | ----------------------------------- | -------------------------------------------- |
+| **1. Local sem Docker**   | `bun run dev` + `bun run mysql:api` | desenvolvimento do dia a dia (mais rápido)   |
+| **2. Local com Docker**   | `docker-compose.local.yml`          | testar a stack igual à produção, sem Dokploy |
+| **3. Produção (Dokploy)** | `docker-compose.yml`                | servidor — passo a passo em `DOKPLOY.md`     |
 
 Portas do projeto:
 
-| Serviço | Local sem Docker | Local com Docker | Dokploy |
-|---|---|---|---|
-| App (frontend) | **5173** (Vite) | **8090** (nginx) | `8090` no host → domínio na porta **80** do container |
-| API Express | **4000** | **4000** | 4000 |
-| MySQL | **3306** | **3307** no host / 3306 no container | banco do painel |
-| Ponte WhatsApp | **3001** | interna | interna |
+| Serviço        | Local sem Docker | Local com Docker                     | Dokploy                                               |
+| -------------- | ---------------- | ------------------------------------ | ----------------------------------------------------- |
+| App (frontend) | **5173** (Vite)  | **8090** (nginx)                     | `8090` no host → domínio na porta **80** do container |
+| API Express    | **4000**         | **4000**                             | 4000                                                  |
+| MySQL          | **3306**         | **3307** no host / 3306 no container | banco do painel                                       |
+| Ponte WhatsApp | **3001**         | interna                              | interna                                               |
 
 ---
 
@@ -166,12 +166,12 @@ docker compose -f docker-compose.local.yml up -d --build
 
 O que sobe:
 
-| Container | Endereço | Observação |
-|---|---|---|
-| `app` | http://localhost:8090 | nginx servindo o SPA + proxy de `/api`, `/uploads` e `/whatsapp-api` |
-| `api` | http://localhost:4000/api/health | aplica o schema e cria o admin no boot |
-| `mysql` | localhost:**3307** (3306 dentro da rede) | dados no volume `mysql-data` |
-| `whatsapp` | interno (3001 na rede) | sessão no volume `whatsapp-session` |
+| Container  | Endereço                                 | Observação                                                           |
+| ---------- | ---------------------------------------- | -------------------------------------------------------------------- |
+| `app`      | http://localhost:8090                    | nginx servindo o SPA + proxy de `/api`, `/uploads` e `/whatsapp-api` |
+| `api`      | http://localhost:4000/api/health         | aplica o schema e cria o admin no boot                               |
+| `mysql`    | localhost:**3307** (3306 dentro da rede) | dados no volume `mysql-data`                                         |
+| `whatsapp` | interno (3001 na rede)                   | sessão no volume `whatsapp-session`                                  |
 
 - **Login inicial:** `admin` / `admin123` (mude em `ADMIN_USERNAME` /
   `ADMIN_PASSWORD` antes do primeiro start, se quiser).
@@ -247,7 +247,7 @@ variáveis → **Deploy**.
 3. Clique em **Deploy** (não `Restart`): a dependência `multer` entrou no
    `package.json`, então a imagem precisa ser reconstruída.
 4. Confira em **Logs → api**: `[migrate] schema aplicado` → `🚀 PingOS API
-   (MySQL)` → `[inatividade] verificando chamados parados…`.
+(MySQL)` → `[inatividade] verificando chamados parados…`.
 5. Abra `https://SEU_DOMINIO/api/health` → `"database": true`.
 6. O compose já cria o volume **`backups`**. Sem volume, os arquivos de backup
    somem a cada deploy.
@@ -259,16 +259,16 @@ Detalhes de aba por aba (General, Domains, IP x domínio, erros comuns):
 
 ## 4. Roteiro de teste (5 minutos, depois de subir)
 
-| # | O que fazer | O que deve acontecer |
-|---|---|---|
-| 1 | Entrar com o admin | Kanban abre com as 5 colunas |
-| 2 | **Chamado público** → abrir um chamado | aparece em "Aberto"; quem tem `tickets.view` recebe aviso no sino |
-| 3 | Mover para **Resolvido** | alerta sonoro no painel + sino para solicitante/responsável |
-| 4 | **Configurações → Notificações** | ligue um canal e salve; sem `RESEND_API_KEY` o e-mail aparece como *failed* em `notifications` |
-| 5 | **Configurações → Regras de inatividade** → criar regra (status "Aberto", 1 dia) → **Verificar agora** | aviso "N alerta(s) enviado(s)…" (sem chamados parados há 1 dia, 0 é o esperado) |
-| 6 | **Configurações → Backup** → **Gerar Backup Agora** | arquivo aparece na lista; **Baixar** salva o `.json` |
-| 7 | Restaurar um backup | modal de confirmação → "Restauração concluída! N registros" → **login de novo** (as sessões são apagadas) |
-| 8 | **Configurações → Backup** → enviar um `.json` do computador | arquivo é validado, entra na lista e a restauração roda em seguida |
+| #   | O que fazer                                                                                            | O que deve acontecer                                                                                      |
+| --- | ------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| 1   | Entrar com o admin                                                                                     | Kanban abre com as 5 colunas                                                                              |
+| 2   | **Chamado público** → abrir um chamado                                                                 | aparece em "Aberto"; quem tem `tickets.view` recebe aviso no sino                                         |
+| 3   | Mover para **Resolvido**                                                                               | alerta sonoro no painel + sino para solicitante/responsável                                               |
+| 4   | **Configurações → Notificações**                                                                       | ligue um canal e salve; sem `RESEND_API_KEY` o e-mail aparece como _failed_ em `notifications`            |
+| 5   | **Configurações → Regras de inatividade** → criar regra (status "Aberto", 1 dia) → **Verificar agora** | aviso "N alerta(s) enviado(s)…" (sem chamados parados há 1 dia, 0 é o esperado)                           |
+| 6   | **Configurações → Backup** → **Gerar Backup Agora**                                                    | arquivo aparece na lista; **Baixar** salva o `.json`                                                      |
+| 7   | Restaurar um backup                                                                                    | modal de confirmação → "Restauração concluída! N registros" → **login de novo** (as sessões são apagadas) |
+| 8   | **Configurações → Backup** → enviar um `.json` do computador                                           | arquivo é validado, entra na lista e a restauração roda em seguida                                        |
 
 Consultar o histórico de envios no banco:
 
@@ -283,32 +283,32 @@ SELECT type, status, LEFT(error, 80) AS erro, FROM_UNIXTIME(sent_at/1000)
 
 ### Backend (`mysql-api.env` local / aba Environment no Dokploy)
 
-| Variável | Padrão | Para que serve |
-|---|---|---|
-| `MYSQL_HOST` / `MYSQL_PORT` | `127.0.0.1` / `3306` | conexão com o banco |
-| `MYSQL_USER` / `MYSQL_PASSWORD` / `MYSQL_DATABASE` | `pingos` / — / `pingos` | credenciais |
-| `MYSQL_AUTO_MIGRATE` | `true` | aplica o schema e garante papéis/admin no boot |
-| `API_PORT` | `4000` | porta da API |
-| `CORS_ORIGIN` | vazio | vazio = reflete a origem (dev); em produção liste o domínio |
-| `SESSION_TTL_DAYS` | `30` | validade da sessão |
-| `JSON_BODY_LIMIT` | `2mb` | limite do corpo JSON (imagens vão por upload binário) |
-| `UPLOAD_DIR` / `UPLOAD_MAX_BYTES` | `./uploads` / 15 MB | imagens dos chamados |
-| `BACKUP_DIR` | `./backups` | pasta dos arquivos `.json` de backup |
-| `BACKUP_SAFETY` | `true` | backup de segurança antes de restaurar |
-| `BACKUP_MAX_BYTES` | 256 MB | tamanho máximo do arquivo enviado para restaurar |
-| `SITE_URL` | — | link usado nas notificações |
-| `RESEND_API_KEY` / `RESEND_FROM` | — | e-mail transacional |
-| `WHATSAPP_BRIDGE_URL` | `http://whatsapp:3001` | ponte Baileys (Docker) |
-| `NOTIFY_TIMEOUT_MS` | `10000` | tempo máximo de cada chamada externa |
-| `INACTIVITY_INTERVAL_MINUTES` | `60` | de quanto em quanto tempo varre chamados parados (`0` desliga) |
-| `ADMIN_USERNAME` / `ADMIN_PASSWORD` / `ADMIN_NAME` | — | primeiro administrador criado no boot |
+| Variável                                           | Padrão                  | Para que serve                                                 |
+| -------------------------------------------------- | ----------------------- | -------------------------------------------------------------- |
+| `MYSQL_HOST` / `MYSQL_PORT`                        | `127.0.0.1` / `3306`    | conexão com o banco                                            |
+| `MYSQL_USER` / `MYSQL_PASSWORD` / `MYSQL_DATABASE` | `pingos` / — / `pingos` | credenciais                                                    |
+| `MYSQL_AUTO_MIGRATE`                               | `true`                  | aplica o schema e garante papéis/admin no boot                 |
+| `API_PORT`                                         | `4000`                  | porta da API                                                   |
+| `CORS_ORIGIN`                                      | vazio                   | vazio = reflete a origem (dev); em produção liste o domínio    |
+| `SESSION_TTL_DAYS`                                 | `30`                    | validade da sessão                                             |
+| `JSON_BODY_LIMIT`                                  | `2mb`                   | limite do corpo JSON (imagens vão por upload binário)          |
+| `UPLOAD_DIR` / `UPLOAD_MAX_BYTES`                  | `./uploads` / 15 MB     | imagens dos chamados                                           |
+| `BACKUP_DIR`                                       | `./backups`             | pasta dos arquivos `.json` de backup                           |
+| `BACKUP_SAFETY`                                    | `true`                  | backup de segurança antes de restaurar                         |
+| `BACKUP_MAX_BYTES`                                 | 256 MB                  | tamanho máximo do arquivo enviado para restaurar               |
+| `SITE_URL`                                         | —                       | link usado nas notificações                                    |
+| `RESEND_API_KEY` / `RESEND_FROM`                   | —                       | e-mail transacional                                            |
+| `WHATSAPP_BRIDGE_URL`                              | `http://whatsapp:3001`  | ponte Baileys (Docker)                                         |
+| `NOTIFY_TIMEOUT_MS`                                | `10000`                 | tempo máximo de cada chamada externa                           |
+| `INACTIVITY_INTERVAL_MINUTES`                      | `60`                    | de quanto em quanto tempo varre chamados parados (`0` desliga) |
+| `ADMIN_USERNAME` / `ADMIN_PASSWORD` / `ADMIN_NAME` | —                       | primeiro administrador criado no boot                          |
 
 ### Frontend (`.env.local` no dev, `/config.js` no Docker)
 
-| Variável | Padrão | Para que serve |
-|---|---|---|
-| `VITE_API_URL` | dev: `http://localhost:4000` | URL base da API. **Vazio no Docker/Dokploy** = mesma origem via nginx |
-| `VITE_WHATSAPP_WEB_URL` | vazio | ponte WhatsApp externa (vazio = proxy `/whatsapp-api`) |
+| Variável                | Padrão                       | Para que serve                                                        |
+| ----------------------- | ---------------------------- | --------------------------------------------------------------------- |
+| `VITE_API_URL`          | dev: `http://localhost:4000` | URL base da API. **Vazio no Docker/Dokploy** = mesma origem via nginx |
+| `VITE_WHATSAPP_WEB_URL` | vazio                        | ponte WhatsApp externa (vazio = proxy `/whatsapp-api`)                |
 
 > Nunca coloque senha em variável `VITE_*`: tudo que começa com `VITE_` vai para
 > o JavaScript público do site.
@@ -317,18 +317,18 @@ SELECT type, status, LEFT(error, 80) AS erro, FROM_UNIXTIME(sent_at/1000)
 
 ## 6. Problemas comuns
 
-| Sintoma | Causa provável / solução |
-|---|---|
-| "Não foi possível falar com a API (mesma origem)" | a API não está no ar. Rode `bun run mysql:api` ou veja `logs api` no Docker |
-| `/api/health` responde 503 com `"database":false` | credenciais/`MYSQL_HOST` errados. Em Docker do Dokploy, `MYSQL_HOST` é o **Internal Host** da aba Connection |
-| `[boot] migração automática falhou` | o banco ainda não aceitava conexão no start — reinicie o serviço; se persistir, confira usuário/senha/base |
-| `docker compose up` do compose do Dokploy: *network dokploy-network declared as external, but could not be found* | fora do Dokploy use o **`docker-compose.local.yml`** |
-| Restauração/upload de backup retorna **413** | proxy na frente da API com limite pequeno — o `nginx.conf` já está em `512m`; ajuste se usar outro proxy |
-| "Arquivo de backup inválido" | o arquivo enviado não é um `.json` gerado pelo PingOS |
-| E-mail não chega | `RESEND_API_KEY`/`RESEND_FROM` ausentes. O motivo fica na tabela `notifications` |
-| WhatsApp não envia | ponte não pareada (**Configurações → WhatsApp Web** → QR) ou `WHATSAPP_BRIDGE_URL` errado |
-| Sino sem notificação nova | o autor da ação não recebe aviso do próprio chamado; confirme que outro usuário tem `tickets.view` |
-| Preview da plataforma (`.vly.sh`) sem dados | o preview não tem MySQL. Aponte `apiUrl` em `public/config.js` para a API pública |
+| Sintoma                                                                                                           | Causa provável / solução                                                                                     |
+| ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| "Não foi possível falar com a API (mesma origem)"                                                                 | a API não está no ar. Rode `bun run mysql:api` ou veja `logs api` no Docker                                  |
+| `/api/health` responde 503 com `"database":false`                                                                 | credenciais/`MYSQL_HOST` errados. Em Docker do Dokploy, `MYSQL_HOST` é o **Internal Host** da aba Connection |
+| `[boot] migração automática falhou`                                                                               | o banco ainda não aceitava conexão no start — reinicie o serviço; se persistir, confira usuário/senha/base   |
+| `docker compose up` do compose do Dokploy: _network dokploy-network declared as external, but could not be found_ | fora do Dokploy use o **`docker-compose.local.yml`**                                                         |
+| Restauração/upload de backup retorna **413**                                                                      | proxy na frente da API com limite pequeno — o `nginx.conf` já está em `512m`; ajuste se usar outro proxy     |
+| "Arquivo de backup inválido"                                                                                      | o arquivo enviado não é um `.json` gerado pelo PingOS                                                        |
+| E-mail não chega                                                                                                  | `RESEND_API_KEY`/`RESEND_FROM` ausentes. O motivo fica na tabela `notifications`                             |
+| WhatsApp não envia                                                                                                | ponte não pareada (**Configurações → WhatsApp Web** → QR) ou `WHATSAPP_BRIDGE_URL` errado                    |
+| Sino sem notificação nova                                                                                         | o autor da ação não recebe aviso do próprio chamado; confirme que outro usuário tem `tickets.view`           |
+| Preview da plataforma (`.vly.sh`) sem dados                                                                       | o preview não tem MySQL. Aponte `apiUrl` em `public/config.js` para a API pública                            |
 
 Documentação complementar: **`MYSQL.md`** (backend MySQL por dentro),
 **`DOKPLOY.md`** (deploy) e **`README.md`** (visão geral e convenções).

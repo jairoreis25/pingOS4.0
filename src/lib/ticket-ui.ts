@@ -5,25 +5,20 @@
  * para serem compartilhados entre a página e os componentes extraídos
  * (`KanbanColumn`, `GuestNewTicketDialog`, ...).
  */
-import type { TicketPriority } from "@/lib/ticket-utils";
+import type { TicketPriority } from "@/lib/ticket-utils"
 
-export type TicketStatus =
-  | "aberto"
-  | "em_andamento"
-  | "aguardando"
-  | "resolvido"
-  | "fechado";
+export type TicketStatus = "aberto" | "em_andamento" | "aguardando" | "resolvido" | "fechado"
 
 export const COLUMNS: {
-  id: TicketStatus;
-  label: string;
-  color: string;
-  bgColor: string;
-  borderColor: string;
+  id: TicketStatus
+  label: string
+  color: string
+  bgColor: string
+  borderColor: string
   /** Cor sólida da barra de 4px no topo da coluna (e do ponto no header). */
-  barColor: string;
+  barColor: string
   /** Pill suave (fundo + texto + borda) para listagens/tabelas de relatórios. */
-  pillClass: string;
+  pillClass: string
 }[] = [
   // Visual com hierarquia: coluna branca com barra colorida por status.
   // Toda cor fixa tem a variante `dark:` ao lado (barColor é forte o bastante
@@ -78,7 +73,7 @@ export const COLUMNS: {
     pillClass:
       "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
   },
-];
+]
 
 export const PRIORITY_CONFIG: Record<
   TicketPriority,
@@ -114,7 +109,7 @@ export const PRIORITY_CONFIG: Record<
       "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900",
     leftBorder: "border-l-emerald-500",
   },
-};
+}
 
 export function getInitials(name: string) {
   return name
@@ -122,18 +117,18 @@ export function getInitials(name: string) {
     .map((n) => n[0] ?? "")
     .join("")
     .toUpperCase()
-    .slice(0, 2);
+    .slice(0, 2)
 }
 
 export function timeAgo(timestamp: number) {
-  const diff = Date.now() - timestamp;
-  const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return "agora";
-  if (minutes < 60) return `${minutes}min`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h`;
-  const days = Math.floor(hours / 24);
-  return `${days}d`;
+  const diff = Date.now() - timestamp
+  const minutes = Math.floor(diff / 60000)
+  if (minutes < 1) return "agora"
+  if (minutes < 60) return `${minutes}min`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h`
+  const days = Math.floor(hours / 24)
+  return `${days}d`
 }
 
 /**
@@ -144,18 +139,18 @@ export function timeAgo(timestamp: number) {
  * comparar item a item evita redesenhar as colunas e os cards à toa.
  */
 export function sameTicketList<T>(a: readonly T[], b: readonly T[]): boolean {
-  if (a === b) return true;
-  if (a.length !== b.length) return false;
+  if (a === b) return true
+  if (a.length !== b.length) return false
   for (let i = 0; i < a.length; i += 1) {
-    if (a[i] !== b[i]) return false;
+    if (a[i] !== b[i]) return false
   }
-  return true;
+  return true
 }
 
 /** Rótulo legível de um status ("em_andamento" → "Em Andamento"). */
 export function statusLabel(status?: TicketStatus | null): string {
-  if (!status) return "";
-  return COLUMNS.find((c) => c.id === status)?.label ?? status;
+  if (!status) return ""
+  return COLUMNS.find((c) => c.id === status)?.label ?? status
 }
 
 /**
@@ -163,12 +158,12 @@ export function statusLabel(status?: TicketStatus | null): string {
  * A coluna de destino lê isso para montar a mensagem de confirmação sem
  * depender do estado do componente principal.
  */
-export const DRAG_TICKET_MIME = "application/x-pingos-chamado";
+export const DRAG_TICKET_MIME = "application/x-pingos-chamado"
 
 export interface DraggedTicketInfo {
-  id: string;
-  number?: number;
-  title?: string;
+  id: string
+  number?: number
+  title?: string
   /** Solicitante — exibido na confirmação da mudança de status. */
-  requesterName?: string;
+  requesterName?: string
 }

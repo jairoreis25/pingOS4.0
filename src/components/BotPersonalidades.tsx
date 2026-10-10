@@ -13,76 +13,71 @@
  * reflete a mesma regra.
  */
 
-import { useEffect, useState } from "react";
-import { api, type BotPersonalidade } from "@/lib/backend/api";
-import { useMutation, useQuery } from "@/lib/backend/react";
-import { Loader2 } from "lucide-react";
+import { useEffect, useState } from "react"
+import { api, type BotPersonalidade } from "@/lib/backend/api"
+import { useMutation, useQuery } from "@/lib/backend/react"
+import { Loader2 } from "lucide-react"
 
 export function BotPersonalidades() {
-  const slots = useQuery<BotPersonalidade[]>(
-    api.botPersonalidades.list,
-    {},
-  );
+  const slots = useQuery<BotPersonalidade[]>(api.botPersonalidades.list, {})
   const update = useMutation<BotPersonalidade, Record<string, unknown>>(
     api.botPersonalidades.update,
-  );
-  const ativarRef = useMutation<BotPersonalidade[]>(api.botPersonalidades.ativar);
+  )
+  const ativarRef = useMutation<BotPersonalidade[]>(api.botPersonalidades.ativar)
 
   // Cópia local editável: os inputs mudam na hora e o "Salvar" envia ao servidor.
-  const [rascunho, setRascunho] = useState<BotPersonalidade[]>([]);
-  const [salvando, setSalvando] = useState<number | null>(null);
-  const [ativando, setAtivando] = useState<number | null>(null);
-  const [feedback, setFeedback] = useState("");
-  const [carregado, setCarregado] = useState(false);
+  const [rascunho, setRascunho] = useState<BotPersonalidade[]>([])
+  const [salvando, setSalvando] = useState<number | null>(null)
+  const [ativando, setAtivando] = useState<number | null>(null)
+  const [feedback, setFeedback] = useState("")
+  const [carregado, setCarregado] = useState(false)
 
   useEffect(() => {
-    if (!slots || carregado) return;
-    setRascunho(slots);
-    setCarregado(true);
-  }, [slots, carregado]);
+    if (!slots || carregado) return
+    setRascunho(slots)
+    setCarregado(true)
+  }, [slots, carregado])
 
   function atualizarSlot(slot: number, campo: keyof BotPersonalidade, valor: string) {
-    setRascunho((atual) =>
-      atual.map((s) => (s.slot === slot ? { ...s, [campo]: valor } : s)),
-    );
+    setRascunho((atual) => atual.map((s) => (s.slot === slot ? { ...s, [campo]: valor } : s)))
   }
 
   function avisar(mensagem: string) {
-    setFeedback(mensagem);
-    setTimeout(() => setFeedback(""), 3000);
+    setFeedback(mensagem)
+    setTimeout(() => setFeedback(""), 3000)
   }
 
   async function salvar(slot: number) {
-    const s = rascunho.find((x) => x.slot === slot);
-    if (!s) return;
-    setSalvando(slot);
+    const s = rascunho.find((x) => x.slot === slot)
+    if (!s) return
+    setSalvando(slot)
     try {
       const salva = await update({
         slot,
         nome: s.nome,
         emoji: s.emoji,
         system_prompt: s.system_prompt,
-      });
-      setRascunho((atual) => atual.map((x) => (x.slot === slot ? salva : x)));
-      avisar(`✅ Personalidade "${salva.nome}" salva.`);
+      })
+      setRascunho((atual) => atual.map((x) => (x.slot === slot ? salva : x)))
+      avisar(`✅ Personalidade "${salva.nome}" salva.`)
     } catch (err) {
-      avisar(`❌ ${err instanceof Error ? err.message : "Falha ao salvar."}`);
+      avisar(`❌ ${err instanceof Error ? err.message : "Falha ao salvar."}`)
     } finally {
-      setSalvando(null);
+      setSalvando(null)
     }
   }
 
   async function ativar(slot: number) {
-    setAtivando(slot);
+    setAtivando(slot)
     try {
-      const atualizados = await ativarRef({ slot });
-      setRascunho(atualizados);
-      const s = atualizados.find((x) => x.slot === slot);
-      avisar(`🔄 Personalidade "${s?.nome ?? ""}" ativada.`);
+      const atualizados = await ativarRef({ slot })
+      setRascunho(atualizados)
+      const s = atualizados.find((x) => x.slot === slot)
+      avisar(`🔄 Personalidade "${s?.nome ?? ""}" ativada.`)
     } catch (err) {
-      avisar(`❌ ${err instanceof Error ? err.message : "Falha ao ativar."}`);
+      avisar(`❌ ${err instanceof Error ? err.message : "Falha ao ativar."}`)
     } finally {
-      setAtivando(null);
+      setAtivando(null)
     }
   }
 
@@ -92,20 +87,18 @@ export function BotPersonalidades() {
         <Loader2 className="size-4 animate-spin" />
         Carregando personalidades…
       </div>
-    );
+    )
   }
 
   return (
     <div className="space-y-4">
       {feedback && (
-        <div className="rounded-lg bg-muted px-4 py-2 text-sm text-foreground">
-          {feedback}
-        </div>
+        <div className="rounded-lg bg-muted px-4 py-2 text-sm text-foreground">{feedback}</div>
       )}
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {rascunho.map((s) => {
-          const ehFixo = s.fixo === 1;
+          const ehFixo = s.fixo === 1
           return (
             <div
               key={s.slot}
@@ -167,16 +160,14 @@ export function BotPersonalidades() {
                 </label>
                 {ehFixo ? (
                   <div className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs italic text-muted-foreground">
-                    Definido pelo sistema (não editável). Usado quando nenhuma
-                    personalidade está ativa.
+                    Definido pelo sistema (não editável). Usado quando nenhuma personalidade está
+                    ativa.
                   </div>
                 ) : (
                   <>
                     <textarea
                       value={s.system_prompt || ""}
-                      onChange={(e) =>
-                        atualizarSlot(s.slot, "system_prompt", e.target.value)
-                      }
+                      onChange={(e) => atualizarSlot(s.slot, "system_prompt", e.target.value)}
                       placeholder="Deixe vazio para usar o prompt padrão"
                       rows={6}
                       maxLength={8000}
@@ -221,9 +212,9 @@ export function BotPersonalidades() {
                 </button>
               </div>
             </div>
-          );
+          )
         })}
       </div>
     </div>
-  );
+  )
 }

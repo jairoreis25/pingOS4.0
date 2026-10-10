@@ -10,18 +10,15 @@
  * Kanban não carrega imagens, e uma foto antiga do equipamento raramente serve
  * para o próximo atendimento.
  */
-import { useState, type FormEvent } from "react";
-import { CopyPlus } from "lucide-react";
-import { toast } from "sonner";
-import { useMutation } from "@/lib/backend/react";
-import { api } from "@/lib/backend/api";
-import { resolveItemsTotal } from "@/lib/currency";
-import type { TicketPriority } from "@/lib/ticket-utils";
-import {
-  TICKET_CATEGORIES,
-  TICKET_CATEGORY_EMPTY,
-} from "@/lib/ticket-categories";
-import { Button } from "@/components/ui/button";
+import { useState, type FormEvent } from "react"
+import { CopyPlus } from "lucide-react"
+import { toast } from "sonner"
+import { useMutation } from "@/lib/backend/react"
+import { api } from "@/lib/backend/api"
+import { resolveItemsTotal } from "@/lib/currency"
+import type { TicketPriority } from "@/lib/ticket-utils"
+import { TICKET_CATEGORIES, TICKET_CATEGORY_EMPTY } from "@/lib/ticket-categories"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -29,77 +26,71 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/components/ui/dialog";
+} from "@/components/ui/dialog"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import SlashProductsTextarea from "@/components/SlashProductsTextarea";
+} from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
+import SlashProductsTextarea from "@/components/SlashProductsTextarea"
 
 /** Campos do chamado de origem que a cópia reaproveita. */
 export interface CloneTicketSource {
-  number: number;
-  title?: string;
-  description?: string;
-  solucao?: string;
-  orcamento?: string;
-  obs?: string;
-  statusEquipamento?: string;
+  number: number
+  title?: string
+  description?: string
+  solucao?: string
+  orcamento?: string
+  obs?: string
+  statusEquipamento?: string
   /** Categoria do chamado de origem (Impressoras, Rede, ...). */
-  categoria?: string;
-  priority: TicketPriority;
-  guestName?: string;
-  guestContact?: string;
-  location?: string;
-  os?: string;
-  valorTotal?: number;
+  categoria?: string
+  priority: TicketPriority
+  guestName?: string
+  guestContact?: string
+  location?: string
+  os?: string
+  valorTotal?: number
 }
 
 export default function CloneTicketDialog({
   onOpenChange,
   source,
 }: {
-  onOpenChange: (open: boolean) => void;
-  source: CloneTicketSource;
+  onOpenChange: (open: boolean) => void
+  source: CloneTicketSource
 }) {
-  const createTicket = useMutation(api.tickets.create);
+  const createTicket = useMutation(api.tickets.create)
 
-  const [title, setTitle] = useState(source.title ?? "");
-  const [description, setDescription] = useState(source.description ?? "");
-  const [priority, setPriority] = useState<TicketPriority>(source.priority);
-  const [guestName, setGuestName] = useState(source.guestName ?? "");
-  const [guestContact, setGuestContact] = useState(source.guestContact ?? "");
-  const [location, setLocation] = useState(source.location ?? "");
-  const [os, setOs] = useState(source.os ?? "");
-  const [solucao, setSolucao] = useState(source.solucao ?? "");
-  const [orcamento, setOrcamento] = useState(source.orcamento ?? "");
-  const [obs, setObs] = useState(source.obs ?? "");
-  const [statusEquipamento, setStatusEquipamento] = useState(
-    source.statusEquipamento ?? "",
-  );
-  const [categoria, setCategoria] = useState(source.categoria ?? "");
+  const [title, setTitle] = useState(source.title ?? "")
+  const [description, setDescription] = useState(source.description ?? "")
+  const [priority, setPriority] = useState<TicketPriority>(source.priority)
+  const [guestName, setGuestName] = useState(source.guestName ?? "")
+  const [guestContact, setGuestContact] = useState(source.guestContact ?? "")
+  const [location, setLocation] = useState(source.location ?? "")
+  const [os, setOs] = useState(source.os ?? "")
+  const [solucao, setSolucao] = useState(source.solucao ?? "")
+  const [orcamento, setOrcamento] = useState(source.orcamento ?? "")
+  const [obs, setObs] = useState(source.obs ?? "")
+  const [statusEquipamento, setStatusEquipamento] = useState(source.statusEquipamento ?? "")
+  const [categoria, setCategoria] = useState(source.categoria ?? "")
   // Valor do chamado de origem: o total salvo ou, quando nunca foi salvo, a soma
   // dos itens (Solução → Orçamento), igual ao resto do app.
-  const itemsTotal = resolveItemsTotal(source.solucao, source.orcamento).value;
-  const sourceTotal = source.valorTotal ?? (itemsTotal !== 0 ? itemsTotal : null);
-  const [valorTotal, setValorTotal] = useState(
-    sourceTotal == null ? "" : String(sourceTotal),
-  );
-  const [loading, setLoading] = useState(false);
+  const itemsTotal = resolveItemsTotal(source.solucao, source.orcamento).value
+  const sourceTotal = source.valorTotal ?? (itemsTotal !== 0 ? itemsTotal : null)
+  const [valorTotal, setValorTotal] = useState(sourceTotal == null ? "" : String(sourceTotal))
+  const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+    e.preventDefault()
+    setLoading(true)
     try {
-      const parsedTotal = valorTotal.trim()
-        ? parseFloat(valorTotal.replace(",", "."))
-        : undefined;
+      const parsedTotal = valorTotal.trim() ? parseFloat(valorTotal.replace(",", ".")) : undefined
       await createTicket({
         title: title.trim() || undefined,
         description: description.trim() || undefined,
@@ -109,23 +100,21 @@ export default function CloneTicketDialog({
         location: location.trim() || undefined,
         os: os.trim() || undefined,
         valorTotal:
-          parsedTotal !== undefined && Number.isFinite(parsedTotal)
-            ? parsedTotal
-            : undefined,
+          parsedTotal !== undefined && Number.isFinite(parsedTotal) ? parsedTotal : undefined,
         solucao: solucao.trim() || undefined,
         orcamento: orcamento.trim() || undefined,
         obs: obs.trim() || undefined,
         statusEquipamento: statusEquipamento.trim() || undefined,
         categoria: categoria || undefined,
-      });
-      toast.success(`Chamado clonado a partir do #${source.number}`);
-      onOpenChange(false);
+      })
+      toast.success(`Chamado clonado a partir do #${source.number}`)
+      onOpenChange(false)
     } catch {
-      toast.error("Erro ao clonar o chamado. Tente novamente.");
+      toast.error("Erro ao clonar o chamado. Tente novamente.")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return (
     <Dialog open onOpenChange={onOpenChange}>
@@ -136,32 +125,58 @@ export default function CloneTicketDialog({
             Clonar chamado #{source.number}
           </DialogTitle>
           <DialogDescription>
-            Os dados do chamado #{source.number} já vêm preenchidos — ajuste o que
-            mudou e crie a cópia como um novo chamado em Aberto.
+            Os dados do chamado #{source.number} já vêm preenchidos — ajuste o que mudou e crie a
+            cópia como um novo chamado em Aberto.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="clone-guest-name">Nome do cliente</Label>
-              <Input id="clone-guest-name" placeholder="Ex: João Silva" value={guestName} onChange={(e) => setGuestName(e.target.value)} />
+              <Input
+                id="clone-guest-name"
+                placeholder="Ex: João Silva"
+                value={guestName}
+                onChange={(e) => setGuestName(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="clone-guest-contact">Contato</Label>
-              <Input id="clone-guest-contact" placeholder="Ex: (91) 99999-9999 ou e-mail" value={guestContact} onChange={(e) => setGuestContact(e.target.value)} />
+              <Input
+                id="clone-guest-contact"
+                placeholder="Ex: (91) 99999-9999 ou e-mail"
+                value={guestContact}
+                onChange={(e) => setGuestContact(e.target.value)}
+              />
             </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="clone-title">Título</Label>
-            <Input id="clone-title" placeholder="Ex: Impressora não imprime" value={title} onChange={(e) => setTitle(e.target.value)} />
+            <Input
+              id="clone-title"
+              placeholder="Ex: Impressora não imprime"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="clone-location">Localização</Label>
-            <Input id="clone-location" placeholder="Ex: Rua Bahia, 446 Centro - Rondon do Pará" value={location} onChange={(e) => setLocation(e.target.value)} />
+            <Input
+              id="clone-location"
+              placeholder="Ex: Rua Bahia, 446 Centro - Rondon do Pará"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="clone-desc">Descrição</Label>
-            <Textarea id="clone-desc" placeholder="Descreva o problema com detalhes..." value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
+            <Textarea
+              id="clone-desc"
+              placeholder="Descreva o problema com detalhes..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="clone-solucao">
@@ -196,20 +211,30 @@ export default function CloneTicketDialog({
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="clone-os">O.S (Ordem de Serviço)</Label>
-              <Input id="clone-os" placeholder="Ex: OS-2026-001" value={os} onChange={(e) => setOs(e.target.value)} />
+              <Input
+                id="clone-os"
+                placeholder="Ex: OS-2026-001"
+                value={os}
+                onChange={(e) => setOs(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="clone-valor">Valor Total (R$)</Label>
-              <Input id="clone-valor" type="number" step="0.01" placeholder="0,00" value={valorTotal} onChange={(e) => setValorTotal(e.target.value)} />
+              <Input
+                id="clone-valor"
+                type="number"
+                step="0.01"
+                placeholder="0,00"
+                value={valorTotal}
+                onChange={(e) => setValorTotal(e.target.value)}
+              />
             </div>
           </div>
           <div className="space-y-2">
             <Label>Categoria</Label>
             <Select
               value={categoria || TICKET_CATEGORY_EMPTY}
-              onValueChange={(v) =>
-                setCategoria(v === TICKET_CATEGORY_EMPTY ? "" : v)
-              }
+              onValueChange={(v) => setCategoria(v === TICKET_CATEGORY_EMPTY ? "" : v)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione a categoria" />
@@ -227,12 +252,19 @@ export default function CloneTicketDialog({
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="clone-equip">Status do equipamento</Label>
-              <Input id="clone-equip" placeholder="Ex: Testado e aprovado" value={statusEquipamento} onChange={(e) => setStatusEquipamento(e.target.value)} />
+              <Input
+                id="clone-equip"
+                placeholder="Ex: Testado e aprovado"
+                value={statusEquipamento}
+                onChange={(e) => setStatusEquipamento(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <Label>Prioridade</Label>
               <Select value={priority} onValueChange={(v) => setPriority(v as TicketPriority)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="baixa">🟢 Baixa</SelectItem>
                   <SelectItem value="media">🟡 Média</SelectItem>
@@ -244,10 +276,23 @@ export default function CloneTicketDialog({
           </div>
           <div className="space-y-2">
             <Label htmlFor="clone-obs">Observações</Label>
-            <Textarea id="clone-obs" placeholder="Anotações internas..." value={obs} onChange={(e) => setObs(e.target.value)} rows={2} />
+            <Textarea
+              id="clone-obs"
+              placeholder="Anotações internas..."
+              value={obs}
+              onChange={(e) => setObs(e.target.value)}
+              rows={2}
+            />
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>Cancelar</Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={loading}
+            >
+              Cancelar
+            </Button>
             <Button type="submit" disabled={loading} className="gap-1.5">
               <CopyPlus className="size-3.5" />
               {loading ? "Clonando..." : "Clonar chamado"}
@@ -256,5 +301,5 @@ export default function CloneTicketDialog({
         </form>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

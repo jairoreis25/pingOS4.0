@@ -5,8 +5,8 @@
  * ser importado por qualquer camada (sem dependências).
  */
 
-export const ADMIN_ROLE = "admin";
-export const DEFAULT_ROLE = "user";
+export const ADMIN_ROLE = "admin"
+export const DEFAULT_ROLE = "user"
 
 export const TICKET_STATUSES = [
   "aberto",
@@ -14,19 +14,19 @@ export const TICKET_STATUSES = [
   "aguardando",
   "resolvido",
   "fechado",
-] as const;
+] as const
 
 export interface PermissionDef {
-  key: string;
-  label: string;
-  description: string;
+  key: string
+  label: string
+  description: string
 }
 
 export interface PermissionGroup {
-  id: string;
-  label: string;
-  description?: string;
-  permissions: PermissionDef[];
+  id: string
+  label: string
+  description?: string
+  permissions: PermissionDef[]
 }
 
 export const PERMISSION_GROUPS: PermissionGroup[] = [
@@ -52,7 +52,7 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
       {
         key: "tickets.assign",
         label: "Atribuir técnico",
-        description: "Definir o responsável no campo \"Atribuído a\"",
+        description: 'Definir o responsável no campo "Atribuído a"',
       },
       {
         key: "tickets.delete",
@@ -65,7 +65,7 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
     id: "visualizar_kanban",
     label: "Visualizar no Kanban",
     description:
-      "Se \"Visualizar todos os status\" estiver marcado, o usuário vê todas as colunas. Caso contrário, marque individualmente as colunas que ele pode ver. Com nenhuma coluna marcada, ele vê todas (comportamento padrão).",
+      'Se "Visualizar todos os status" estiver marcado, o usuário vê todas as colunas. Caso contrário, marque individualmente as colunas que ele pode ver. Com nenhuma coluna marcada, ele vê todas (comportamento padrão).',
     permissions: [
       {
         key: "tickets.view.all",
@@ -103,7 +103,7 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
     id: "editar_kanban",
     label: "Editar no Kanban",
     description:
-      "Se \"Editar chamados de todos os status\" estiver marcado, o usuário pode editar chamados de qualquer coluna. Caso contrário, marque individualmente os status em que ele pode editar. Com nenhum status marcado, ele pode editar todos (comportamento padrão).",
+      'Se "Editar chamados de todos os status" estiver marcado, o usuário pode editar chamados de qualquer coluna. Caso contrário, marque individualmente os status em que ele pode editar. Com nenhum status marcado, ele pode editar todos (comportamento padrão).',
     permissions: [
       {
         key: "tickets.edit.all",
@@ -141,19 +141,17 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
     id: "editar_atribuicao",
     label: "Editar por atribuição",
     description:
-      "Restringe a edição de chamados conforme o responsável. Se \"Editar apenas chamados atribuídos a mim\" estiver marcado, o usuário só edita chamados em que ele é o responsável (\"Atribuído a\"). Com nenhuma restrição marcada, ele pode editar chamados de qualquer responsável (comportamento padrão).",
+      'Restringe a edição de chamados conforme o responsável. Se "Editar apenas chamados atribuídos a mim" estiver marcado, o usuário só edita chamados em que ele é o responsável ("Atribuído a"). Com nenhuma restrição marcada, ele pode editar chamados de qualquer responsável (comportamento padrão).',
     permissions: [
       {
         key: "tickets.edit.own",
         label: "Editar apenas chamados atribuídos a mim",
-        description:
-          "Permite editar somente chamados em que o usuário é o responsável",
+        description: "Permite editar somente chamados em que o usuário é o responsável",
       },
       {
         key: "tickets.edit.unassigned",
         label: "Editar chamados sem responsável",
-        description:
-          "Permite editar também chamados que ainda não têm responsável atribuído",
+        description: "Permite editar também chamados que ainda não têm responsável atribuído",
       },
     ],
   },
@@ -161,19 +159,17 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
     id: "visualizar_atribuicao",
     label: "Visualizar por atribuição",
     description:
-      "Restringe a visualização de chamados conforme o responsável. Se \"Visualizar apenas chamados atribuídos a mim\" estiver marcado, o usuário só vê no Kanban (e ao abrir um chamado) aqueles em que ele é o responsável (\"Atribuído a\"). Com nenhuma restrição marcada, ele vê chamados de qualquer responsável (comportamento padrão).",
+      'Restringe a visualização de chamados conforme o responsável. Se "Visualizar apenas chamados atribuídos a mim" estiver marcado, o usuário só vê no Kanban (e ao abrir um chamado) aqueles em que ele é o responsável ("Atribuído a"). Com nenhuma restrição marcada, ele vê chamados de qualquer responsável (comportamento padrão).',
     permissions: [
       {
         key: "tickets.view.own",
         label: "Visualizar apenas chamados atribuídos a mim",
-        description:
-          "Permite visualizar somente chamados em que o usuário é o responsável",
+        description: "Permite visualizar somente chamados em que o usuário é o responsável",
       },
       {
         key: "tickets.view.unassigned",
         label: "Visualizar chamados sem responsável",
-        description:
-          "Permite visualizar também chamados que ainda não têm responsável atribuído",
+        description: "Permite visualizar também chamados que ainda não têm responsável atribuído",
       },
     ],
   },
@@ -181,7 +177,7 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
     id: "kanban",
     label: "Mover no Kanban",
     description:
-      "Se \"Mover no Kanban (todas as colunas)\" estiver marcado, o usuário pode mover para qualquer coluna. Caso contrário, marque individualmente as colunas permitidas.",
+      'Se "Mover no Kanban (todas as colunas)" estiver marcado, o usuário pode mover para qualquer coluna. Caso contrário, marque individualmente as colunas permitidas.',
     permissions: [
       {
         key: "tickets.move",
@@ -235,8 +231,7 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
       {
         key: "reports.view",
         label: "Ver relatórios",
-        description:
-          "Abrir a página Relatórios, aplicar filtros e ver os totais em tela",
+        description: "Abrir a página Relatórios, aplicar filtros e ver os totais em tela",
       },
       {
         key: "reports.export",
@@ -252,22 +247,20 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
       {
         key: "settings.manage",
         label: "Gerenciar configurações",
-        description:
-          "Acessar as configurações (notificações, WhatsApp, técnicos)",
+        description: "Acessar as configurações (notificações, WhatsApp, técnicos)",
       },
       {
         key: "users.manage",
         label: "Gerenciar usuários",
-        description:
-          "Criar, editar, excluir usuários e gerenciar papéis e permissões",
+        description: "Criar, editar, excluir usuários e gerenciar papéis e permissões",
       },
     ],
   },
-];
+]
 
 export const ALL_PERMISSIONS: string[] = PERMISSION_GROUPS.flatMap((g) =>
   g.permissions.map((p) => p.key),
-);
+)
 
 /** Permissões padrão do papel "Usuário Padrão". */
 export const DEFAULT_USER_PERMISSIONS: string[] = [
@@ -282,84 +275,65 @@ export const DEFAULT_USER_PERMISSIONS: string[] = [
   "tickets.move.aguardando",
   "tickets.move.resolvido",
   "metrics.view",
-];
+]
 
 export function permissionLabel(key: string): string {
   for (const group of PERMISSION_GROUPS) {
-    const def = group.permissions.find((p) => p.key === key);
-    if (def) return def.label;
+    const def = group.permissions.find((p) => p.key === key)
+    if (def) return def.label
   }
-  return key;
+  return key
 }
 
 export function isAdmin(role?: string | null): boolean {
-  return role === ADMIN_ROLE;
+  return role === ADMIN_ROLE
 }
 
-export function canMoveTo(
-  permissions: string[],
-  status: string,
-): boolean {
-  if (permissions.includes("tickets.move")) return true;
-  return permissions.includes(`tickets.move.${status}`);
+export function canMoveTo(permissions: string[], status: string): boolean {
+  if (permissions.includes("tickets.move")) return true
+  return permissions.includes(`tickets.move.${status}`)
 }
 
 export function canMoveAny(permissions: string[]): boolean {
-  if (permissions.includes("tickets.move")) return true;
-  return TICKET_STATUSES.some((s) => permissions.includes(`tickets.move.${s}`));
+  if (permissions.includes("tickets.move")) return true
+  return TICKET_STATUSES.some((s) => permissions.includes(`tickets.move.${s}`))
 }
 
 /** O usuário pode visualizar chamados de um status/coluna específico? */
-export function canViewStatus(
-  permissions: string[],
-  status: string,
-): boolean {
-  if (permissions.includes("tickets.view.all")) return true;
+export function canViewStatus(permissions: string[], status: string): boolean {
+  if (permissions.includes("tickets.view.all")) return true
   // Sem restrição por coluna configurada → vê tudo (compatível com papéis antigos).
-  if (!hasStatusViewRestriction(permissions)) return true;
-  return permissions.includes(`tickets.view.${status}`);
+  if (!hasStatusViewRestriction(permissions)) return true
+  return permissions.includes(`tickets.view.${status}`)
 }
 
 /** O usuário tem alguma restrição de visualização por status configurada? */
 export function hasStatusViewRestriction(permissions: string[]): boolean {
-  return TICKET_STATUSES.some((s) => permissions.includes(`tickets.view.${s}`));
+  return TICKET_STATUSES.some((s) => permissions.includes(`tickets.view.${s}`))
 }
 
 /** O usuário pode editar chamados de um status/coluna específico? */
-export function canEditStatus(
-  permissions: string[],
-  status: string,
-): boolean {
-  if (permissions.includes("tickets.edit.all")) return true;
+export function canEditStatus(permissions: string[], status: string): boolean {
+  if (permissions.includes("tickets.edit.all")) return true
   // Sem restrição de edição por coluna configurada → pode editar todos
   // (compatível com papéis antigos).
-  if (!hasStatusEditRestriction(permissions)) return true;
-  return permissions.includes(`tickets.edit.${status}`);
+  if (!hasStatusEditRestriction(permissions)) return true
+  return permissions.includes(`tickets.edit.${status}`)
 }
 
 /** O usuário tem alguma restrição de edição por status configurada? */
 export function hasStatusEditRestriction(permissions: string[]): boolean {
-  return TICKET_STATUSES.some((s) => permissions.includes(`tickets.edit.${s}`));
+  return TICKET_STATUSES.some((s) => permissions.includes(`tickets.edit.${s}`))
 }
 
 /** O usuário tem alguma restrição de edição por atribuição configurada? */
-export function hasEditAssignmentRestriction(
-  permissions: string[],
-): boolean {
-  return (
-    permissions.includes("tickets.edit.own") ||
-    permissions.includes("tickets.edit.unassigned")
-  );
+export function hasEditAssignmentRestriction(permissions: string[]): boolean {
+  return permissions.includes("tickets.edit.own") || permissions.includes("tickets.edit.unassigned")
 }
 
 /** O usuário tem alguma restrição de visualização por atribuição configurada? */
-export function hasViewAssignmentRestriction(
-  permissions: string[],
-): boolean {
-  return (
-    permissions.includes("tickets.view.own") ||
-    permissions.includes("tickets.view.unassigned")
-  );
+export function hasViewAssignmentRestriction(permissions: string[]): boolean {
+  return permissions.includes("tickets.view.own") || permissions.includes("tickets.view.unassigned")
 }
 
 /**
@@ -378,28 +352,23 @@ export function canViewTicket(
   userName?: string | null,
   isAdminRole = false,
 ): boolean {
-  if (!canViewStatus(permissions, status)) return false;
+  if (!canViewStatus(permissions, status)) return false
   // Administradores têm poder total: a restrição por atribuição não se aplica.
-  if (isAdminRole) return true;
-  if (!hasViewAssignmentRestriction(permissions)) return true;
-  const isOwn =
-    (!!userId && assigneeId === userId) ||
-    namesMatch(assigneeName, userName);
-  const isUnassigned = !assigneeId;
-  if (permissions.includes("tickets.view.own") && isOwn) return true;
+  if (isAdminRole) return true
+  if (!hasViewAssignmentRestriction(permissions)) return true
+  const isOwn = (!!userId && assigneeId === userId) || namesMatch(assigneeName, userName)
+  const isUnassigned = !assigneeId
+  if (permissions.includes("tickets.view.own") && isOwn) return true
   if (permissions.includes("tickets.view.unassigned") && isUnassigned) {
-    return true;
+    return true
   }
-  return false;
+  return false
 }
 
 /** Compara dois nomes ignorando caixa e espaços (ex.: usuário × técnico). */
-export function namesMatch(
-  a?: string | null,
-  b?: string | null,
-): boolean {
-  if (!a || !b) return false;
-  return a.trim().toLowerCase() === b.trim().toLowerCase();
+export function namesMatch(a?: string | null, b?: string | null): boolean {
+  if (!a || !b) return false
+  return a.trim().toLowerCase() === b.trim().toLowerCase()
 }
 
 /**
@@ -418,18 +387,16 @@ export function canEditTicket(
   userName?: string | null,
   isAdminRole = false,
 ): boolean {
-  if (!canEditStatus(permissions, status)) return false;
+  if (!canEditStatus(permissions, status)) return false
   // Administradores têm poder total: a restrição por atribuição não se aplica,
   // então podem editar (inclusive o campo "Atribuída a") de qualquer chamado.
-  if (isAdminRole) return true;
-  if (!hasEditAssignmentRestriction(permissions)) return true;
-  const isOwn =
-    (!!userId && assigneeId === userId) ||
-    namesMatch(assigneeName, userName);
-  const isUnassigned = !assigneeId;
-  if (permissions.includes("tickets.edit.own") && isOwn) return true;
+  if (isAdminRole) return true
+  if (!hasEditAssignmentRestriction(permissions)) return true
+  const isOwn = (!!userId && assigneeId === userId) || namesMatch(assigneeName, userName)
+  const isUnassigned = !assigneeId
+  if (permissions.includes("tickets.edit.own") && isOwn) return true
   if (permissions.includes("tickets.edit.unassigned") && isUnassigned) {
-    return true;
+    return true
   }
-  return false;
+  return false
 }

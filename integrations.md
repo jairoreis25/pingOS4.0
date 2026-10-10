@@ -16,32 +16,33 @@ The `@vly-ai/integrations` package is already included in package.json.
 ## Usage in Convex Actions
 
 ```typescript
-"use node";
+"use node"
 
-import { vly } from '../lib/vly-integrations';
-import { action } from "./_generated/server";
+import { vly } from "../lib/vly-integrations"
+import { action } from "./_generated/server"
 
 export const generateAIResponse = action({
   handler: async (ctx, args) => {
     // AI Completions
     const completion = await freebuff.com.completion({
-      model: 'gpt-4o-mini',
+      model: "gpt-4o-mini",
       messages: [
-        { role: 'system', content: 'You are a helpful assistant.' },
-        { role: 'user', content: 'Hello!' }
+        { role: "system", content: "You are a helpful assistant." },
+        { role: "user", content: "Hello!" },
       ],
       temperature: 0.7,
-      maxTokens: 150
-    });
-    
-    return completion;
-  }
-});
+      maxTokens: 150,
+    })
+
+    return completion
+  },
+})
 ```
 
 ## Available Features
 
 ### AI Integration
+
 ```typescript
 // Create completion
 const completion = await freebuff.com.completion({
@@ -62,20 +63,22 @@ const embeddings = await freebuff.com.embeddings("Your text here");
 ```
 
 ### Email Integration
+
 ```typescript
 // Send email
 const emailResult = await vly.email.send({
-  to: 'user@example.com',
-  subject: 'Welcome!',
-  html: '<h1>Welcome to our service!</h1>',
-  text: 'Welcome to our service!'
-});
+  to: "user@example.com",
+  subject: "Welcome!",
+  html: "<h1>Welcome to our service!</h1>",
+  text: "Welcome to our service!",
+})
 
 // Send batch emails
-const batchResult = await vly.email.sendBatch([...emails]);
+const batchResult = await vly.email.sendBatch([...emails])
 ```
 
 ### Payments Integration
+
 ```typescript
 // Create payment intent
 const paymentIntent = await vly.payments.createPaymentIntent({
@@ -100,13 +103,13 @@ All methods return an ApiResponse object:
 
 ```typescript
 interface ApiResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: string;
+  success: boolean
+  data?: T
+  error?: string
   usage?: {
-    credits: number;
-    operation: string;
-  };
+    credits: number
+    operation: string
+  }
 }
 ```
 
@@ -135,8 +138,8 @@ if (result.success) {
 To verify the integration is properly configured:
 
 ```typescript
-const hasIntegration = !!process.env.VLY_INTEGRATION_KEY;
+const hasIntegration = !!process.env.VLY_INTEGRATION_KEY
 if (!hasIntegration) {
-  console.error("VLY integration key not found");
+  console.error("VLY integration key not found")
 }
 ```

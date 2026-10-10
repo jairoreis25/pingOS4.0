@@ -1,6 +1,6 @@
-import { Button } from "@/components/ui/button";
-import { useMutation, useQuery } from "@/lib/backend/react";
-import { api } from "@/lib/backend/api";
+import { Button } from "@/components/ui/button"
+import { useMutation, useQuery } from "@/lib/backend/react"
+import { api } from "@/lib/backend/api"
 import {
   Card,
   CardContent,
@@ -8,107 +8,92 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
-import { useAuth } from "@/hooks/use-auth";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import logo from "@/assets/logo.svg";
-import {
-  ArrowRight,
-  Headphones,
-  Loader2,
-  Lock,
-  User as UserIcon,
-} from "lucide-react";
-import { Suspense, useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router";
+import { useAuth } from "@/hooks/use-auth"
+import { ThemeToggle } from "@/components/ThemeToggle"
+import logo from "@/assets/logo.svg"
+import { ArrowRight, Headphones, Loader2, Lock, User as UserIcon } from "lucide-react"
+import { Suspense, useEffect, useState } from "react"
+import { useNavigate, useSearchParams } from "react-router"
 
 interface AuthProps {
-  redirectAfterAuth?: string;
+  redirectAfterAuth?: string
 }
 
-function resolveRedirectAfterAuth(
-  returnTo: string | null,
-  fallback = "/dashboard",
-) {
+function resolveRedirectAfterAuth(returnTo: string | null, fallback = "/dashboard") {
   if (returnTo?.startsWith("/") && !returnTo.startsWith("//")) {
-    return returnTo;
+    return returnTo
   }
-  return fallback;
+  return fallback
 }
 
 function Auth({ redirectAfterAuth }: AuthProps = {}) {
-  const { isLoading: authLoading, isAuthenticated, user, signIn, signOut } =
-    useAuth();
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const redirect = resolveRedirectAfterAuth(
-    searchParams.get("returnTo"),
-    redirectAfterAuth,
-  );
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { isLoading: authLoading, isAuthenticated, user, signIn, signOut } = useAuth()
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const redirect = resolveRedirectAfterAuth(searchParams.get("returnTo"), redirectAfterAuth)
+  const [username, setUsername] = useState("")
+  const [password, setPassword] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   // Primeiro acesso: se o sistema ainda não tem admin nem contas de senha,
   // cria o admin inicial (admin/admin123) e avisa na tela.
-  const systemStatus = useQuery(api.users.systemStatus);
-  const seedFirstAdmin = useMutation(api.users.seedFirstAdmin);
-  const needsBootstrap = systemStatus?.needsBootstrap === true;
+  const systemStatus = useQuery(api.users.systemStatus)
+  const seedFirstAdmin = useMutation(api.users.seedFirstAdmin)
+  const needsBootstrap = systemStatus?.needsBootstrap === true
   // Mantém a dica visível durante toda a visita à página, mesmo depois do seed.
-  const [bootstrapHint, setBootstrapHint] = useState<boolean | null>(null);
+  const [bootstrapHint, setBootstrapHint] = useState<boolean | null>(null)
   useEffect(() => {
     if (bootstrapHint === null && systemStatus !== undefined) {
-      setBootstrapHint(systemStatus.needsBootstrap);
+      setBootstrapHint(systemStatus.needsBootstrap)
     }
-  }, [systemStatus, bootstrapHint]);
+  }, [systemStatus, bootstrapHint])
   useEffect(() => {
     if (needsBootstrap) {
       seedFirstAdmin().catch(() => {
         // se falhar (ex.: alguém já criou), o status reativa e some sozinho
-      });
+      })
     }
-  }, [needsBootstrap, seedFirstAdmin]);
+  }, [needsBootstrap, seedFirstAdmin])
 
   // Usuário inativo (desativado pelo admin) é deslogado e avisado.
   useEffect(() => {
     if (!authLoading && isAuthenticated && user && user.active === false) {
-      void signOut();
-      setError("Usuário inativo. Contate o administrador.");
-      return;
+      void signOut()
+      setError("Usuário inativo. Contate o administrador.")
+      return
     }
     if (!authLoading && isAuthenticated) {
-      navigate(redirect);
+      navigate(redirect)
     }
-  }, [authLoading, isAuthenticated, user, navigate, redirect, signOut]);
+  }, [authLoading, isAuthenticated, user, navigate, redirect, signOut])
 
   const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setIsLoading(true);
-    setError(null);
+    event.preventDefault()
+    setIsLoading(true)
+    setError(null)
     try {
       await signIn("password", {
         flow: "signIn",
         email: username.trim(),
         password,
-      });
+      })
       // isAuthenticated atualiza via subscription; o redirect acontece no effect
     } catch (err) {
-      console.error("Login error:", err);
-      const msg =
-        err instanceof Error ? err.message : "Falha ao entrar. Tente novamente.";
+      console.error("Login error:", err)
+      const msg = err instanceof Error ? err.message : "Falha ao entrar. Tente novamente."
       setError(
-        msg.toLowerCase().includes("invalid") ||
-          msg.toLowerCase().includes("credentials")
+        msg.toLowerCase().includes("invalid") || msg.toLowerCase().includes("credentials")
           ? "Usuário ou senha inválidos."
           : msg,
-      );
-      setIsLoading(false);
+      )
+      setIsLoading(false)
     }
-  };
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-muted/30">
@@ -131,18 +116,17 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
               </div>
             </div>
             <CardTitle className="text-xl">Entrar no PingOS</CardTitle>
-            <CardDescription>
-              Acesse com seu nome de usuário e senha
-            </CardDescription>
+            <CardDescription>Acesse com seu nome de usuário e senha</CardDescription>
           </CardHeader>
           <form onSubmit={handleLogin}>
-            <CardContent className="space-y-4 pt-2">                {bootstrapHint === true && (
+            <CardContent className="space-y-4 pt-2">
+              {" "}
+              {bootstrapHint === true && (
                 <div className="rounded-lg border border-amber-300/60 bg-amber-50 dark:bg-amber-950/30 px-3 py-2.5 text-xs text-amber-800 dark:text-amber-200 space-y-1">
                   <p className="font-semibold">Primeiro acesso</p>
                   <p>
-                    Use <b>admin</b> / <b>admin123</b> para entrar e depois
-                    troque a senha e crie os usuários da equipe em
-                    Configurações → Usuários.
+                    Use <b>admin</b> / <b>admin123</b> para entrar e depois troque a senha e crie os
+                    usuários da equipe em Configurações → Usuários.
                   </p>
                 </div>
               )}
@@ -240,7 +224,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
         </div>
       </footer>
     </div>
-  );
+  )
 }
 
 export default function AuthPage(props: AuthProps) {
@@ -248,5 +232,5 @@ export default function AuthPage(props: AuthProps) {
     <Suspense>
       <Auth {...props} />
     </Suspense>
-  );
+  )
 }

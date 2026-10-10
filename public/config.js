@@ -4,4 +4,4 @@
 //
 // Vazio de propósito: em dev/preview os valores vêm de `import.meta.env.*`
 // (o `.env.local` do Vite). Preencher aqui teria prioridade sobre eles.
-window.__PINGOS_CONFIG__ = {};
+window.__PINGOS_CONFIG__ = {}

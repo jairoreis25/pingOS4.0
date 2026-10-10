@@ -23,6 +23,7 @@ acessar o app (**domínio** com HTTPS ou **IP:porta**).
 │        └── database  (MySQL do painel, porta 3306 — sem porta pública)       │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
+
 (Não há nenhuma dependência de nuvem: o Convex foi removido do projeto.)
 
 - O **app** é o bundle do Vite servido pelo nginx, com fallback de SPA
@@ -31,20 +32,20 @@ acessar o app (**domínio** com HTTPS ou **IP:porta**).
 - O **backend inteiro roda no Dokploy**: a API Express é quem fala com o MySQL.
 - A **ponte do WhatsApp** roda no VPS e guarda a sessão num volume persistente.
 - A **API MySQL** (`server/api/`) também roda no VPS e alcança o **MySQL criado
-  no painel do Dokploy** pelo *host interno*, dentro da rede `dokploy-network`
+  no painel do Dokploy** pelo _host interno_, dentro da rede `dokploy-network`
   — o banco não precisa de porta publicada (veja a **seção 3.3**).
 
 ### Portas envolvidas
 
-| Serviço | Porta no container | Porta no host (VPS) | Para que serve |
-|---|---|---|---|
-| `app` (nginx) | `80` | `8090` | SPA + proxy do WhatsApp |
-| `whatsapp` | `3001` | — (interna) | Ponte Baileys |
-| `api` | `4000` | `4000` | Backend MySQL (`/api/health`) |
-| `bot` (Ping IA) | — (long polling) | — (interna) | Agente administrativo no Telegram |
-| MySQL (Dokploy) | `3306` | — (interna) | Banco do painel; acessível só pela `dokploy-network` |
-| Traefik (Dokploy) | `80` / `443` | `80` / `443` | Domínios + HTTPS |
-| Painel do Dokploy | `3000` | `3000` | **Não use esta porta** |
+| Serviço           | Porta no container | Porta no host (VPS) | Para que serve                                       |
+| ----------------- | ------------------ | ------------------- | ---------------------------------------------------- |
+| `app` (nginx)     | `80`               | `8090`              | SPA + proxy do WhatsApp                              |
+| `whatsapp`        | `3001`             | — (interna)         | Ponte Baileys                                        |
+| `api`             | `4000`             | `4000`              | Backend MySQL (`/api/health`)                        |
+| `bot` (Ping IA)   | — (long polling)   | — (interna)         | Agente administrativo no Telegram                    |
+| MySQL (Dokploy)   | `3306`             | — (interna)         | Banco do painel; acessível só pela `dokploy-network` |
+| Traefik (Dokploy) | `80` / `443`       | `80` / `443`        | Domínios + HTTPS                                     |
+| Painel do Dokploy | `3000`             | `3000`              | **Não use esta porta**                               |
 
 > **Por que `8090` e não `3000`?** O painel do Dokploy já ocupa a `3000` no host,
 > e o Traefik usa `80`/`443`. Publicar o app na `3000` faria o deploy falhar com
@@ -79,14 +80,14 @@ acessar o app (**domínio** com HTTPS ou **IP:porta**).
      `build:`, e é isso que o nosso compose usa).
 3. Na aba **General**, preencha:
 
-| Campo | Valor | Observação |
-|---|---|---|
-| **Name** | `pingos` | nome do serviço no Dokploy |
-| **Provider** | `GitHub` (ou Git/GitLab) | conecte a conta em Settings → Git antes |
-| **Repository** | seu repo do PingOS | ex.: `seuusuario/pingos` |
-| **Branch** | `main` | a branch que será deployada |
-| **Compose Path** | `docker-compose.yml` | caminho relativo à raiz do repo |
-| **Auto Deploy** | ligue se quiser | gera webhook: cada `git push` redeploya |
+| Campo            | Valor                    | Observação                              |
+| ---------------- | ------------------------ | --------------------------------------- |
+| **Name**         | `pingos`                 | nome do serviço no Dokploy              |
+| **Provider**     | `GitHub` (ou Git/GitLab) | conecte a conta em Settings → Git antes |
+| **Repository**   | seu repo do PingOS       | ex.: `seuusuario/pingos`                |
+| **Branch**       | `main`                   | a branch que será deployada             |
+| **Compose Path** | `docker-compose.yml`     | caminho relativo à raiz do repo         |
+| **Auto Deploy**  | ligue se quiser          | gera webhook: cada `git push` redeploya |
 
 4. Confira que estes arquivos estão **commitados** no repo (sem eles o build
    falha):
@@ -209,11 +210,11 @@ O banco é **um só**: o MySQL do seu servidor (criado pelo painel — seção 3
 O navegador nunca fala com o banco: ele chama a API Express (`/api`), e **só a
 API** acessa o MySQL.
 
-| Ambiente | Onde está o banco | Como fica |
-|---|---|---|
-| **Produção** (domínio do Dokploy) | MySQL do Dokploy, pela rede interna | ✅ recomendado |
-| **Preview da plataforma** (`.vly.sh`) | não alcança a rede do Docker | funciona apontando `apiUrl` para a URL pública (seção 3.4) |
-| **Máquina local** (`bun run dev`) | `mysql-api.env` (`MYSQL_HOST=127.0.0.1`) | ✅ |
+| Ambiente                              | Onde está o banco                        | Como fica                                                  |
+| ------------------------------------- | ---------------------------------------- | ---------------------------------------------------------- |
+| **Produção** (domínio do Dokploy)     | MySQL do Dokploy, pela rede interna      | ✅ recomendado                                             |
+| **Preview da plataforma** (`.vly.sh`) | não alcança a rede do Docker             | funciona apontando `apiUrl` para a URL pública (seção 3.4) |
+| **Máquina local** (`bun run dev`)     | `mysql-api.env` (`MYSQL_HOST=127.0.0.1`) | ✅                                                         |
 
 > Quer ambientes **isolados** (produção x homologação)? Crie um segundo banco no
 > Dokploy e um segundo serviço de compose com outro `MYSQL_DATABASE` — é só
@@ -239,18 +240,18 @@ config.js.template ──envsubst──▶ /usr/share/nginx/html/config.js
 A ordem de leitura no frontend é: `window.__PINGOS_CONFIG__` → `import.meta.env`
 (a segunda só existe como rede de segurança).
 
-| Ação | Antes | Agora |
-|---|---|---|
+| Ação                                              | Antes                                  | Agora                                    |
+| ------------------------------------------------- | -------------------------------------- | ---------------------------------------- |
 | Trocar `VITE_API_URL` (ou apontar para outra API) | editar variável + **Deploy** (rebuild) | editar variável + **Restart** (segundos) |
-| Trocar `VITE_WHATSAPP_WEB_URL` | idem | idem |
-| Dev / preview da plataforma | `.env.local` do Vite | igual (o `public/config.js` é vazio) |
+| Trocar `VITE_WHATSAPP_WEB_URL`                    | idem                                   | idem                                     |
+| Dev / preview da plataforma                       | `.env.local` do Vite                   | igual (o `public/config.js` é vazio)     |
 
 **Como aplicar:** aba **Environment** → altere a variável → botão **Restart** do
 serviço (ou **Redeploy**, se preferir) → recarregue o site no navegador. O nginx
 serve o `config.js` com `no-store`, então não há cache para limpar.
 
 > Os build args continuam no compose de propósito: se o `/config.js` não for
-gerado por algum motivo, o app segue funcionando com o valor do build.
+> gerado por algum motivo, o app segue funcionando com o valor do build.
 
 > O backend (container `api`) **não** é afetado por isso: ele lê as variáveis
 > `MYSQL_*` direto do ambiente dele, na hora em que sobe.
@@ -265,12 +266,12 @@ container `api` o alcança pela rede interna `dokploy-network`.
 
 No projeto do Dokploy: **Create Service → Database → MySQL**. Preencha:
 
-| Campo | Sugestão |
-|---|---|
-| **Name** | `pingos-db` (vira parte do host interno) |
-| **Database Name** | `pingos` |
-| **Database User** | `pingos` (evite `root`) |
-| **Database Password** | uma senha forte (gere e copie) |
+| Campo                 | Sugestão                                 |
+| --------------------- | ---------------------------------------- |
+| **Name**              | `pingos-db` (vira parte do host interno) |
+| **Database Name**     | `pingos`                                 |
+| **Database User**     | `pingos` (evite `root`)                  |
+| **Database Password** | uma senha forte (gere e copie)           |
 
 Clique em **Create** / **Deploy** e espere o status ficar verde.
 
@@ -281,13 +282,13 @@ Clique em **Create** / **Deploy** e espere o status ficar verde.
 
 Abra o banco → aba **Connection → Internal Credentials**:
 
-| O que copiar | Vai para |
-|---|---|
-| **Internal Host** (ex.: `pingod-h2rdn7`) | `MYSQL_HOST` |
-| **Internal Port** (normalmente `3306`) | `MYSQL_PORT` |
-| **User** | `MYSQL_USER` |
-| **Password** | `MYSQL_PASSWORD` |
-| **Database Name** | `MYSQL_DATABASE` |
+| O que copiar                             | Vai para         |
+| ---------------------------------------- | ---------------- |
+| **Internal Host** (ex.: `pingod-h2rdn7`) | `MYSQL_HOST`     |
+| **Internal Port** (normalmente `3306`)   | `MYSQL_PORT`     |
+| **User**                                 | `MYSQL_USER`     |
+| **Password**                             | `MYSQL_PASSWORD` |
+| **Database Name**                        | `MYSQL_DATABASE` |
 
 > ⚠️ **Internal Host ≠ domínio.** É um nome interno do Docker
 > (`<projeto>-<serviço>-<aleatório>`), que só resolve dentro da rede do Dokploy.
@@ -389,21 +390,21 @@ As variáveis do MySQL (`MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USER`, `MYSQL_PASSWOR
 
 #### Onde ficam as rotas agora
 
-| Módulo | Rota | Situação |
-|---|---|---|
-| Login/sessão | `POST /api/auth/login` · `/logout` · `GET /me` · `/status` · `/setup` | ✅ |
-| Chamados / Kanban | `GET/POST/PATCH/DELETE /api/tickets` · `/:id/status` · `/guest` | ✅ |
-| Usuários / papéis | `/api/users` · `/api/roles` | ✅ |
-| Técnicos | `/api/technicians` | ✅ |
-| Permissões | `GET /api/auth/me` · `/api/permissions/any-admin` | ✅ |
-| Métricas | `/api/metrics/dashboard` · `/monthly` | ✅ |
-| Imagens dos chamados | campo `image_url` (data URL no próprio chamado) | ✅ |
-| Notificações (config) | `GET/PUT /api/notification-settings` | ✅ |
-| Regras de inatividade | CRUD `/api/notification-rules` | ✅ |
-| Sino in-app | `/api/in-app-notifications` | ✅ |
-| Envio de e-mail/Telegram/WhatsApp | `server/api/notify.ts` (criação e mudança de status) | ✅ |
-| Verificação de inatividade | `POST /api/inactivity/run` + agendador no boot | ✅ |
-| Backup e restauração | `/api/backups` (gerar, baixar, restaurar, upload) | ✅ |
+| Módulo                            | Rota                                                                  | Situação |
+| --------------------------------- | --------------------------------------------------------------------- | -------- |
+| Login/sessão                      | `POST /api/auth/login` · `/logout` · `GET /me` · `/status` · `/setup` | ✅       |
+| Chamados / Kanban                 | `GET/POST/PATCH/DELETE /api/tickets` · `/:id/status` · `/guest`       | ✅       |
+| Usuários / papéis                 | `/api/users` · `/api/roles`                                           | ✅       |
+| Técnicos                          | `/api/technicians`                                                    | ✅       |
+| Permissões                        | `GET /api/auth/me` · `/api/permissions/any-admin`                     | ✅       |
+| Métricas                          | `/api/metrics/dashboard` · `/monthly`                                 | ✅       |
+| Imagens dos chamados              | campo `image_url` (data URL no próprio chamado)                       | ✅       |
+| Notificações (config)             | `GET/PUT /api/notification-settings`                                  | ✅       |
+| Regras de inatividade             | CRUD `/api/notification-rules`                                        | ✅       |
+| Sino in-app                       | `/api/in-app-notifications`                                           | ✅       |
+| Envio de e-mail/Telegram/WhatsApp | `server/api/notify.ts` (criação e mudança de status)                  | ✅       |
+| Verificação de inatividade        | `POST /api/inactivity/run` + agendador no boot                        | ✅       |
+| Backup e restauração              | `/api/backups` (gerar, baixar, restaurar, upload)                     | ✅       |
 
 #### Backup do banco (Configurações → Backup)
 
@@ -441,7 +442,7 @@ aponte para a API pública:
 
 ```js
 // public/config.js  (vale só no dev/preview — em Docker o arquivo é regerado)
-window.__PINGOS_CONFIG__ = { apiUrl: "https://SEU_DOMINIO" };
+window.__PINGOS_CONFIG__ = { apiUrl: "https://SEU_DOMINIO" }
 ```
 
 Como o app é servido em outra origem nesse caso, deixe `CORS_ORIGIN` vazio na
@@ -449,25 +450,25 @@ aba Environment (a API reflete a origem da requisição).
 
 ### Como cada variável chega no container
 
-| Variável | Onde é usada | Tipo |
-|---|---|---|
-| `VITE_API_URL` | `app`: `environment:` (runtime → `/config.js`) **e** build arg (fallback) | **runtime** |
-| `VITE_WHATSAPP_WEB_URL` | idem | **runtime** |
-| `MYSQL_*`, `API_PORT`, `CORS_ORIGIN`, `UPLOAD_MAX_BYTES` | container `api` (`environment:`) | runtime |
-| `SESSION_TTL_DAYS`, `JSON_BODY_LIMIT` | container `api` | runtime |
-| `BACKUP_DIR`, `BACKUP_SAFETY`, `BACKUP_MAX_BYTES` | container `api` (+ volume `backups`) | runtime |
-| `SITE_URL`, `RESEND_API_KEY`, `RESEND_FROM`, `WHATSAPP_BRIDGE_URL`, `NOTIFY_TIMEOUT_MS` | container `api` | runtime |
-| `INACTIVITY_INTERVAL_MINUTES` | container `api` | runtime |
-| `ADMIN_ID` (opcional — o Id é gravado pelo dashboard) | container `bot` (agente Ping IA no Telegram) | runtime |
+| Variável                                                                                | Onde é usada                                                              | Tipo        |
+| --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ----------- |
+| `VITE_API_URL`                                                                          | `app`: `environment:` (runtime → `/config.js`) **e** build arg (fallback) | **runtime** |
+| `VITE_WHATSAPP_WEB_URL`                                                                 | idem                                                                      | **runtime** |
+| `MYSQL_*`, `API_PORT`, `CORS_ORIGIN`, `UPLOAD_MAX_BYTES`                                | container `api` (`environment:`)                                          | runtime     |
+| `SESSION_TTL_DAYS`, `JSON_BODY_LIMIT`                                                   | container `api`                                                           | runtime     |
+| `BACKUP_DIR`, `BACKUP_SAFETY`, `BACKUP_MAX_BYTES`                                       | container `api` (+ volume `backups`)                                      | runtime     |
+| `SITE_URL`, `RESEND_API_KEY`, `RESEND_FROM`, `WHATSAPP_BRIDGE_URL`, `NOTIFY_TIMEOUT_MS` | container `api`                                                           | runtime     |
+| `INACTIVITY_INTERVAL_MINUTES`                                                           | container `api`                                                           | runtime     |
+| `ADMIN_ID` (opcional — o Id é gravado pelo dashboard)                                   | container `bot` (agente Ping IA no Telegram)                              | runtime     |
 
 **Sobre o `MYSQL_HOST`:**
 
-| Onde está o seu MySQL | Valor de `MYSQL_HOST` |
-|---|---|
-| **Criado no painel do Dokploy** | **Internal Host** da aba Connection (ex.: `pingod-h2rdn7`) — seção 3.3 |
-| Na mesma VPS, fora do Docker | `host.docker.internal` (já configurado no compose via `extra_hosts`) |
-| Em outra máquina / servidor gerenciado | IP ou hostname dele (ex.: `10.0.0.25` ou `db.suaempresa.com`) |
-| Em Docker na mesma VPS, com porta publicada | `host.docker.internal` + `MYSQL_PORT` correto |
+| Onde está o seu MySQL                       | Valor de `MYSQL_HOST`                                                  |
+| ------------------------------------------- | ---------------------------------------------------------------------- |
+| **Criado no painel do Dokploy**             | **Internal Host** da aba Connection (ex.: `pingod-h2rdn7`) — seção 3.3 |
+| Na mesma VPS, fora do Docker                | `host.docker.internal` (já configurado no compose via `extra_hosts`)   |
+| Em outra máquina / servidor gerenciado      | IP ou hostname dele (ex.: `10.0.0.25` ou `db.suaempresa.com`)          |
+| Em Docker na mesma VPS, com porta publicada | `host.docker.internal` + `MYSQL_PORT` correto                          |
 
 > Para o banco do Dokploy, `MYSQL_PORT` é a porta **interna do container**
 > (`3306`), não a `External Port` mostrada para acesso pela internet.
@@ -512,13 +513,13 @@ aba Environment (a API reflete a origem da requisição).
 1. Abra a aba **Domains** → **Add Domain**.
 2. Preencha:
 
-| Campo | Valor | Por quê |
-|---|---|---|
-| **Host** | `pingos.suaempresa.com` | o registro A já deve apontar para o IP do VPS |
-| **Path** | `/` | raiz do site |
-| **Port** | `80` | **porta interna do container `app`** (o nginx), não a do host |
-| **HTTPS** | ✅ ligado | certificado Let's Encrypt automático |
-| **Certificate Provider** | Let's Encrypt | padrão |
+| Campo                    | Valor                   | Por quê                                                       |
+| ------------------------ | ----------------------- | ------------------------------------------------------------- |
+| **Host**                 | `pingos.suaempresa.com` | o registro A já deve apontar para o IP do VPS                 |
+| **Path**                 | `/`                     | raiz do site                                                  |
+| **Port**                 | `80`                    | **porta interna do container `app`** (o nginx), não a do host |
+| **HTTPS**                | ✅ ligado               | certificado Let's Encrypt automático                          |
+| **Certificate Provider** | Let's Encrypt           | padrão                                                        |
 
 > ⚠️ **Erro mais comum:** colocar `8090` no campo **Port**. Esse campo é a porta
 > **dentro do container** (o nginx escuta na `80`). A `8090` é só a porta
@@ -553,19 +554,19 @@ propagar, porém o navegador marca a origem como "não segura" e alguns recursos
 (área de transferência, service workers, notificações) ficam bloqueados. Para
 uso real, use o domínio com HTTPS (seção 5).
 
-| O que | Endereço | Pré-requisito |
-|---|---|---|
-| App (SPA) | `http://203.0.113.10:8090` | porta `8090` publicada + liberada no firewall |
-| API MySQL | `http://203.0.113.10:4000/api/health` | porta `4000` publicada + liberada |
-| Painel do Dokploy | `http://203.0.113.10:3000` | porta `3000` do próprio Dokploy |
+| O que             | Endereço                              | Pré-requisito                                 |
+| ----------------- | ------------------------------------- | --------------------------------------------- |
+| App (SPA)         | `http://203.0.113.10:8090`            | porta `8090` publicada + liberada no firewall |
+| API MySQL         | `http://203.0.113.10:4000/api/health` | porta `4000` publicada + liberada             |
+| Painel do Dokploy | `http://203.0.113.10:3000`            | porta `3000` do próprio Dokploy               |
 
 Para **desligar** o acesso por IP depois, troque no `docker-compose.yml`:
 
 ```yaml
-    # ports:
-    #   - "8090:80"     # acesso por IP desligado
-    expose:
-      - "80"            # acessível apenas pelo Traefik (domínio)
+# ports:
+#   - "8090:80"     # acesso por IP desligado
+expose:
+  - "80" # acessível apenas pelo Traefik (domínio)
 ```
 
 > Sem `ports` publicados e sem domínio configurado, o app fica inacessível de
@@ -589,7 +590,7 @@ subir o Express:
 2. aplica o `server/mysql/schema.sql` (`CREATE TABLE IF NOT EXISTS` — idempotente);
 3. garante os papéis padrão (`Administrador`, `Usuário`) e os registros únicos;
 4. se `ADMIN_USERNAME`/`ADMIN_PASSWORD` existirem, cria o administrador (não
-troca a senha de quem já existe).
+   troca a senha de quem já existe).
 
 Se o banco estiver inacessível, a API **sobe mesmo assim** e o `/api/health`
 responde `503` com o motivo — mais fácil de diagnosticar do que um container em
@@ -644,11 +645,11 @@ FLUSH PRIVILEGES;
 
 Três caminhos:
 
-| Caminho | Como |
-|---|---|
-| **A. Variáveis** | `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `ADMIN_NAME` na aba Environment → Deploy |
+| Caminho                                | Como                                                                                                                                                                        |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **A. Variáveis**                       | `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `ADMIN_NAME` na aba Environment → Deploy                                                                                                |
 | **B. Endpoint** (só com o banco vazio) | `curl -X POST https://SEU_DOMINIO/api/auth/setup -H 'Content-Type: application/json' -d '{"username":"admin","password":"uma-senha-com-8-ou-mais","name":"Administrador"}'` |
-| **C. Tela do app** | entre na tela de login e use o admin criado (banco vazio já oferece `admin` / `admin123`) |
+| **C. Tela do app**                     | entre na tela de login e use o admin criado (banco vazio já oferece `admin` / `admin123`)                                                                                   |
 
 ### 7.4 Verificar
 
@@ -660,11 +661,11 @@ curl -s http://203.0.113.10:4000/api/health
 # {"status":"ok","database":true,"target":{"host":"pingod-h2rdn7","database":"pingos",...}}
 ```
 
-| Resposta | Significado |
-|---|---|
-| `database: true` | conectado e migrado |
+| Resposta                  | Significado                                                                              |
+| ------------------------- | ---------------------------------------------------------------------------------------- |
+| `database: true`          | conectado e migrado                                                                      |
 | `503` + `database: false` | API no ar, mas sem falar com o MySQL → veja `MYSQL_HOST`, `MYSQL_USER`, `MYSQL_PASSWORD` |
-| `502` | o container `api` não está no ar → **Logs → api** |
+| `502`                     | o container `api` não está no ar → **Logs → api**                                        |
 
 > **Importante:** o app já roda 100% sobre esta API (o Convex saiu do
 > frontend). As telas leem e escrevem direto no MySQL; o que ainda falta é só o
@@ -692,41 +693,41 @@ docker logs --tail 100 <container-do-whatsapp>
 
 ## 9. Rotas internas do Dokploy (referência)
 
-| Aba / atalho | Para que serve aqui |
-|---|---|
-| **General** (`g g`) | repo, branch, compose path, auto deploy, botão Deploy |
-| **Environment** (`g e`) | todas as variáveis acima (viram `.env`) |
-| **Domains** (`g u`) | `pingos.suaempresa.com` → porta **80** |
-| **Deployments** (`g d`) | histórico e status de cada deploy |
-| **Logs** (`g l`) | logs por serviço (`app`, `whatsapp`, `api`) |
-| **Monitoring** (`g m`) | CPU/RAM dos containers |
+| Aba / atalho               | Para que serve aqui                                         |
+| -------------------------- | ----------------------------------------------------------- |
+| **General** (`g g`)        | repo, branch, compose path, auto deploy, botão Deploy       |
+| **Environment** (`g e`)    | todas as variáveis acima (viram `.env`)                     |
+| **Domains** (`g u`)        | `pingos.suaempresa.com` → porta **80**                      |
+| **Deployments** (`g d`)    | histórico e status de cada deploy                           |
+| **Logs** (`g l`)           | logs por serviço (`app`, `whatsapp`, `api`)                 |
+| **Monitoring** (`g m`)     | CPU/RAM dos containers                                      |
 | **Volume Backups** (`g v`) | backup dos volumes nomeados (`whatsapp-session`, `uploads`) |
-| **Advanced** (`g a`) | comando customizado, mounts, volumes |
+| **Advanced** (`g a`)       | comando customizado, mounts, volumes                        |
 
 ---
 
 ## 10. Problemas comuns
 
-| Sintoma | Causa provável / solução |
-|---|---|
-| Deploy falha com `port is already allocated` | Alguma porta publicada já está em uso (provavelmente `3000` do painel) → use `8090:80` e `4000:4000` |
-| Tela em branco / login não sai do lugar | `VITE_API_URL` apontando para uma URL inalcançável → deixe vazio e abra `https://SEU_DOMINIO/api/health` |
-| Domínio responde 404 ou “Bad Gateway” | Campo **Port** do domínio errado → deve ser `80` (porta do nginx no container), não `8090` |
-| Certificado não emite | Registro A ainda propagando ou portas 80/443 fechadas → confira o DNS e o firewall |
-| Loop de login / "Usuário ou senha inválidos" | Confirme o usuário no banco (`SELECT username, active FROM users`) — contas são criadas pelo admin |
-| Imagem do chamado não aparece | A coluna `tickets.image_url` precisa ser `MEDIUMTEXT` → rode `docker exec -it <api> bun run mysql:seed` (o boot já ajusta) |
-| Build falha no passo do Vite | Dependência faltando no `package.json`/`bun.lock` → rode `bun install` local e commite o lockfile |
-| Container `api` reiniciando / 503 no health | MySQL inacessível: `MYSQL_HOST` errado, usuário sem host `'%'` ou senha divergente |
-| `getaddrinfo ENOTFOUND <host>` nos logs da `api` | O container não está na rede do banco → confirme `networks: [dokploy-network]` no serviço `api` e `dokploy-network: external: true` no fim do compose (seção 3.3) |
-| `Access denied for user ...` | Credenciais internas copiadas erradas (troque `MYSQL_USER`/`MYSQL_PASSWORD` pelos da aba **Connection**) |
-| `Unknown database 'pingos'` | `MYSQL_DATABASE` diferente do **Database Name** do banco no Dokploy |
-| `/api/...` responde 502 pelo domínio | Container `api` fora do ar → **Logs → api**; o nginx segue servindo o site normalmente |
-| Alterei `MYSQL_*` e nada mudou | Variável de container só vale após **Deploy/Redeploy** (o `Restart` reaproveita os containers, sem reler o `.env`) |
-| `docker exec ... bun run mysql:seed` falha | Não é mais necessário (migração automática no boot). Se usar, confira o nome do container com `docker ps` |
-| WhatsApp “Servidor offline” | Veja `docker logs <container-do-whatsapp>` — a ponte pode estar reiniciando por sessão corrompida (delete o volume `whatsapp-session` na aba Volume Backups/volumes e reconecte) |
-| Alterei uma `VITE_*` e nada mudou | Faça **Restart** do serviço (o `/config.js` é gerado no start) e recarregue o site |
-| Alterações feitas no Dokploy aparecem no preview (e vice-versa) | Os dois estão apontando para a **mesma API/banco** → para separar, use outro `MYSQL_DATABASE` (seção 3.1) |
-| Senha do MySQL visível no site | Ela foi colada numa variável `VITE_*` (vai para o bundle público) → remova, troque a senha no banco e redeploye |
+| Sintoma                                                         | Causa provável / solução                                                                                                                                                         |
+| --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Deploy falha com `port is already allocated`                    | Alguma porta publicada já está em uso (provavelmente `3000` do painel) → use `8090:80` e `4000:4000`                                                                             |
+| Tela em branco / login não sai do lugar                         | `VITE_API_URL` apontando para uma URL inalcançável → deixe vazio e abra `https://SEU_DOMINIO/api/health`                                                                         |
+| Domínio responde 404 ou “Bad Gateway”                           | Campo **Port** do domínio errado → deve ser `80` (porta do nginx no container), não `8090`                                                                                       |
+| Certificado não emite                                           | Registro A ainda propagando ou portas 80/443 fechadas → confira o DNS e o firewall                                                                                               |
+| Loop de login / "Usuário ou senha inválidos"                    | Confirme o usuário no banco (`SELECT username, active FROM users`) — contas são criadas pelo admin                                                                               |
+| Imagem do chamado não aparece                                   | A coluna `tickets.image_url` precisa ser `MEDIUMTEXT` → rode `docker exec -it <api> bun run mysql:seed` (o boot já ajusta)                                                       |
+| Build falha no passo do Vite                                    | Dependência faltando no `package.json`/`bun.lock` → rode `bun install` local e commite o lockfile                                                                                |
+| Container `api` reiniciando / 503 no health                     | MySQL inacessível: `MYSQL_HOST` errado, usuário sem host `'%'` ou senha divergente                                                                                               |
+| `getaddrinfo ENOTFOUND <host>` nos logs da `api`                | O container não está na rede do banco → confirme `networks: [dokploy-network]` no serviço `api` e `dokploy-network: external: true` no fim do compose (seção 3.3)                |
+| `Access denied for user ...`                                    | Credenciais internas copiadas erradas (troque `MYSQL_USER`/`MYSQL_PASSWORD` pelos da aba **Connection**)                                                                         |
+| `Unknown database 'pingos'`                                     | `MYSQL_DATABASE` diferente do **Database Name** do banco no Dokploy                                                                                                              |
+| `/api/...` responde 502 pelo domínio                            | Container `api` fora do ar → **Logs → api**; o nginx segue servindo o site normalmente                                                                                           |
+| Alterei `MYSQL_*` e nada mudou                                  | Variável de container só vale após **Deploy/Redeploy** (o `Restart` reaproveita os containers, sem reler o `.env`)                                                               |
+| `docker exec ... bun run mysql:seed` falha                      | Não é mais necessário (migração automática no boot). Se usar, confira o nome do container com `docker ps`                                                                        |
+| WhatsApp “Servidor offline”                                     | Veja `docker logs <container-do-whatsapp>` — a ponte pode estar reiniciando por sessão corrompida (delete o volume `whatsapp-session` na aba Volume Backups/volumes e reconecte) |
+| Alterei uma `VITE_*` e nada mudou                               | Faça **Restart** do serviço (o `/config.js` é gerado no start) e recarregue o site                                                                                               |
+| Alterações feitas no Dokploy aparecem no preview (e vice-versa) | Os dois estão apontando para a **mesma API/banco** → para separar, use outro `MYSQL_DATABASE` (seção 3.1)                                                                        |
+| Senha do MySQL visível no site                                  | Ela foi colada numa variável `VITE_*` (vai para o bundle público) → remova, troque a senha no banco e redeploye                                                                  |
 
 ---
 

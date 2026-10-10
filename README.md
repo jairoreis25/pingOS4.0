@@ -4,6 +4,7 @@ PingOS — sistema de help desk com Kanban (Aberto, Em Andamento, Aguardando,
 Resolvido, Fechado), autenticação RBAC e backend próprio em MySQL.
 
 Tech stack:
+
 - Vite
 - Typescript
 - React Router v7 (all imports from `react-router` instead of `react-router-dom`)
@@ -59,10 +60,10 @@ bun run mysql:api                          # sobe a API em http://localhost:4000
 
 ### Variáveis de ambiente
 
-| Onde | Variáveis |
-|---|---|
-| Backend (`mysql-api.env` ou painel do serviço) | `MYSQL_*`, `API_PORT`, `CORS_ORIGIN`, `SESSION_TTL_DAYS`, `UPLOAD_DIR`, `BACKUP_DIR`, `SITE_URL`, `RESEND_API_KEY`, `RESEND_FROM`, `WHATSAPP_BRIDGE_URL`, `INACTIVITY_INTERVAL_MINUTES`, `ADMIN_ID` (bot Ping IA) |
-| Frontend (`.env.local` / `config.js` / build arg) | `VITE_API_URL` (vazio = mesma origem via nginx), `VITE_WHATSAPP_WEB_URL` |
+| Onde                                              | Variáveis                                                                                                                                                                                                         |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Backend (`mysql-api.env` ou painel do serviço)    | `MYSQL_*`, `API_PORT`, `CORS_ORIGIN`, `SESSION_TTL_DAYS`, `UPLOAD_DIR`, `BACKUP_DIR`, `SITE_URL`, `RESEND_API_KEY`, `RESEND_FROM`, `WHATSAPP_BRIDGE_URL`, `INACTIVITY_INTERVAL_MINUTES`, `ADMIN_ID` (bot Ping IA) |
+| Frontend (`.env.local` / `config.js` / build arg) | `VITE_API_URL` (vazio = mesma origem via nginx), `VITE_WHATSAPP_WEB_URL`                                                                                                                                          |
 
 > Nunca coloque segredo em variável `VITE_*`: tudo que começa com `VITE_` é
 > gravado no JavaScript público do site.
@@ -132,17 +133,17 @@ Qualquer outro provedor do dropdown também serve: o agente fala o dialeto
 formato da chave. O campo **Modelo de visão** (leitura das fotos de O.S.) só
 aparece quando o provedor escolhido lê imagem:
 
-| Provedor | Chave | Lê foto de O.S. |
-| --- | --- | --- |
-| **NVIDIA** (padrão, grátis) | `nvapi-...` em build.nvidia.com | sim (`nemotron-3-nano-omni`) |
-| OpenAI | `sk-...` em platform.openai.com | sim (`gpt-4o-mini`) |
-| Google Gemini | `AIza...` em aistudio.google.com | sim (`gemini-2.5-flash`) |
-| Anthropic Claude | `sk-ant-...` em console.anthropic.com | sim (`claude-sonnet-4-5`) |
-| Groq (grátis) | `gsk_...` em console.groq.com | sim (`llama-4-scout`) |
-| OpenRouter | `sk-or-...` em openrouter.ai/keys | sim (escolha um multimodal) |
-| DeepSeek | `sk-...` em platform.deepseek.com | **não** |
-| Mistral | em console.mistral.ai | sim (`pixtral-large-latest`) |
-| Outro (compatível com OpenAI) | a do seu servidor | depende do modelo |
+| Provedor                      | Chave                                 | Lê foto de O.S.              |
+| ----------------------------- | ------------------------------------- | ---------------------------- |
+| **NVIDIA** (padrão, grátis)   | `nvapi-...` em build.nvidia.com       | sim (`nemotron-3-nano-omni`) |
+| OpenAI                        | `sk-...` em platform.openai.com       | sim (`gpt-4o-mini`)          |
+| Google Gemini                 | `AIza...` em aistudio.google.com      | sim (`gemini-2.5-flash`)     |
+| Anthropic Claude              | `sk-ant-...` em console.anthropic.com | sim (`claude-sonnet-4-5`)    |
+| Groq (grátis)                 | `gsk_...` em console.groq.com         | sim (`llama-4-scout`)        |
+| OpenRouter                    | `sk-or-...` em openrouter.ai/keys     | sim (escolha um multimodal)  |
+| DeepSeek                      | `sk-...` em platform.deepseek.com     | **não**                      |
+| Mistral                       | em console.mistral.ai                 | sim (`pixtral-large-latest`) |
+| Outro (compatível com OpenAI) | a do seu servidor                     | depende do modelo            |
 
 Para acrescentar um provedor novo basta uma entrada em
 `server/api/ai-providers.ts` — o dashboard e o bot leem o catálogo de lá, sem ID
@@ -261,7 +262,7 @@ reiniciar o processo** — ele entra (ou sai) do ar sozinho no ciclo seguinte.
 > modelo pelo padrão do provedor novo (o ID antigo não existe lá) e o bot avisa
 > que a chave precisa ser colada de novo.
 >
-> Hoje os modelos vivos são da família **Nemotron 3** e são de *raciocínio*:
+> Hoje os modelos vivos são da família **Nemotron 3** e são de _raciocínio_:
 > sem `enable_thinking: false` eles gastam o orçamento de tokens "pensando" e
 > devolvem texto vazio (era o `resposta: (vazia)` do **Testar**). O parâmetro já
 > vai em toda chamada feita pelo bot e pelo teste.
@@ -279,13 +280,13 @@ vale o mesmo fluxo:
    **Aberto**, categoria detectada automaticamente);
 3. responde com o resumo do chamado criado.
 
-| Na O.S. impressa | Vai para o chamado |
-| --- | --- |
-| **NÚMERO O.S.** | `os` |
-| **SOLICITANTE** | `guest_name` (cliente do chamado) |
-| **FONE** | `guest_contact` |
-| **DESCRIÇÃO** (equipamento) | `title` (**título** do chamado) |
-| **PROBLEMAS** (defeito) | `description` (**descrição** do chamado) |
+| Na O.S. impressa            | Vai para o chamado                       |
+| --------------------------- | ---------------------------------------- |
+| **NÚMERO O.S.**             | `os`                                     |
+| **SOLICITANTE**             | `guest_name` (cliente do chamado)        |
+| **FONE**                    | `guest_contact`                          |
+| **DESCRIÇÃO** (equipamento) | `title` (**título** do chamado)          |
+| **PROBLEMAS** (defeito)     | `description` (**descrição** do chamado) |
 
 O resto do cupom — CNPJ, IE, endereço, ATENDENTE, datas, número de série,
 marca, serviços, preços, OBS e assinaturas — é **descartado de propósito**. A
@@ -318,15 +319,15 @@ E dá para continuar a conversa normalmente — depois do cadastro, basta pedir
 
 **Situações tratadas:**
 
-| Situação | O que o bot faz |
-| --- | --- |
-| Foto ilegível / sem O.S. | `❌ Não consegui ler a O.S.` — pede foto mais nítida, bem iluminada e sem sombras |
-| Número da O.S. já cadastrado | `⚠️ A O.S. 3139 já foi cadastrada como chamado #1042. Quer criar mesmo assim?` (Sim/Não) |
-| Faltou o número, o solicitante ou a Descrição | Mostra o que leu e pede `Sim` ou `Não` antes de criar |
-| Falha na API de visão | Explica e pede para tentar de novo ou digitar os dados manualmente |
-| Modelo de visão aposentado / chave recusada | Aponta para Configurações → Bot Ping IA → **Modelo de visão** |
-| Imagem grande demais (acima de 5 MB) | Pede para mandar como foto (compactada) ou em resolução menor |
-| Documento que não é imagem | Explica que só lê imagem (foto ou .jpg/.png) |
+| Situação                                      | O que o bot faz                                                                          |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Foto ilegível / sem O.S.                      | `❌ Não consegui ler a O.S.` — pede foto mais nítida, bem iluminada e sem sombras        |
+| Número da O.S. já cadastrado                  | `⚠️ A O.S. 3139 já foi cadastrada como chamado #1042. Quer criar mesmo assim?` (Sim/Não) |
+| Faltou o número, o solicitante ou a Descrição | Mostra o que leu e pede `Sim` ou `Não` antes de criar                                    |
+| Falha na API de visão                         | Explica e pede para tentar de novo ou digitar os dados manualmente                       |
+| Modelo de visão aposentado / chave recusada   | Aponta para Configurações → Bot Ping IA → **Modelo de visão**                            |
+| Imagem grande demais (acima de 5 MB)          | Pede para mandar como foto (compactada) ou em resolução menor                            |
+| Documento que não é imagem                    | Explica que só lê imagem (foto ou .jpg/.png)                                             |
 
 > O "cliente" do chamado sai do próprio cupom (nome + fone): o PingOS **não tem
 > tabela de clientes** — o cliente mora no chamado (`guest_name`/
@@ -347,37 +348,37 @@ E dá para continuar a conversa normalmente — depois do cadastro, basta pedir
 
 #### O que o Ping IA pode fazer
 
-| Ferramenta | Para quê |
-| --- | --- |
-| `listar_chamados` | Buscar/listar chamados com todos os filtros abaixo |
-| `listar_clientes` | Clientes (solicitantes) com totais e filtros |
-| `listar_usuarios` | Usuários por papel, setor, atividade... |
-| `buscar_chamado_por_numero` / `buscar_chamado_por_id` | Chamado completo (com histórico) |
-| `buscar_cliente` | Cliente por nome, contato ou setor |
-| `criar_chamado` / `atualizar_chamado` | Abrir e editar (imediato) |
-| `fechar_chamado` / `reabrir_chamado` | Mudar status (imediato) |
-| `excluir_chamado` | Excluir — **pede confirmação Sim/Não** |
-| `relatorio_chamados` / `relatorio_produtividade` / `relatorio_sla` | Totais e desempenho por período |
-| `relatorio_clientes_top` / `relatorio_categorias` / `dashboard_geral` | Rankings e visão geral |
-| `consultar_audit_log` | Auditoria das ações do bot |
+| Ferramenta                                                            | Para quê                                           |
+| --------------------------------------------------------------------- | -------------------------------------------------- |
+| `listar_chamados`                                                     | Buscar/listar chamados com todos os filtros abaixo |
+| `listar_clientes`                                                     | Clientes (solicitantes) com totais e filtros       |
+| `listar_usuarios`                                                     | Usuários por papel, setor, atividade...            |
+| `buscar_chamado_por_numero` / `buscar_chamado_por_id`                 | Chamado completo (com histórico)                   |
+| `buscar_cliente`                                                      | Cliente por nome, contato ou setor                 |
+| `criar_chamado` / `atualizar_chamado`                                 | Abrir e editar (imediato)                          |
+| `fechar_chamado` / `reabrir_chamado`                                  | Mudar status (imediato)                            |
+| `excluir_chamado`                                                     | Excluir — **pede confirmação Sim/Não**             |
+| `relatorio_chamados` / `relatorio_produtividade` / `relatorio_sla`    | Totais e desempenho por período                    |
+| `relatorio_clientes_top` / `relatorio_categorias` / `dashboard_geral` | Rankings e visão geral                             |
+| `consultar_audit_log`                                                 | Auditoria das ações do bot                         |
 
 #### Filtros de `listar_chamados`
 
 Todos os filtros são **opcionais** e somam (E). Um filtro pode receber um valor
 único **ou um array** (array = OU dentro do mesmo campo).
 
-| Grupo | Filtros |
-| --- | --- |
-| Identificação | `id`, `numero_os`, `busca_texto` |
-| Status/prioridade | `status`, `prioridade`, `excluir_status` |
-| Cliente | `cliente_id`, `cliente_nome`, `cliente_telefone`, `cliente_setor` |
-| Responsável | `responsavel_id`, `responsavel_nome`, `sem_responsavel` |
-| Classificação | `categoria` (Impressoras, Computadores, Notebooks, Softwares, Rede, Suporte, Outros, `sem_categoria`) |
-| Datas | `criado_apos`/`criado_antes`, `atualizado_apos`/`atualizado_antes`, `fechado_apos`/`fechado_antes`, `sem_atualizacao_dias` |
-| SLA | `sla_estourando`, `sla_a_estourar`, `sla_cumprido` |
-| Métricas | `tempo_resolucao_min_dias`/`tempo_resolucao_max_dias`, `tem_comentarios`, `tem_anexos` |
-| Ordenação | `ordenar_por` (`created_at`, `updated_at`, `prioridade`, `urgencia`, `status`, `cliente_nome`, `responsavel_nome`, `tempo_resolucao`) + `direcao` (`asc`/`desc`) |
-| Paginação | `limite` (padrão 20, máx 200) e `offset`; a resposta diz `N de TOTAL` |
+| Grupo             | Filtros                                                                                                                                                          |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Identificação     | `id`, `numero_os`, `busca_texto`                                                                                                                                 |
+| Status/prioridade | `status`, `prioridade`, `excluir_status`                                                                                                                         |
+| Cliente           | `cliente_id`, `cliente_nome`, `cliente_telefone`, `cliente_setor`                                                                                                |
+| Responsável       | `responsavel_id`, `responsavel_nome`, `sem_responsavel`                                                                                                          |
+| Classificação     | `categoria` (Impressoras, Computadores, Notebooks, Softwares, Rede, Suporte, Outros, `sem_categoria`)                                                            |
+| Datas             | `criado_apos`/`criado_antes`, `atualizado_apos`/`atualizado_antes`, `fechado_apos`/`fechado_antes`, `sem_atualizacao_dias`                                       |
+| SLA               | `sla_estourando`, `sla_a_estourar`, `sla_cumprido`                                                                                                               |
+| Métricas          | `tempo_resolucao_min_dias`/`tempo_resolucao_max_dias`, `tem_comentarios`, `tem_anexos`                                                                           |
+| Ordenação         | `ordenar_por` (`created_at`, `updated_at`, `prioridade`, `urgencia`, `status`, `cliente_nome`, `responsavel_nome`, `tempo_resolucao`) + `direcao` (`asc`/`desc`) |
+| Paginação         | `limite` (padrão 20, máx 200) e `offset`; a resposta diz `N de TOTAL`                                                                                            |
 
 Datas aceitam ISO (`2026-09-30`) **ou** expressões em português: `hoje`, `ontem`,
 `7d`/`30d`/`90d`, `ultimos_7_dias`, `esta semana`, `semana passada`,
@@ -386,12 +387,12 @@ Datas aceitam ISO (`2026-09-30`) **ou** expressões em português: `hoje`, `onte
 **Busca textual (`busca_texto`)** procura em título, descrição, solução, cliente,
 responsável, número e O.S. e aceita operadores:
 
-| Operador | Exemplo | Significado |
-| --- | --- | --- |
-| frase exata | `"erro 34"` | a frase precisa aparecer assim |
-| negação | `impressora -resolvido` | com "impressora" e sem "resolvido" |
-| E | `impressora erro` | os dois termos |
-| OU | `rede \| impressora` | qualquer um dos dois |
+| Operador    | Exemplo                 | Significado                        |
+| ----------- | ----------------------- | ---------------------------------- |
+| frase exata | `"erro 34"`             | a frase precisa aparecer assim     |
+| negação     | `impressora -resolvido` | com "impressora" e sem "resolvido" |
+| E           | `impressora erro`       | os dois termos                     |
+| OU          | `rede \| impressora`    | qualquer um dos dois               |
 
 **SLA:** a regra vigente do PingOS é "Aberto/Em Andamento há mais de 3 dias" —
 `sla_estourando` usa esse limite, `sla_a_estourar` cobre a véspera (2 a 3 dias) e
@@ -443,9 +444,9 @@ e `src/hooks/use-auth.ts` no frontend.
 Você DEVE usar este hook para dados do usuário — nunca leia a sessão na mão:
 
 ```typescript
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/hooks/use-auth"
 
-const { isLoading, isAuthenticated, user, signIn, signOut } = useAuth();
+const { isLoading, isAuthenticated, user, signIn, signOut } = useAuth()
 ```
 
 ## Protected Routes
@@ -504,6 +505,7 @@ When adding a page, update the react router configuration in `src/main.tsx` to i
 ## Shad CN conventions
 
 Follow these conventions when using Shad CN components, which you should use by default.
+
 - Remember to use "cursor-pointer" to make the element clickable
 - For title text, use the "tracking-tight font-bold" class to make the text more readable
 - Always make apps MOBILE RESPONSIVE. This is important
@@ -511,10 +513,10 @@ Follow these conventions when using Shad CN components, which you should use by 
 - AVOID SHADOWS. Avoid adding any shadows to components. stick with a thin border without the shadow.
 - Avoid skeletons; instead, use the loader2 component to show a spinning loading state when loading data.
 
-
 ## Landing Pages
 
-You must always create good-looking designer-level styles to your application. 
+You must always create good-looking designer-level styles to your application.
+
 - Make it well animated and fit a certain "theme", ie neo brutalist, retro, neumorphism, glass morphism, etc
 
 Use known images and emojis from online.
@@ -537,8 +539,8 @@ You must add animations to components using Framer Motion. It is already install
 
 To use it, import the `motion` component from `framer-motion` and use it to wrap the component you want to animate.
 
-
 ### Other Items to animate
+
 - Fade in and Fade out
 - Slide in and Slide Out animations
 - Rendering animations
@@ -621,7 +623,7 @@ Remember to import { toast } from "sonner". Usage: `toast("Event has been create
 
 Always ensure your larger dialogs have a scroll in its content to ensure that its content fits the screen size. Make sure that the content is not cut off from the screen.
 
-Ideally, instead of using a new page, use a Dialog instead. 
+Ideally, instead of using a new page, use a Dialog instead.
 
 # Backend conventions (API Express + MySQL)
 
@@ -635,15 +637,16 @@ Ideally, instead of using a new page, use a Dialog instead.
 3. No componente, use o hook do adaptador:
 
 ```ts
-import { api } from "@/lib/backend/api";
-import { useMutation, useQuery } from "@/lib/backend/react";
+import { api } from "@/lib/backend/api"
+import { useMutation, useQuery } from "@/lib/backend/react"
 
-const tickets = useQuery(api.tickets.list);           // undefined enquanto carrega
-const updateStatus = useMutation(api.tickets.updateStatus);
-await updateStatus({ ticketId, status: "resolvido" });
+const tickets = useQuery(api.tickets.list) // undefined enquanto carrega
+const updateStatus = useMutation(api.tickets.updateStatus)
+await updateStatus({ ticketId, status: "resolvido" })
 ```
 
 Regras:
+
 - Não use `fetch` solto nos componentes: sempre passe pelo adaptador (ele cuida
   de token, invalidação das queries e 401).
 - Proteja toda rota de escrita com `requirePermission`/`requireAdmin`.

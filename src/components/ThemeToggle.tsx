@@ -9,10 +9,10 @@
  * "Sistema" acompanha o tema do sistema operacional — inclusive quando o
  * usuário troca o tema com a aba aberta.
  */
-import { useEffect, useState } from "react";
-import { useTheme } from "next-themes";
-import { Check, Monitor, Moon, Sun } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react"
+import { useTheme } from "next-themes"
+import { Check, Monitor, Moon, Sun } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,26 +20,25 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
+} from "@/components/ui/dropdown-menu"
+import { cn } from "@/lib/utils"
 
 const THEME_OPTIONS = [
   { value: "light", label: "Claro", icon: Sun },
   { value: "dark", label: "Escuro", icon: Moon },
   { value: "system", label: "Sistema", icon: Monitor },
-] as const;
+] as const
 
 export function ThemeToggle({ className }: { className?: string }) {
-  const { theme, resolvedTheme, setTheme } = useTheme();
+  const { theme, resolvedTheme, setTheme } = useTheme()
   // O tema real só é conhecido depois de montar (o HTML chega sem a classe);
   // até lá o ícone fica neutro para não piscar o sol no escuro.
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
 
-  const isDark = mounted && resolvedTheme === "dark";
-  const Icon = !mounted ? Monitor : isDark ? Moon : Sun;
-  const currentLabel =
-    THEME_OPTIONS.find((o) => o.value === theme)?.label ?? "Sistema";
+  const isDark = mounted && resolvedTheme === "dark"
+  const Icon = !mounted ? Monitor : isDark ? Moon : Sun
+  const currentLabel = THEME_OPTIONS.find((o) => o.value === theme)?.label ?? "Sistema"
 
   return (
     <DropdownMenu>
@@ -60,7 +59,7 @@ export function ThemeToggle({ className }: { className?: string }) {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         {THEME_OPTIONS.map((option) => {
-          const OptionIcon = option.icon;
+          const OptionIcon = option.icon
           return (
             <DropdownMenuItem
               key={option.value}
@@ -73,11 +72,11 @@ export function ThemeToggle({ className }: { className?: string }) {
                 <Check className="ml-auto size-3.5 text-primary" />
               )}
             </DropdownMenuItem>
-          );
+          )
         })}
       </DropdownMenuContent>
     </DropdownMenu>
-  );
+  )
 }
 
-export default ThemeToggle;
+export default ThemeToggle

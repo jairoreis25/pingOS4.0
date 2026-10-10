@@ -1,17 +1,17 @@
-import { useState } from "react";
-import { useQuery, useMutation } from "@/lib/backend/react";
-import { api } from "@/lib/backend/api";
-import { Button } from "@/components/ui/button";
+import { useState } from "react"
+import { useQuery, useMutation } from "@/lib/backend/react"
+import { api } from "@/lib/backend/api"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,109 +21,109 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
-import type { Id } from "@/lib/backend/types";
+} from "@/components/ui/alert-dialog"
+import { toast } from "sonner"
+import { Plus, Pencil, Trash2, Loader2 } from "lucide-react"
+import type { Id } from "@/lib/backend/types"
 
 export default function TechnicianManagementDialog({
   open,
   onOpenChange,
 }: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }) {
-  const technicians = useQuery(api.technicians.list, open ? {} : "skip");
-  const createTech = useMutation(api.technicians.create);
-  const renameTech = useMutation(api.technicians.rename);
-  const toggleActive = useMutation(api.technicians.toggleActive);
-  const removeTech = useMutation(api.technicians.remove);
+  const technicians = useQuery(api.technicians.list, open ? {} : "skip")
+  const createTech = useMutation(api.technicians.create)
+  const renameTech = useMutation(api.technicians.rename)
+  const toggleActive = useMutation(api.technicians.toggleActive)
+  const removeTech = useMutation(api.technicians.remove)
 
-  const [name, setName] = useState("");
-  const [funcao, setFuncao] = useState("");
-  const [contato, setContato] = useState("");
-  const [adding, setAdding] = useState(false);
-  const [editingId, setEditingId] = useState<Id<"technicians"> | null>(null);
-  const [editName, setEditName] = useState("");
-  const [editFuncao, setEditFuncao] = useState("");
-  const [editContato, setEditContato] = useState("");
-  const [savingEdit, setSavingEdit] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<Id<"technicians"> | null>(null);
-  const [deleting, setDeleting] = useState(false);
+  const [name, setName] = useState("")
+  const [funcao, setFuncao] = useState("")
+  const [contato, setContato] = useState("")
+  const [adding, setAdding] = useState(false)
+  const [editingId, setEditingId] = useState<Id<"technicians"> | null>(null)
+  const [editName, setEditName] = useState("")
+  const [editFuncao, setEditFuncao] = useState("")
+  const [editContato, setEditContato] = useState("")
+  const [savingEdit, setSavingEdit] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<Id<"technicians"> | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const handleAdd = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) return;
-    setAdding(true);
+    e.preventDefault()
+    if (!name.trim()) return
+    setAdding(true)
     try {
       await createTech({
         name: name.trim(),
         funcao: funcao.trim() || undefined,
         contato: contato.trim() || undefined,
-      });
-      toast.success("Técnico cadastrado!");
-      setName("");
-      setFuncao("");
-      setContato("");
+      })
+      toast.success("Técnico cadastrado!")
+      setName("")
+      setFuncao("")
+      setContato("")
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro ao cadastrar técnico.");
+      toast.error(err instanceof Error ? err.message : "Erro ao cadastrar técnico.")
     } finally {
-      setAdding(false);
+      setAdding(false)
     }
-  };
+  }
 
   const startEdit = (t: {
-    _id: Id<"technicians">;
-    name: string;
-    funcao?: string;
-    contato?: string;
+    _id: Id<"technicians">
+    name: string
+    funcao?: string
+    contato?: string
   }) => {
-    setEditingId(t._id);
-    setEditName(t.name);
-    setEditFuncao(t.funcao ?? "");
-    setEditContato(t.contato ?? "");
-  };
+    setEditingId(t._id)
+    setEditName(t.name)
+    setEditFuncao(t.funcao ?? "")
+    setEditContato(t.contato ?? "")
+  }
 
   const handleSaveEdit = async () => {
-    if (!editingId || !editName.trim()) return;
-    setSavingEdit(true);
+    if (!editingId || !editName.trim()) return
+    setSavingEdit(true)
     try {
       await renameTech({
         id: editingId,
         name: editName.trim(),
         funcao: editFuncao.trim() || undefined,
         contato: editContato.trim() || undefined,
-      });
-      toast.success("Técnico atualizado!");
-      setEditingId(null);
+      })
+      toast.success("Técnico atualizado!")
+      setEditingId(null)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro ao atualizar.");
+      toast.error(err instanceof Error ? err.message : "Erro ao atualizar.")
     } finally {
-      setSavingEdit(false);
+      setSavingEdit(false)
     }
-  };
+  }
 
   const handleToggle = async (id: Id<"technicians">) => {
     try {
-      await toggleActive({ id });
+      await toggleActive({ id })
     } catch {
-      toast.error("Erro ao alterar status.");
+      toast.error("Erro ao alterar status.")
     }
-  };
+  }
 
   const handleDelete = async () => {
-    if (!deleteTarget) return;
-    setDeleting(true);
+    if (!deleteTarget) return
+    setDeleting(true)
     try {
-      await removeTech({ id: deleteTarget });
-      toast.success("Técnico excluído.");
-      setDeleteTarget(null);
+      await removeTech({ id: deleteTarget })
+      toast.success("Técnico excluído.")
+      setDeleteTarget(null)
     } catch {
-      toast.error("Erro ao excluir técnico.");
+      toast.error("Erro ao excluir técnico.")
     } finally {
-      setDeleting(false);
+      setDeleting(false)
     }
-  };
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -138,7 +138,9 @@ export default function TechnicianManagementDialog({
         <form onSubmit={handleAdd} className="space-y-2">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div className="space-y-1.5">
-              <Label htmlFor="tech-name" className="text-xs text-muted-foreground">Nome</Label>
+              <Label htmlFor="tech-name" className="text-xs text-muted-foreground">
+                Nome
+              </Label>
               <Input
                 id="tech-name"
                 placeholder="Ex: João Silva"
@@ -147,7 +149,9 @@ export default function TechnicianManagementDialog({
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="tech-funcao" className="text-xs text-muted-foreground">Função (opcional)</Label>
+              <Label htmlFor="tech-funcao" className="text-xs text-muted-foreground">
+                Função (opcional)
+              </Label>
               <Input
                 id="tech-funcao"
                 placeholder="Ex: Suporte técnico"
@@ -167,11 +171,15 @@ export default function TechnicianManagementDialog({
               onChange={(e) => setContato(e.target.value)}
             />
             <p className="text-[11px] text-muted-foreground">
-              Usado para enviar alertas de inatividade por WhatsApp ao
-              responsável pelo chamado.
+              Usado para enviar alertas de inatividade por WhatsApp ao responsável pelo chamado.
             </p>
           </div>
-          <Button type="submit" size="sm" className="w-full gap-1.5" disabled={adding || !name.trim()}>
+          <Button
+            type="submit"
+            size="sm"
+            className="w-full gap-1.5"
+            disabled={adding || !name.trim()}
+          >
             {adding ? <Loader2 className="size-3.5 animate-spin" /> : <Plus className="size-3.5" />}
             Cadastrar técnico
           </Button>
@@ -211,10 +219,20 @@ export default function TechnicianManagementDialog({
                     className="h-8 text-sm min-w-[110px] flex-1"
                     placeholder="Contato (WhatsApp)"
                   />
-                  <Button size="sm" className="h-8" onClick={handleSaveEdit} disabled={savingEdit || !editName.trim()}>
+                  <Button
+                    size="sm"
+                    className="h-8"
+                    onClick={handleSaveEdit}
+                    disabled={savingEdit || !editName.trim()}
+                  >
                     {savingEdit ? <Loader2 className="size-3.5 animate-spin" /> : "Salvar"}
                   </Button>
-                  <Button size="sm" variant="ghost" className="h-8" onClick={() => setEditingId(null)}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8"
+                    onClick={() => setEditingId(null)}
+                  >
                     Cancelar
                   </Button>
                 </>
@@ -277,8 +295,8 @@ export default function TechnicianManagementDialog({
             <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => {
-                e.preventDefault();
-                handleDelete();
+                e.preventDefault()
+                handleDelete()
               }}
               disabled={deleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
@@ -289,5 +307,5 @@ export default function TechnicianManagementDialog({
         </AlertDialogContent>
       </AlertDialog>
     </Dialog>
-  );
+  )
 }

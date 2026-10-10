@@ -1,42 +1,35 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useMutation, useQuery } from "@/lib/backend/react";
-import { api } from "@/lib/backend/api";
-import { usePermissions } from "@/hooks/use-permissions";
-import type { ProductService } from "@/lib/backend/types";
-import { formatBRL, maskCurrencyInput, parseCurrencyInput } from "@/lib/currency";
-import ItemTypeBadge from "@/components/ItemTypeBadge";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverAnchor,
-  PopoverContent,
-} from "@/components/ui/popover";
-import { Check, Loader2, Package, Pencil, Search, X } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import { useEffect, useMemo, useRef, useState } from "react"
+import { useMutation, useQuery } from "@/lib/backend/react"
+import { api } from "@/lib/backend/api"
+import { usePermissions } from "@/hooks/use-permissions"
+import type { ProductService } from "@/lib/backend/types"
+import { formatBRL, maskCurrencyInput, parseCurrencyInput } from "@/lib/currency"
+import ItemTypeBadge from "@/components/ItemTypeBadge"
+import { Textarea } from "@/components/ui/textarea"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover"
+import { Check, Loader2, Package, Pencil, Search, X } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { toast } from "sonner"
 
 /**
  * Procura um comando "/" imediatamente antes do cursor: precisa estar no começo
  * do texto ou depois de espaço/quebra de linha, para não disparar no meio de uma
  * palavra (ex.: "http://").
  */
-function findCommand(
-  text: string,
-  caret: number,
-): { start: number; query: string } | null {
-  const before = text.slice(0, caret);
-  const match = /(?:^|\s)\/([^/\n]*)$/.exec(before);
-  if (!match) return null;
-  const query = match[1];
-  return { start: before.length - query.length - 1, query };
+function findCommand(text: string, caret: number): { start: number; query: string } | null {
+  const before = text.slice(0, caret)
+  const match = /(?:^|\s)\/([^/\n]*)$/.exec(before)
+  if (!match) return null
+  const query = match[1]
+  return { start: before.length - query.length - 1, query }
 }
 
 type Props = Omit<React.ComponentProps<typeof Textarea>, "value" | "onChange"> & {
-  value: string;
-  onValueChange: (value: string) => void;
-};
+  value: string
+  onValueChange: (value: string) => void
+}
 
 /**
  * Textarea com menu de produtos/serviços: ao digitar "/" abre a lista do
@@ -51,162 +44,154 @@ type Props = Omit<React.ComponentProps<typeof Textarea>, "value" | "onChange"> &
  * Cada linha mostra o tipo do item (Produto/Serviço) para dar para escolher sem
  * consultar o cadastro em Configurações.
  */
-export default function SlashProductsTextarea({
-  value,
-  onValueChange,
-  ...props
-}: Props) {
-  const products = useQuery(api.products.list);
-  const updateProduct = useMutation(api.products.update);
-  const { can } = usePermissions();
-  const canEditPrice = can("settings.manage");
+export default function SlashProductsTextarea({ value, onValueChange, ...props }: Props) {
+  const products = useQuery(api.products.list)
+  const updateProduct = useMutation(api.products.update)
+  const { can } = usePermissions()
+  const canEditPrice = can("settings.manage")
 
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const [active, setActive] = useState(0);
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState("")
+  const [active, setActive] = useState(0)
 
   // Edição do valor de um item, dentro do próprio menu.
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editPrice, setEditPrice] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editPrice, setEditPrice] = useState("")
+  const [saving, setSaving] = useState(false)
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
   // Trecho do texto que o item escolhido vai substituir ("/nome digitado").
-  const triggerRef = useRef<{ start: number; end: number } | null>(null);
+  const triggerRef = useRef<{ start: number; end: number } | null>(null)
 
   const items = useMemo(() => {
-    const list = (products ?? []).filter((p) => p.active !== false);
-    const q = query.trim().toLowerCase();
-    if (!q) return list;
-    return list.filter((p) => p.name.toLowerCase().includes(q));
-  }, [products, query]);
+    const list = (products ?? []).filter((p) => p.active !== false)
+    const q = query.trim().toLowerCase()
+    if (!q) return list
+    return list.filter((p) => p.name.toLowerCase().includes(q))
+  }, [products, query])
 
   // Mantém o destaque dentro da lista filtrada.
   useEffect(() => {
-    setActive(0);
-  }, [query, open]);
+    setActive(0)
+  }, [query, open])
 
   // Garante o item destacado visível ao navegar com o teclado.
   useEffect(() => {
-    if (!open) return;
-    const el = listRef.current?.children[active] as HTMLElement | undefined;
-    el?.scrollIntoView({ block: "nearest" });
-  }, [active, open]);
+    if (!open) return
+    const el = listRef.current?.children[active] as HTMLElement | undefined
+    el?.scrollIntoView({ block: "nearest" })
+  }, [active, open])
 
   const close = () => {
-    setOpen(false);
-    setEditingId(null);
-    triggerRef.current = null;
-  };
+    setOpen(false)
+    setEditingId(null)
+    triggerRef.current = null
+  }
 
   const focusTextarea = () => {
     requestAnimationFrame(() => {
-      const el = textareaRef.current;
-      if (!el) return;
-      el.focus();
-      const end = el.value.length;
-      el.setSelectionRange(end, end);
-    });
-  };
+      const el = textareaRef.current
+      if (!el) return
+      el.focus()
+      const end = el.value.length
+      el.setSelectionRange(end, end)
+    })
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const next = e.target.value;
-    onValueChange(next);
+    const next = e.target.value
+    onValueChange(next)
 
-    const caret = e.target.selectionStart ?? next.length;
-    const found = findCommand(next, caret);
+    const caret = e.target.selectionStart ?? next.length
+    const found = findCommand(next, caret)
     if (found) {
-      triggerRef.current = { start: found.start, end: caret };
-      setQuery(found.query);
-      setOpen(true);
+      triggerRef.current = { start: found.start, end: caret }
+      setQuery(found.query)
+      setOpen(true)
     } else {
-      close();
+      close()
     }
-  };
+  }
 
   const select = (item: ProductService) => {
-    const trigger = triggerRef.current;
-    if (!trigger) return;
+    const trigger = triggerRef.current
+    if (!trigger) return
 
-    const insertion =
-      item.price > 0 ? `${item.name} — ${formatBRL(item.price)}` : item.name;
-    const rest = value.slice(trigger.end);
+    const insertion = item.price > 0 ? `${item.name} — ${formatBRL(item.price)}` : item.name
+    const rest = value.slice(trigger.end)
     // Se já houver texto depois do comando, quebra a linha para não colar nele.
-    const needsBreak = rest.length > 0 && !rest.startsWith("\n");
-    const next =
-      value.slice(0, trigger.start) + insertion + (needsBreak ? "\n" : "") + rest;
+    const needsBreak = rest.length > 0 && !rest.startsWith("\n")
+    const next = value.slice(0, trigger.start) + insertion + (needsBreak ? "\n" : "") + rest
 
-    onValueChange(next);
-    close();
+    onValueChange(next)
+    close()
 
-    const caret = trigger.start + insertion.length + (needsBreak ? 1 : 0);
+    const caret = trigger.start + insertion.length + (needsBreak ? 1 : 0)
     requestAnimationFrame(() => {
-      const el = textareaRef.current;
-      if (!el) return;
-      el.focus();
-      el.setSelectionRange(caret, caret);
-    });
-  };
+      const el = textareaRef.current
+      if (!el) return
+      el.focus()
+      el.setSelectionRange(caret, caret)
+    })
+  }
 
   const startEditPrice = (item: ProductService) => {
-    setEditingId(item._id);
-    setEditPrice(item.price > 0 ? formatBRL(item.price) : "");
-  };
+    setEditingId(item._id)
+    setEditPrice(item.price > 0 ? formatBRL(item.price) : "")
+  }
 
   const cancelEditPrice = () => {
-    setEditingId(null);
-    focusTextarea();
-  };
+    setEditingId(null)
+    focusTextarea()
+  }
 
   const savePrice = async (item: ProductService) => {
-    const price = parseCurrencyInput(editPrice);
-    setSaving(true);
+    const price = parseCurrencyInput(editPrice)
+    setSaving(true)
     try {
-      await updateProduct({ productId: item._id, price });
+      await updateProduct({ productId: item._id, price })
       // O useMutation invalida as queries: a lista já volta com o valor novo.
-      toast.success(`Valor de "${item.name}" atualizado.`);
-      setEditingId(null);
-      focusTextarea();
+      toast.success(`Valor de "${item.name}" atualizado.`)
+      setEditingId(null)
+      focusTextarea()
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Erro ao salvar o valor.",
-      );
+      toast.error(err instanceof Error ? err.message : "Erro ao salvar o valor.")
     } finally {
-      setSaving(false);
+      setSaving(false)
     }
-  };
+  }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (!open || editingId) return;
+    if (!open || editingId) return
     if (e.key === "ArrowDown") {
-      e.preventDefault();
-      if (items.length) setActive((i) => (i + 1) % items.length);
-      return;
+      e.preventDefault()
+      if (items.length) setActive((i) => (i + 1) % items.length)
+      return
     }
     if (e.key === "ArrowUp") {
-      e.preventDefault();
-      if (items.length) setActive((i) => (i - 1 + items.length) % items.length);
-      return;
+      e.preventDefault()
+      if (items.length) setActive((i) => (i - 1 + items.length) % items.length)
+      return
     }
     if (e.key === "Enter" || e.key === "Tab") {
       if (items[active]) {
-        e.preventDefault();
-        select(items[active]);
+        e.preventDefault()
+        select(items[active])
       }
-      return;
+      return
     }
     if (e.key === "Escape") {
-      e.preventDefault();
-      close();
+      e.preventDefault()
+      close()
     }
-  };
+  }
 
   return (
     <Popover
       open={open}
       onOpenChange={(next) => {
-        if (!next) close();
+        if (!next) close()
       }}
     >
       <PopoverAnchor asChild>
@@ -228,9 +213,9 @@ export default function SlashProductsTextarea({
         onOpenAutoFocus={(e) => e.preventDefault()}
         // Com o campo de valor aberto, Esc cancela a edição em vez de fechar o menu.
         onEscapeKeyDown={(e) => {
-          if (!editingId) return;
-          e.preventDefault();
-          cancelEditPrice();
+          if (!editingId) return
+          e.preventDefault()
+          cancelEditPrice()
         }}
         className="w-[var(--radix-popover-trigger-width)] p-1"
       >
@@ -241,16 +226,12 @@ export default function SlashProductsTextarea({
             <Package className="size-5 text-muted-foreground/50" />
             {query.trim() ? (
               <p className="text-xs text-muted-foreground">
-                Nenhum produto/serviço para{" "}
-                <span className="font-medium">“{query.trim()}”</span>.
+                Nenhum produto/serviço para <span className="font-medium">“{query.trim()}”</span>.
               </p>
             ) : (
               <p className="text-xs text-muted-foreground">
                 Nenhum produto/serviço cadastrado. Cadastre em{" "}
-                <span className="font-medium">
-                  Configurações → Produtos e Serviços
-                </span>
-                .
+                <span className="font-medium">Configurações → Produtos e Serviços</span>.
               </p>
             )}
           </div>
@@ -263,9 +244,7 @@ export default function SlashProductsTextarea({
                     key={item._id}
                     className="flex items-center gap-1.5 rounded-md bg-accent/60 px-2 py-1.5"
                   >
-                    <span className="min-w-0 flex-1 truncate text-sm">
-                      {item.name}
-                    </span>
+                    <span className="min-w-0 flex-1 truncate text-sm">{item.name}</span>
                     <Input
                       autoFocus
                       inputMode="numeric"
@@ -274,14 +253,14 @@ export default function SlashProductsTextarea({
                       onChange={(e) => setEditPrice(maskCurrencyInput(e.target.value))}
                       onKeyDown={(e) => {
                         // Não deixa o atalho vazar para o menu nem para o diálogo.
-                        e.stopPropagation();
+                        e.stopPropagation()
                         if (e.key === "Enter") {
-                          e.preventDefault();
-                          void savePrice(item);
+                          e.preventDefault()
+                          void savePrice(item)
                         }
                         if (e.key === "Escape") {
-                          e.preventDefault();
-                          cancelEditPrice();
+                          e.preventDefault()
+                          cancelEditPrice()
                         }
                       }}
                       disabled={saving}
@@ -314,7 +293,7 @@ export default function SlashProductsTextarea({
                       <X className="size-3.5" />
                     </Button>
                   </div>
-                );
+                )
               }
 
               return (
@@ -329,8 +308,8 @@ export default function SlashProductsTextarea({
                     type="button"
                     // preventDefault mantém o foco no textarea ao clicar.
                     onMouseDown={(e) => {
-                      e.preventDefault();
-                      select(item);
+                      e.preventDefault()
+                      select(item)
                     }}
                     onMouseEnter={() => setActive(index)}
                     className="flex min-w-0 flex-1 items-center justify-between gap-3 px-2 py-1.5 text-left text-sm"
@@ -348,8 +327,8 @@ export default function SlashProductsTextarea({
                       type="button"
                       title="Editar valor"
                       onMouseDown={(e) => {
-                        e.preventDefault();
-                        startEditPrice(item);
+                        e.preventDefault()
+                        startEditPrice(item)
                       }}
                       onMouseEnter={() => setActive(index)}
                       className="mr-1 grid size-6 shrink-0 place-items-center rounded text-muted-foreground hover:bg-background/70 hover:text-foreground"
@@ -358,7 +337,7 @@ export default function SlashProductsTextarea({
                     </button>
                   )}
                 </div>
-              );
+              )
             })}
           </div>
         )}
@@ -372,5 +351,5 @@ export default function SlashProductsTextarea({
         </div>
       </PopoverContent>
     </Popover>
-  );
+  )
 }

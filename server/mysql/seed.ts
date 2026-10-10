@@ -8,14 +8,14 @@
  *   ADMIN_USERNAME=admin ADMIN_PASSWORD=senha-forte bun run mysql:seed
  */
 
-import { runMigrations } from "./migrate";
-import { closePool } from "./pool";
+import { runMigrations } from "./migrate"
+import { closePool } from "./pool"
 
 runMigrations()
   .catch((error) => {
-    console.error("\n❌ Falha no seed:", error instanceof Error ? error.message : error);
-    process.exitCode = 1;
+    console.error("\n❌ Falha no seed:", error instanceof Error ? error.message : error)
+    process.exitCode = 1
   })
   .finally(async () => {
-    await closePool();
-  });
+    await closePool()
+  })

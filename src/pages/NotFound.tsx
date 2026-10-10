@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { motion } from "framer-motion"
 
 export default function NotFound() {
   return (
@@ -8,8 +8,6 @@ export default function NotFound() {
       transition={{ duration: 0.5 }}
       className="min-h-screen flex flex-col"
     >
-
-      
       {/* Main Content */}
       <div className="flex-1 flex flex-col items-center justify-center">
         <div className="max-w-5xl mx-auto relative px-4">
@@ -22,5 +20,5 @@ export default function NotFound() {
         </div>
       </div>
     </motion.div>
-  );
+  )
 }

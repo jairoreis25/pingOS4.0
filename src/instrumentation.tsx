@@ -1,79 +1,75 @@
-import { Dialog } from "@radix-ui/react-dialog";
-import { AlertTriangle, ChevronDown, ExternalLink } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import { Dialog } from "@radix-ui/react-dialog"
+import { AlertTriangle, ChevronDown, ExternalLink } from "lucide-react"
+import React, { useEffect, useState } from "react"
 
-import { Button } from "@/components/ui/button";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Button } from "@/components/ui/button"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import {
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/components/ui/dialog"
 
 type GenericError = {
-  error: string;
-  stack: string;
-  filename?: string;
-  lineno?: number;
-  colno?: number;
-  componentStack?: string;
-};
+  error: string
+  stack: string
+  filename?: string
+  lineno?: number
+  colno?: number
+  componentStack?: string
+}
 
 function normalizeError(value: unknown): GenericError {
   if (value instanceof Error) {
     return {
       error: value.message || "Unknown runtime error",
       stack: value.stack || "",
-    };
+    }
   }
 
   if (typeof value === "string") {
-    return { error: value || "Unknown runtime error", stack: "" };
+    return { error: value || "Unknown runtime error", stack: "" }
   }
 
   if (value && typeof value === "object") {
     const candidate = value as {
-      message?: unknown;
-      error?: unknown;
-      stack?: unknown;
-    };
+      message?: unknown
+      error?: unknown
+      stack?: unknown
+    }
     const message =
       typeof candidate.message === "string"
         ? candidate.message
         : typeof candidate.error === "string"
           ? candidate.error
-          : "";
+          : ""
 
     return {
       error: message || "Unknown runtime error",
       stack: typeof candidate.stack === "string" ? candidate.stack : "",
-    };
+    }
   }
 
   return {
     error: value == null ? "Unknown runtime error" : String(value),
     stack: "",
-  };
+  }
 }
 
 async function reportErrorToVly(errorData: {
-  error: string;
-  stackTrace?: string;
-  filename?: string;
-  lineno?: number;
-  colno?: number;
+  error: string
+  stackTrace?: string
+  filename?: string
+  lineno?: number
+  colno?: number
 }) {
-  const appId = import.meta.env.VITE_VLY_APP_ID;
-  const monitoringUrl = import.meta.env.VITE_VLY_MONITORING_URL;
+  const appId = import.meta.env.VITE_VLY_APP_ID
+  const monitoringUrl = import.meta.env.VITE_VLY_MONITORING_URL
 
   if (!appId || !monitoringUrl) {
-    return;
+    return
   }
 
   try {
@@ -84,9 +80,9 @@ async function reportErrorToVly(errorData: {
         url: window.location.href,
         projectSemanticIdentifier: appId,
       }),
-    });
+    })
   } catch (error) {
-    console.error("Failed to report error to Vly:", error);
+    console.error("Failed to report error to Vly:", error)
   }
 }
 
@@ -94,8 +90,8 @@ function ErrorDialog({
   error,
   setError,
 }: {
-  error: GenericError;
-  setError: (error: GenericError | null) => void;
+  error: GenericError
+  setError: (error: GenericError | null) => void
 }) {
   const technicalDetails = [
     error.filename &&
@@ -104,13 +100,13 @@ function ErrorDialog({
     error.componentStack && `Component stack:\n${error.componentStack}`,
   ]
     .filter(Boolean)
-    .join("\n\n");
+    .join("\n\n")
 
   return (
     <Dialog
       defaultOpen={true}
       onOpenChange={(open) => {
-        if (!open) setError(null);
+        if (!open) setError(null)
       }}
     >
       <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto border-zinc-700 bg-zinc-950 text-zinc-100 sm:max-w-lg">
@@ -122,8 +118,8 @@ function ErrorDialog({
             <div>
               <DialogTitle className="text-base">Runtime error</DialogTitle>
               <DialogDescription className="mt-1 text-zinc-400">
-                The preview stopped while rendering. Open the editor to fix the
-                issue, or close this message to keep browsing.
+                The preview stopped while rendering. Open the editor to fix the issue, or close this
+                message to keep browsing.
               </DialogDescription>
             </div>
           </div>
@@ -173,42 +169,40 @@ function ErrorDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
+  )
 }
 
 type ErrorBoundaryState = {
-  hasError: boolean;
-  error: GenericError | null;
-};
+  hasError: boolean
+  error: GenericError | null
+}
 
 class ErrorBoundary extends React.Component<
   {
-    children: React.ReactNode;
+    children: React.ReactNode
   },
   ErrorBoundaryState
 > {
   constructor(props: { children: React.ReactNode }) {
-    super(props);
-    this.state = { hasError: false, error: null };
+    super(props)
+    this.state = { hasError: false, error: null }
   }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return {
       hasError: true,
       error: normalizeError(error),
-    };
+    }
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    const normalizedError = normalizeError(error);
-    const componentStack = info.componentStack?.trim();
+    const normalizedError = normalizeError(error)
+    const componentStack = info.componentStack?.trim()
 
     reportErrorToVly({
       error: normalizedError.error,
-      stackTrace: [normalizedError.stack, componentStack]
-        .filter(Boolean)
-        .join("\n\n"),
-    });
+      stackTrace: [normalizedError.stack, componentStack].filter(Boolean).join("\n\n"),
+    })
 
     this.setState((state) => ({
       hasError: true,
@@ -216,7 +210,7 @@ class ErrorBoundary extends React.Component<
         ...(state.error ?? normalizedError),
         componentStack,
       },
-    }));
+    }))
   }
 
   render() {
@@ -226,36 +220,32 @@ class ErrorBoundary extends React.Component<
           error={this.state.error}
           setError={(error) => {
             if (error === null) {
-              this.setState({ hasError: false, error: null });
+              this.setState({ hasError: false, error: null })
             }
           }}
         />
-      );
+      )
     }
 
-    return this.props.children;
+    return this.props.children
   }
 }
 
-export function InstrumentationProvider({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const [error, setError] = useState<GenericError | null>(null);
+export function InstrumentationProvider({ children }: { children: React.ReactNode }) {
+  const [error, setError] = useState<GenericError | null>(null)
 
   useEffect(() => {
     const handleError = async (event: ErrorEvent) => {
       try {
-        event.preventDefault();
-        const normalizedError = normalizeError(event.error ?? event.message);
+        event.preventDefault()
+        const normalizedError = normalizeError(event.error ?? event.message)
         const capturedError = {
           ...normalizedError,
           filename: event.filename || undefined,
           lineno: event.lineno || undefined,
           colno: event.colno || undefined,
-        };
-        setError(capturedError);
+        }
+        setError(capturedError)
 
         await reportErrorToVly({
           error: normalizedError.error,
@@ -263,39 +253,39 @@ export function InstrumentationProvider({
           filename: event.filename,
           lineno: event.lineno,
           colno: event.colno,
-        });
+        })
       } catch (error) {
-        console.error("Error in handleError:", error);
+        console.error("Error in handleError:", error)
       }
-    };
+    }
 
     const handleRejection = async (event: PromiseRejectionEvent) => {
       try {
-        const normalizedError = normalizeError(event.reason);
-        console.error("[Freebuff runtime error]", normalizedError.error);
-        setError(normalizedError);
+        const normalizedError = normalizeError(event.reason)
+        console.error("[Freebuff runtime error]", normalizedError.error)
+        setError(normalizedError)
 
         await reportErrorToVly({
           error: normalizedError.error,
           stackTrace: normalizedError.stack,
-        });
+        })
       } catch (error) {
-        console.error("Error in handleRejection:", error);
+        console.error("Error in handleRejection:", error)
       }
-    };
+    }
 
-    window.addEventListener("error", handleError);
-    window.addEventListener("unhandledrejection", handleRejection);
+    window.addEventListener("error", handleError)
+    window.addEventListener("unhandledrejection", handleRejection)
 
     return () => {
-      window.removeEventListener("error", handleError);
-      window.removeEventListener("unhandledrejection", handleRejection);
-    };
-  }, []);
+      window.removeEventListener("error", handleError)
+      window.removeEventListener("unhandledrejection", handleRejection)
+    }
+  }, [])
   return (
     <>
       <ErrorBoundary>{children}</ErrorBoundary>
       {error && <ErrorDialog error={error} setError={setError} />}
     </>
-  );
+  )
 }

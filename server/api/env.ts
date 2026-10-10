@@ -13,61 +13,61 @@
  *   3. ./server/mysql-api.env
  */
 
-import fs from "node:fs";
-import path from "node:path";
+import fs from "node:fs"
+import path from "node:path"
 
 function parseEnvFile(content: string): Record<string, string> {
-  const out: Record<string, string> = {};
+  const out: Record<string, string> = {}
   for (const rawLine of content.split(/\r?\n/)) {
-    const line = rawLine.trim();
-    if (!line || line.startsWith("#")) continue;
-    const eq = line.indexOf("=");
-    if (eq <= 0) continue;
-    const key = line.slice(0, eq).trim();
-    let value = line.slice(eq + 1).trim();
+    const line = rawLine.trim()
+    if (!line || line.startsWith("#")) continue
+    const eq = line.indexOf("=")
+    if (eq <= 0) continue
+    const key = line.slice(0, eq).trim()
+    let value = line.slice(eq + 1).trim()
     // Remove aspas simples/duplas envolventes
     if (
       (value.startsWith('"') && value.endsWith('"') && value.length >= 2) ||
       (value.startsWith("'") && value.endsWith("'") && value.length >= 2)
     ) {
-      value = value.slice(1, -1);
+      value = value.slice(1, -1)
     }
-    out[key] = value;
+    out[key] = value
   }
-  return out;
+  return out
 }
 
-let loaded = false;
+let loaded = false
 
 /** Carrega o arquivo de env do backend MySQL (idempotente). */
 export function loadEnvFile(): { file: string | null; applied: number } {
-  if (loaded) return { file: null, applied: 0 };
-  loaded = true;
+  if (loaded) return { file: null, applied: 0 }
+  loaded = true
 
   const candidates = [
     process.env.MYSQL_ENV_FILE,
     path.resolve(process.cwd(), "mysql-api.env"),
     path.resolve(process.cwd(), "server/mysql-api.env"),
-  ].filter((p): p is string => typeof p === "string" && p.length > 0);
+  ].filter((p): p is string => typeof p === "string" && p.length > 0)
 
   for (const file of candidates) {
-    let content: string;
+    let content: string
     try {
-      if (!fs.existsSync(file)) continue;
-      content = fs.readFileSync(file, "utf8");
+      if (!fs.existsSync(file)) continue
+      content = fs.readFileSync(file, "utf8")
     } catch {
-      continue;
+      continue
     }
-    const parsed = parseEnvFile(content);
-    let applied = 0;
+    const parsed = parseEnvFile(content)
+    let applied = 0
     for (const [key, value] of Object.entries(parsed)) {
       if (process.env[key] === undefined) {
-        process.env[key] = value;
-        applied += 1;
+        process.env[key] = value
+        applied += 1
       }
     }
-    return { file, applied };
+    return { file, applied }
   }
 
-  return { file: null, applied: 0 };
+  return { file: null, applied: 0 }
 }

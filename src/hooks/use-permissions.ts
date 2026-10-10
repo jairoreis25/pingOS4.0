@@ -1,6 +1,6 @@
-import { useMemo } from "react";
-import { api } from "@/lib/backend/api";
-import { useQuery } from "@/lib/backend/react";
+import { useMemo } from "react"
+import { api } from "@/lib/backend/api"
+import { useQuery } from "@/lib/backend/react"
 import {
   canMoveTo as canMoveToHelper,
   canMoveAny as canMoveAnyHelper,
@@ -8,7 +8,7 @@ import {
   canEditStatus as canEditStatusHelper,
   canEditTicket as canEditTicketHelper,
   canViewTicket as canViewTicketHelper,
-} from "@/lib/permissions";
+} from "@/lib/permissions"
 
 /**
  * Permissões efetivas do usuário logado.
@@ -19,14 +19,14 @@ import {
  * parar de re-renderizar a cada mudança de estado da tela.
  */
 export function usePermissions() {
-  const data = useQuery(api.permissions.effective);
+  const data = useQuery(api.permissions.effective)
 
   return useMemo(() => {
-    const permissions = data?.permissions ?? [];
-    const userId = data?.userId ?? null;
-    const userName = data?.name ?? null;
-    const isAdmin = data?.isAdmin ?? false;
-    const role = data?.role ?? null;
+    const permissions = data?.permissions ?? []
+    const userId = data?.userId ?? null
+    const userName = data?.name ?? null
+    const isAdmin = data?.isAdmin ?? false
+    const role = data?.role ?? null
 
     return {
       isLoading: data === undefined,
@@ -39,15 +39,9 @@ export function usePermissions() {
       can: (key: string) => permissions.includes(key),
       canMoveTo: (status: string) => canMoveToHelper(permissions, status),
       canMoveAny: () => canMoveAnyHelper(permissions),
-      canViewStatus: (status: string) =>
-        canViewStatusHelper(permissions, status),
-      canEditStatus: (status: string) =>
-        canEditStatusHelper(permissions, status),
-      canViewTicket: (
-        status: string,
-        assigneeId?: string | null,
-        assigneeName?: string | null,
-      ) =>
+      canViewStatus: (status: string) => canViewStatusHelper(permissions, status),
+      canEditStatus: (status: string) => canEditStatusHelper(permissions, status),
+      canViewTicket: (status: string, assigneeId?: string | null, assigneeName?: string | null) =>
         canViewTicketHelper(
           permissions,
           status,
@@ -57,11 +51,7 @@ export function usePermissions() {
           userName,
           isAdmin,
         ),
-      canEditTicket: (
-        status: string,
-        assigneeId?: string | null,
-        assigneeName?: string | null,
-      ) =>
+      canEditTicket: (status: string, assigneeId?: string | null, assigneeName?: string | null) =>
         canEditTicketHelper(
           permissions,
           status,
@@ -71,6 +61,6 @@ export function usePermissions() {
           userName,
           isAdmin,
         ),
-    };
-  }, [data]);
+    }
+  }, [data])
 }

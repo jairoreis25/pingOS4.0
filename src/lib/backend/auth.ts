@@ -6,9 +6,9 @@
  * `POST /api/auth/login` (scrypt + tabela `sessions` no MySQL).
  */
 
-import type { ReactNode } from "react";
+import type { ReactNode } from "react"
 
-export { useAuthActions, useConvexAuth } from "./react";
+export { useAuthActions, useConvexAuth } from "./react"
 
 /**
  * O Convex Auth exigia um provider em volta da árvore para injetar o cliente.
@@ -17,5 +17,5 @@ export { useAuthActions, useConvexAuth } from "./react";
  * (e para o caso de alguém importar o provider de um exemplo antigo).
  */
 export function ConvexAuthProvider({ children }: { children: ReactNode }) {
-  return children;
+  return children
 }

@@ -3,4 +3,4 @@
 // standalone template when it is built from this repository.
 module.exports = {
   plugins: {},
-};
+}

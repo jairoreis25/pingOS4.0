@@ -13,25 +13,25 @@ assinatura dos hooks do Convex, então os componentes não mudaram de lógica).
 
 ## 1. O que já está pronto (fase 1)
 
-| Módulo | Convex (antes) | MySQL (agora) |
-|---|---|---|
-| Banco de dados | Convex | `server/mysql/schema.sql` (14 tabelas) |
-| Login / sessões | Convex Auth | `POST /api/auth/*` (scrypt + tabela `sessions`) |
-| Chamados / Kanban | `api.tickets.*` | `/api/tickets` (listar, abrir, mover, editar, excluir) |
-| Abertura pública | `api.tickets.createAsGuest` | `POST /api/tickets/guest` |
-| Usuários | `api.users.*` | `/api/users` |
-| Papéis (RBAC) | `api.roles.*` | `/api/roles` |
-| Técnicos | `api.technicians.*` | `/api/technicians` |
-| Produtos e serviços | — (novo) | `/api/products` (nome + tipo + valor). O tipo (`produto` \| `servico`, coluna `item_type`) diferencia peça/equipamento de mão de obra. Leitura livre para logados (menu `/` da Solução e do Orçamento); escrita exige `settings.manage` |
-| Métricas | `api.tickets.monthlyMetrics` / `dashboardMetrics` | `/api/metrics/monthly` · `/api/metrics/dashboard` |
-| Imagens dos chamados | Convex storage | campo `image_url` (data URL no próprio chamado) |
-| Notificações (config) | `api.notificationSettings.*` | `GET/PUT /api/notification-settings` |
-| Regras de inatividade | `api.notificationRules.*` | CRUD `/api/notification-rules` |
-| Sino in-app | `api.inAppNotifications.*` | `/api/in-app-notifications` |
-| Papéis (permissões) | `api.permissions.*` | `GET /api/auth/me` · `/api/permissions/any-admin` |
-| Backup (painel admin) | `api.backups.*` | `/api/backups` (listar, gerar, baixar, restaurar, upload) |
-| Relatórios | — (novo) | `/api/reports/*` (chamados, técnicos, setores, usuários, notificações) + exportação XLS/PDF no frontend e auditoria em `report_logs` |
-| Login do app | Convex Auth | `POST /api/auth/login` (token em `localStorage`) |
+| Módulo                | Convex (antes)                                    | MySQL (agora)                                                                                                                                                                                                                           |
+| --------------------- | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Banco de dados        | Convex                                            | `server/mysql/schema.sql` (14 tabelas)                                                                                                                                                                                                  |
+| Login / sessões       | Convex Auth                                       | `POST /api/auth/*` (scrypt + tabela `sessions`)                                                                                                                                                                                         |
+| Chamados / Kanban     | `api.tickets.*`                                   | `/api/tickets` (listar, abrir, mover, editar, excluir)                                                                                                                                                                                  |
+| Abertura pública      | `api.tickets.createAsGuest`                       | `POST /api/tickets/guest`                                                                                                                                                                                                               |
+| Usuários              | `api.users.*`                                     | `/api/users`                                                                                                                                                                                                                            |
+| Papéis (RBAC)         | `api.roles.*`                                     | `/api/roles`                                                                                                                                                                                                                            |
+| Técnicos              | `api.technicians.*`                               | `/api/technicians`                                                                                                                                                                                                                      |
+| Produtos e serviços   | — (novo)                                          | `/api/products` (nome + tipo + valor). O tipo (`produto` \| `servico`, coluna `item_type`) diferencia peça/equipamento de mão de obra. Leitura livre para logados (menu `/` da Solução e do Orçamento); escrita exige `settings.manage` |
+| Métricas              | `api.tickets.monthlyMetrics` / `dashboardMetrics` | `/api/metrics/monthly` · `/api/metrics/dashboard`                                                                                                                                                                                       |
+| Imagens dos chamados  | Convex storage                                    | campo `image_url` (data URL no próprio chamado)                                                                                                                                                                                         |
+| Notificações (config) | `api.notificationSettings.*`                      | `GET/PUT /api/notification-settings`                                                                                                                                                                                                    |
+| Regras de inatividade | `api.notificationRules.*`                         | CRUD `/api/notification-rules`                                                                                                                                                                                                          |
+| Sino in-app           | `api.inAppNotifications.*`                        | `/api/in-app-notifications`                                                                                                                                                                                                             |
+| Papéis (permissões)   | `api.permissions.*`                               | `GET /api/auth/me` · `/api/permissions/any-admin`                                                                                                                                                                                       |
+| Backup (painel admin) | `api.backups.*`                                   | `/api/backups` (listar, gerar, baixar, restaurar, upload)                                                                                                                                                                               |
+| Relatórios            | — (novo)                                          | `/api/reports/*` (chamados, técnicos, setores, usuários, notificações) + exportação XLS/PDF no frontend e auditoria em `report_logs`                                                                                                    |
+| Login do app          | Convex Auth                                       | `POST /api/auth/login` (token em `localStorage`)                                                                                                                                                                                        |
 
 As **regras de permissão são as mesmas**: `server/api/permissions.ts` importa
 `src/lib/permissions.ts`, o mesmo arquivo que o frontend usa. Não existem duas
@@ -46,20 +46,20 @@ Tudo aqui já está no backend MySQL — não existe mais nenhuma rota responden
 
 Disparado por:
 
-| Evento | O que sai |
-|---|---|
+| Evento                                                        | O que sai                                                                                   |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
 | **Novo chamado** (`POST /api/tickets` e `/api/tickets/guest`) | sino in-app para quem tem `tickets.view` + e-mail/Telegram/WhatsApp conforme a configuração |
-| **Mudança de status** (`POST /api/tickets/:id/status`) | sino in-app para solicitante e responsável + canais externos |
-| **Inatividade** (regras) | canais escolhidos em cada regra |
+| **Mudança de status** (`POST /api/tickets/:id/status`)        | sino in-app para solicitante e responsável + canais externos                                |
+| **Inatividade** (regras)                                      | canais escolhidos em cada regra                                                             |
 
 Os canais são ligados na aba **Configurações → Notificações** do app (tabela
 `notification_settings`); os segredos vêm do ambiente:
 
-| Canal | Variáveis |
-|---|---|
-| E-mail | `RESEND_API_KEY`, `RESEND_FROM` (sem a chave o envio falha e o motivo vai para `notifications`) |
-| Telegram | token/chat_id salvos no próprio app |
-| WhatsApp | API oficial (token + phone number id no app) ou a **ponte Baileys** (`WHATSAPP_BRIDGE_URL`) |
+| Canal    | Variáveis                                                                                       |
+| -------- | ----------------------------------------------------------------------------------------------- |
+| E-mail   | `RESEND_API_KEY`, `RESEND_FROM` (sem a chave o envio falha e o motivo vai para `notifications`) |
+| Telegram | token/chat_id salvos no próprio app                                                             |
+| WhatsApp | API oficial (token + phone number id no app) ou a **ponte Baileys** (`WHATSAPP_BRIDGE_URL`)     |
 
 Cada tentativa é registrada na tabela `notifications` (sent/failed + erro) e o
 envio é "fire-and-forget": nunca atrasa nem derruba a requisição do usuário.
@@ -79,13 +79,13 @@ Roda:
 
 ### Backup e restauração — `server/api/backup.ts` + `routes/backups.ts`
 
-| Rota | Ação |
-|---|---|
-| `GET /api/backups` | histórico (`backups`) + auditoria (`backup_logs`) |
-| `POST /api/backups` | gera o arquivo `.json` em `BACKUP_DIR` |
-| `GET /api/backups/:id/download` | baixa o arquivo |
-| `POST /api/backups/:id/restore` | restaura o banco a partir do arquivo |
-| `POST /api/backups/upload` | recebe um `.json` do computador, valida e registra |
+| Rota                            | Ação                                               |
+| ------------------------------- | -------------------------------------------------- |
+| `GET /api/backups`              | histórico (`backups`) + auditoria (`backup_logs`)  |
+| `POST /api/backups`             | gera o arquivo `.json` em `BACKUP_DIR`             |
+| `GET /api/backups/:id/download` | baixa o arquivo                                    |
+| `POST /api/backups/:id/restore` | restaura o banco a partir do arquivo               |
+| `POST /api/backups/upload`      | recebe um `.json` do computador, valida e registra |
 
 - O backup é um **JSON com o conteúdo das tabelas de dados** (sem `sessions`,
   `backups` e `backup_logs`) — não depende de `mysqldump` no container.
@@ -144,6 +144,7 @@ FLUSH PRIVILEGES;
 > `server/mysql/schema.sql` é idempotente, só usa `CREATE TABLE IF NOT EXISTS`).
 >
 > Se preferir aplicar o schema direto pela CLI:
+>
 > ```bash
 > mysql -u pingos -p < server/mysql/schema.sql
 > ```
@@ -161,22 +162,22 @@ cp mysql-api.env.example mysql-api.env
 O arquivo `mysql-api.env` é lido automaticamente pela API (e está no
 `.gitignore`, para não vazar credenciais no Git).
 
-| Variável | Obrigatória | Descrição |
-|---|---|---|
-| `MYSQL_HOST` | ✅ | Host do banco (`127.0.0.1`, IP do servidor ou nome do container) |
-| `MYSQL_PORT` | ✅ | Porta (padrão `3306`) |
-| `MYSQL_USER` | ✅ | Usuário do banco |
-| `MYSQL_PASSWORD` | ✅ | Senha do usuário |
-| `MYSQL_DATABASE` | ✅ | Nome do banco (`pingos`) |
-| `MYSQL_POOL_SIZE` | — | Conexões simultâneas (padrão `10`) |
-| `MYSQL_SSL` | — | `true` para bancos gerenciados com TLS |
-| `MYSQL_AUTO_MIGRATE` | — | `true` (padrão): aplica schema/papéis/admin ao subir a API. `false` desliga |
-| `API_PORT` | — | Porta da API (padrão `4000`) |
-| `CORS_ORIGIN` | — | Origens liberadas, separadas por vírgula. Vazio = reflete a origem |
-| `SESSION_TTL_DAYS` | — | Validade da sessão em dias (padrão `30`) |
-| `UPLOAD_DIR` | — | Pasta das imagens (padrão `./uploads`) |
-| `UPLOAD_MAX_BYTES` | — | Tamanho máximo por imagem (padrão 15 MB) |
-| `ADMIN_USERNAME` / `ADMIN_PASSWORD` | — | Criam o primeiro admin no seed |
+| Variável                            | Obrigatória | Descrição                                                                   |
+| ----------------------------------- | ----------- | --------------------------------------------------------------------------- |
+| `MYSQL_HOST`                        | ✅          | Host do banco (`127.0.0.1`, IP do servidor ou nome do container)            |
+| `MYSQL_PORT`                        | ✅          | Porta (padrão `3306`)                                                       |
+| `MYSQL_USER`                        | ✅          | Usuário do banco                                                            |
+| `MYSQL_PASSWORD`                    | ✅          | Senha do usuário                                                            |
+| `MYSQL_DATABASE`                    | ✅          | Nome do banco (`pingos`)                                                    |
+| `MYSQL_POOL_SIZE`                   | —           | Conexões simultâneas (padrão `10`)                                          |
+| `MYSQL_SSL`                         | —           | `true` para bancos gerenciados com TLS                                      |
+| `MYSQL_AUTO_MIGRATE`                | —           | `true` (padrão): aplica schema/papéis/admin ao subir a API. `false` desliga |
+| `API_PORT`                          | —           | Porta da API (padrão `4000`)                                                |
+| `CORS_ORIGIN`                       | —           | Origens liberadas, separadas por vírgula. Vazio = reflete a origem          |
+| `SESSION_TTL_DAYS`                  | —           | Validade da sessão em dias (padrão `30`)                                    |
+| `UPLOAD_DIR`                        | —           | Pasta das imagens (padrão `./uploads`)                                      |
+| `UPLOAD_MAX_BYTES`                  | —           | Tamanho máximo por imagem (padrão 15 MB)                                    |
+| `ADMIN_USERNAME` / `ADMIN_PASSWORD` | —           | Criam o primeiro admin no seed                                              |
 
 No frontend (`.env.local` do Vite):
 
@@ -197,9 +198,11 @@ bun run mysql:seed
 > `server/mysql/migrate.ts`) enquanto `MYSQL_AUTO_MIGRATE` for diferente de
 > `false`. O comando acima continua valendo para o desenvolvimento local e para
 > reaplicar o schema sob demanda:
+>
 > ```bash
 > docker exec -it <container-da-api> bun run mysql:seed
 > ```
+>
 > Os logs do boot mostram `[migrate] schema aplicado` quando dá certo.
 
 O seed é **idempotente** (pode rodar quantas vezes quiser) e faz:
@@ -284,43 +287,43 @@ curl -X POST http://localhost:4000/api/tickets/ID_DO_CHAMADO/status \
 
 ## 9. Mapa completo de rotas (Convex → REST)
 
-| Convex | REST |
-|---|---|
-| `api.auth.signIn` | `POST /api/auth/login` |
-| `api.auth.signOut` | `POST /api/auth/logout` |
-| `api.permissions.effective` | `GET /api/auth/me` |
-| `api.users.anyAdmin` / `systemStatus` | `GET /api/auth/status` |
-| `api.users.seedFirstAdmin` | `POST /api/auth/setup` |
-| `api.tickets.list` | `GET /api/tickets` |
-| `api.tickets.get` | `GET /api/tickets/:id` |
-| `api.tickets.create` | `POST /api/tickets` |
-| `api.tickets.createAsGuest` | `POST /api/tickets/guest` |
-| `api.tickets.updateStatus` | `POST /api/tickets/:id/status` |
-| `api.tickets.update` | `PATCH /api/tickets/:id` |
-| `api.tickets.remove` | `DELETE /api/tickets/:id` |
-| `api.tickets.monthlyMetrics` | `GET /api/metrics/monthly` |
-| `api.tickets.dashboardMetrics` | `GET /api/metrics/dashboard` |
-| `api.technicians.list` | `GET /api/technicians` |
-| `api.technicians.create` | `POST /api/technicians` |
-| `api.technicians.rename` | `PATCH /api/technicians/:id` |
-| `api.technicians.toggleActive` | `POST /api/technicians/:id/toggle` |
-| `api.technicians.remove` | `DELETE /api/technicians/:id` |
-| `api.products.list` | `GET /api/products` |
-| `api.products.create` | `POST /api/products` |
-| `api.products.update` | `PATCH /api/products/:id` |
-| `api.products.remove` | `DELETE /api/products/:id` |
-| `api.users.listManaged` | `GET /api/users` |
-| `api.users.createManaged` | `POST /api/users` |
-| `api.users.updateManaged` | `PATCH /api/users/:id` |
-| `api.users.resetPassword` | `POST /api/users/:id/password` |
-| `api.users.deleteManaged` | `DELETE /api/users/:id` |
-| `api.roles.list` / `create` / `update` / `remove` | `GET` / `POST` / `PATCH /:id` / `DELETE /:id` em `/api/roles` |
-| Campo `imageUrl` do chamado | `MEDIUMTEXT` na tabela `tickets` (data URL) |
-| Histórico de status | `ticket_status_events` — gravado a cada mudança de status (`POST /api/tickets/:id/status`). É a base do **tempo de resposta/resolução** e da **taxa de reabertura**, já que o chamado só guarda o status atual |
-| Auditoria de relatórios | `report_logs` — quem gerou/exportou, quando, filtros e formato (tela/XLS/PDF) |
-| Destinatário/regra do envio | colunas `notifications.recipient` e `notifications.rule_id` (alimentam o relatório de auditoria de notificações) |
-| Categoria do chamado | Coluna `tickets.categoria` (`VARCHAR(40)`, lista fixa: Impressoras, Computadores, Notebooks, Softwares, Rede, Suporte, Outros). Definida no **dropdown ao editar o chamado** e validada pela API (`src/lib/ticket-categories.ts`). É classificação interna — **não** vai para WhatsApp/e-mail/Telegram nem para o cupom |
-| — | `GET /api/health` |
+| Convex                                            | REST                                                                                                                                                                                                                                                                                                                    |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `api.auth.signIn`                                 | `POST /api/auth/login`                                                                                                                                                                                                                                                                                                  |
+| `api.auth.signOut`                                | `POST /api/auth/logout`                                                                                                                                                                                                                                                                                                 |
+| `api.permissions.effective`                       | `GET /api/auth/me`                                                                                                                                                                                                                                                                                                      |
+| `api.users.anyAdmin` / `systemStatus`             | `GET /api/auth/status`                                                                                                                                                                                                                                                                                                  |
+| `api.users.seedFirstAdmin`                        | `POST /api/auth/setup`                                                                                                                                                                                                                                                                                                  |
+| `api.tickets.list`                                | `GET /api/tickets`                                                                                                                                                                                                                                                                                                      |
+| `api.tickets.get`                                 | `GET /api/tickets/:id`                                                                                                                                                                                                                                                                                                  |
+| `api.tickets.create`                              | `POST /api/tickets`                                                                                                                                                                                                                                                                                                     |
+| `api.tickets.createAsGuest`                       | `POST /api/tickets/guest`                                                                                                                                                                                                                                                                                               |
+| `api.tickets.updateStatus`                        | `POST /api/tickets/:id/status`                                                                                                                                                                                                                                                                                          |
+| `api.tickets.update`                              | `PATCH /api/tickets/:id`                                                                                                                                                                                                                                                                                                |
+| `api.tickets.remove`                              | `DELETE /api/tickets/:id`                                                                                                                                                                                                                                                                                               |
+| `api.tickets.monthlyMetrics`                      | `GET /api/metrics/monthly`                                                                                                                                                                                                                                                                                              |
+| `api.tickets.dashboardMetrics`                    | `GET /api/metrics/dashboard`                                                                                                                                                                                                                                                                                            |
+| `api.technicians.list`                            | `GET /api/technicians`                                                                                                                                                                                                                                                                                                  |
+| `api.technicians.create`                          | `POST /api/technicians`                                                                                                                                                                                                                                                                                                 |
+| `api.technicians.rename`                          | `PATCH /api/technicians/:id`                                                                                                                                                                                                                                                                                            |
+| `api.technicians.toggleActive`                    | `POST /api/technicians/:id/toggle`                                                                                                                                                                                                                                                                                      |
+| `api.technicians.remove`                          | `DELETE /api/technicians/:id`                                                                                                                                                                                                                                                                                           |
+| `api.products.list`                               | `GET /api/products`                                                                                                                                                                                                                                                                                                     |
+| `api.products.create`                             | `POST /api/products`                                                                                                                                                                                                                                                                                                    |
+| `api.products.update`                             | `PATCH /api/products/:id`                                                                                                                                                                                                                                                                                               |
+| `api.products.remove`                             | `DELETE /api/products/:id`                                                                                                                                                                                                                                                                                              |
+| `api.users.listManaged`                           | `GET /api/users`                                                                                                                                                                                                                                                                                                        |
+| `api.users.createManaged`                         | `POST /api/users`                                                                                                                                                                                                                                                                                                       |
+| `api.users.updateManaged`                         | `PATCH /api/users/:id`                                                                                                                                                                                                                                                                                                  |
+| `api.users.resetPassword`                         | `POST /api/users/:id/password`                                                                                                                                                                                                                                                                                          |
+| `api.users.deleteManaged`                         | `DELETE /api/users/:id`                                                                                                                                                                                                                                                                                                 |
+| `api.roles.list` / `create` / `update` / `remove` | `GET` / `POST` / `PATCH /:id` / `DELETE /:id` em `/api/roles`                                                                                                                                                                                                                                                           |
+| Campo `imageUrl` do chamado                       | `MEDIUMTEXT` na tabela `tickets` (data URL)                                                                                                                                                                                                                                                                             |
+| Histórico de status                               | `ticket_status_events` — gravado a cada mudança de status (`POST /api/tickets/:id/status`). É a base do **tempo de resposta/resolução** e da **taxa de reabertura**, já que o chamado só guarda o status atual                                                                                                          |
+| Auditoria de relatórios                           | `report_logs` — quem gerou/exportou, quando, filtros e formato (tela/XLS/PDF)                                                                                                                                                                                                                                           |
+| Destinatário/regra do envio                       | colunas `notifications.recipient` e `notifications.rule_id` (alimentam o relatório de auditoria de notificações)                                                                                                                                                                                                        |
+| Categoria do chamado                              | Coluna `tickets.categoria` (`VARCHAR(40)`, lista fixa: Impressoras, Computadores, Notebooks, Softwares, Rede, Suporte, Outros). Definida no **dropdown ao editar o chamado** e validada pela API (`src/lib/ticket-categories.ts`). É classificação interna — **não** vai para WhatsApp/e-mail/Telegram nem para o cupom |
+| —                                                 | `GET /api/health`                                                                                                                                                                                                                                                                                                       |
 
 ---
 
@@ -329,15 +332,15 @@ curl -X POST http://localhost:4000/api/tickets/ID_DO_CHAMADO/status \
 Página **Relatórios** (`/reports`, botão de gráfico no cabeçalho do painel),
 liberada pelas permissões `reports.view` (ver) e `reports.export` (exportar).
 
-| Relatório | Rota | Colunas / totalizadores |
-|---|---|---|
-| Chamados | `GET /api/reports/tickets` | Nº, título, status, prioridade, responsável, cliente, setor, abertura, última atualização, tempo total (dias) + total, resolvidos, abertos, tempo médio de resolução, por status/prioridade |
-| Desempenho por técnico | `GET /api/reports/technicians` | Responsável, total, resolvidos, em andamento, tempo médio, taxa de reabertura |
-| Produtividade por setor | `GET /api/reports/sectors` | Setor, abertos, resolvidos, pendentes, tempo médio de resposta e de resolução |
-| Usuários e permissões | `GET /api/reports/users` | Nome, usuário, e-mail, papel, setor, situação, permissões próprias, cadastro — **só admin** |
-| Notificações (auditoria) | `GET /api/reports/notifications` | Data, chamado, regra, destinatário, canal, status do envio |
-| Opções dos filtros | `GET /api/reports/filters` | Responsáveis (usuários + técnicos), setores, status e prioridades |
-| Auditoria | `POST /api/reports/log` | Registra `{ report, format, filters, rowCount }` em `report_logs` |
+| Relatório                | Rota                             | Colunas / totalizadores                                                                                                                                                                     |
+| ------------------------ | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Chamados                 | `GET /api/reports/tickets`       | Nº, título, status, prioridade, responsável, cliente, setor, abertura, última atualização, tempo total (dias) + total, resolvidos, abertos, tempo médio de resolução, por status/prioridade |
+| Desempenho por técnico   | `GET /api/reports/technicians`   | Responsável, total, resolvidos, em andamento, tempo médio, taxa de reabertura                                                                                                               |
+| Produtividade por setor  | `GET /api/reports/sectors`       | Setor, abertos, resolvidos, pendentes, tempo médio de resposta e de resolução                                                                                                               |
+| Usuários e permissões    | `GET /api/reports/users`         | Nome, usuário, e-mail, papel, setor, situação, permissões próprias, cadastro — **só admin**                                                                                                 |
+| Notificações (auditoria) | `GET /api/reports/notifications` | Data, chamado, regra, destinatário, canal, status do envio                                                                                                                                  |
+| Opções dos filtros       | `GET /api/reports/filters`       | Responsáveis (usuários + técnicos), setores, status e prioridades                                                                                                                           |
+| Auditoria                | `POST /api/reports/log`          | Registra `{ report, format, filters, rowCount }` em `report_logs`                                                                                                                           |
 
 Filtros comuns (query params): `start` e `end` (timestamp em ms ou
 `YYYY-MM-DD`), `status`, `priority`, `assigneeId`, `client`, `setor`,
@@ -357,8 +360,8 @@ Decisões que valem saber:
 - **Escopo de visão:** quem tem Kanban restrito (colunas ou "apenas atribuídos a
   mim") vê nos relatórios exatamente os mesmos chamados que vê no quadro.
 - **Tempo de resposta e reabertura** saem de `ticket_status_events`, que começou
-  a ser gravado agora: períodos anteriores a esta versão aparecem como *sem
-  histórico* (a tela avisa em vez de mostrar 0%).
+  a ser gravado agora: períodos anteriores a esta versão aparecem como _sem
+  histórico_ (a tela avisa em vez de mostrar 0%).
 - **Datas** são BIGINT em ms e o período é filtrado por número — o navegador
   manda os timestamps calculados no fuso do usuário, sem depender do fuso do
   container.
@@ -373,13 +376,13 @@ O adaptador `src/lib/backend/*` é quem conversa com a API — os componentes
 usam os hooks como sempre usaram:
 
 ```tsx
-import { api } from "@/lib/backend/api";
-import { useQuery, useMutation } from "@/lib/backend/react";
+import { api } from "@/lib/backend/api"
+import { useQuery, useMutation } from "@/lib/backend/react"
 
-const tickets = useQuery(api.tickets.list);        // undefined enquanto carrega
-const busy = useQuery(api.tickets.list, "skip");   // não busca
-const updateStatus = useMutation(api.tickets.updateStatus);
-await updateStatus({ ticketId, status: "resolvido" });
+const tickets = useQuery(api.tickets.list) // undefined enquanto carrega
+const busy = useQuery(api.tickets.list, "skip") // não busca
+const updateStatus = useMutation(api.tickets.updateStatus)
+await updateStatus({ ticketId, status: "resolvido" })
 ```
 
 - **Reatividade:** cada mutation invalida as queries montadas e as queries
@@ -452,17 +455,17 @@ Roteiro (só se você ainda tem o deployment Convex antigo com dados):
 
 ## 13. Solução de problemas
 
-| Sintoma | Causa provável / solução |
-|---|---|
-| `⚠️ O MySQL não respondeu` | Credenciais erradas no `mysql-api.env`, banco não criado (passo 1) ou MySQL parado |
-| `ER_ACCESS_DENIED_ERROR` | Usuário/senha errados, ou o usuário não tem `GRANT` no banco |
-| `ECONNREFUSED` | Host/porta errados, firewall, ou MySQL escutando só em `localhost` (`bind-address`) |
-| `ER_NO_SUCH_TABLE` | Rode `bun run mysql:seed` |
+| Sintoma                                     | Causa provável / solução                                                                                                                 |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `⚠️ O MySQL não respondeu`                  | Credenciais erradas no `mysql-api.env`, banco não criado (passo 1) ou MySQL parado                                                       |
+| `ER_ACCESS_DENIED_ERROR`                    | Usuário/senha errados, ou o usuário não tem `GRANT` no banco                                                                             |
+| `ECONNREFUSED`                              | Host/porta errados, firewall, ou MySQL escutando só em `localhost` (`bind-address`)                                                      |
+| `ER_NO_SUCH_TABLE`                          | Rode `bun run mysql:seed`                                                                                                                |
 | Login responde "Usuário ou senha inválidos" | A conta precisa existir no MySQL: crie pelo painel (Admin → Usuários) ou rode `bun run mysql:seed` com `ADMIN_USERNAME`/`ADMIN_PASSWORD` |
-| "Usuário inativo" | O usuário está com `active = 0` — reative em Admin → Usuários |
-| Imagem do chamado não aparece | A coluna `tickets.image_url` precisa ser `MEDIUMTEXT` (o boot ajusta; rode `bun run mysql:seed` se necessário) |
-| Erro de CORS no navegador | Defina `CORS_ORIGIN` com o domínio do app |
-| Erros de tipo em `server/` | `bun run mysql:typecheck` (o `tsc` do app não cobre a pasta `server/`) |
+| "Usuário inativo"                           | O usuário está com `active = 0` — reative em Admin → Usuários                                                                            |
+| Imagem do chamado não aparece               | A coluna `tickets.image_url` precisa ser `MEDIUMTEXT` (o boot ajusta; rode `bun run mysql:seed` se necessário)                           |
+| Erro de CORS no navegador                   | Defina `CORS_ORIGIN` com o domínio do app                                                                                                |
+| Erros de tipo em `server/`                  | `bun run mysql:typecheck` (o `tsc` do app não cobre a pasta `server/`)                                                                   |
 
 ---
 

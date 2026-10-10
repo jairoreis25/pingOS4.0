@@ -1,5 +1,5 @@
-import * as React from "react";
-import { useIsMobile } from "@/hooks/use-mobile";
+import * as React from "react"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 /**
  * Central mobile-compatibility layer for PingOS.
@@ -11,17 +11,17 @@ import { useIsMobile } from "@/hooks/use-mobile";
  */
 
 export function useTouchDevice(): boolean {
-  const [isTouch, setIsTouch] = React.useState(false);
+  const [isTouch, setIsTouch] = React.useState(false)
 
   React.useEffect(() => {
-    const mql = window.matchMedia("(pointer: coarse)");
-    const onChange = () => setIsTouch(mql.matches);
-    mql.addEventListener("change", onChange);
-    setIsTouch(mql.matches);
-    return () => mql.removeEventListener("change", onChange);
-  }, []);
+    const mql = window.matchMedia("(pointer: coarse)")
+    const onChange = () => setIsTouch(mql.matches)
+    mql.addEventListener("change", onChange)
+    setIsTouch(mql.matches)
+    return () => mql.removeEventListener("change", onChange)
+  }, [])
 
-  return isTouch;
+  return isTouch
 }
 
 /**
@@ -30,7 +30,7 @@ export function useTouchDevice(): boolean {
  * - isTouch:  coarse pointer (no reliable hover/drag)
  */
 export function useMobileCompat() {
-  const isMobile = useIsMobile();
-  const isTouch = useTouchDevice();
-  return { isMobile, isTouch, isSmallMobile: isMobile && isTouch };
+  const isMobile = useIsMobile()
+  const isTouch = useTouchDevice()
+  return { isMobile, isTouch, isSmallMobile: isMobile && isTouch }
 }

@@ -17,48 +17,48 @@
  * apoio avisa quando a chave já existe.
  */
 
-import { useEffect, useMemo, useState } from "react";
-import { useMutation, useQuery } from "@/lib/backend/react";
-import { api, type BotModelsResult } from "@/lib/backend/api";
-import { Button } from "@/components/ui/button";
+import { useEffect, useMemo, useState } from "react"
+import { useMutation, useQuery } from "@/lib/backend/react"
+import { api, type BotModelsResult } from "@/lib/backend/api"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { toast } from "sonner";
-import { Bot, Loader2, Save, Sparkles } from "lucide-react";
-import { BotPersonalidades } from "@/components/BotPersonalidades";
+} from "@/components/ui/select"
+import { toast } from "sonner"
+import { Bot, Loader2, Save, Sparkles } from "lucide-react"
+import { BotPersonalidades } from "@/components/BotPersonalidades"
 
 interface BotConfigData {
-  provider: string;
-  providerLabel: string;
-  baseUrl: string;
-  apiKey: string;
-  hasApiKey: boolean;
-  modelo: string;
-  modeloVisao: string;
-  supportsVision: boolean;
-  telegramToken: string;
-  hasTelegramToken: boolean;
-  adminId: string;
-  ativo: boolean;
-  systemPrompt: string;
-  defaultModel: string;
-  defaultVisionModel: string;
+  provider: string
+  providerLabel: string
+  baseUrl: string
+  apiKey: string
+  hasApiKey: boolean
+  modelo: string
+  modeloVisao: string
+  supportsVision: boolean
+  telegramToken: string
+  hasTelegramToken: boolean
+  adminId: string
+  ativo: boolean
+  systemPrompt: string
+  defaultModel: string
+  defaultVisionModel: string
 }
 
 /**
@@ -66,7 +66,7 @@ interface BotConfigData {
  * administrador digita o ID (útil no OpenRouter, que tem centenas de modelos,
  * e em provedor próprio, que não tem catálogo).
  */
-const OUTRO_MODELO = "__outro__";
+const OUTRO_MODELO = "__outro__"
 
 /**
  * Gera uma imagem de teste (4 dígitos desenhados num canvas) para conferir, com
@@ -80,40 +80,40 @@ function montarOpcoes(
   atual: string,
   catalogo: string[] | undefined,
 ): { value: string; label: string }[] {
-  const options: { value: string; label: string }[] = [];
-  const seen = new Set<string>();
+  const options: { value: string; label: string }[] = []
+  const seen = new Set<string>()
   const push = (value: string | undefined, sufixo?: string) => {
-    const id = (value ?? "").trim();
-    if (!id || seen.has(id)) return;
-    seen.add(id);
-    options.push({ value: id, label: sufixo ? `${id} ${sufixo}` : id });
-  };
+    const id = (value ?? "").trim()
+    if (!id || seen.has(id)) return
+    seen.add(id)
+    options.push({ value: id, label: sufixo ? `${id} ${sufixo}` : id })
+  }
 
-  push(padrao, "(padrão)");
-  for (const id of sugestoes ?? []) push(id, "(recomendado)");
-  for (const id of catalogo ?? []) push(id);
-  push(atual);
-  return options;
+  push(padrao, "(padrão)")
+  for (const id of sugestoes ?? []) push(id, "(recomendado)")
+  for (const id of catalogo ?? []) push(id)
+  push(atual)
+  return options
 }
 
 function gerarImagemTeste(): { dataUrl: string; digitos: string } | null {
-  if (typeof document === "undefined") return null;
-  const canvas = document.createElement("canvas");
-  canvas.width = 420;
-  canvas.height = 150;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return null;
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.strokeStyle = "#000000";
-  ctx.lineWidth = 4;
-  ctx.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
-  ctx.fillStyle = "#000000";
-  ctx.font = "bold 96px monospace";
-  ctx.textBaseline = "middle";
-  const digitos = String(Math.floor(1000 + Math.random() * 9000));
-  ctx.fillText(digitos, 58, 80);
-  return { dataUrl: canvas.toDataURL("image/png"), digitos };
+  if (typeof document === "undefined") return null
+  const canvas = document.createElement("canvas")
+  canvas.width = 420
+  canvas.height = 150
+  const ctx = canvas.getContext("2d")
+  if (!ctx) return null
+  ctx.fillStyle = "#ffffff"
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+  ctx.strokeStyle = "#000000"
+  ctx.lineWidth = 4
+  ctx.strokeRect(2, 2, canvas.width - 4, canvas.height - 4)
+  ctx.fillStyle = "#000000"
+  ctx.font = "bold 96px monospace"
+  ctx.textBaseline = "middle"
+  const digitos = String(Math.floor(1000 + Math.random() * 9000))
+  ctx.fillText(digitos, 58, 80)
+  return { dataUrl: canvas.toDataURL("image/png"), digitos }
 }
 
 /**
@@ -131,20 +131,20 @@ function ModeloSelect({
   onTestar,
   teste,
 }: {
-  rotulo: string;
-  opcoes: { value: string; label: string }[];
-  valor: string;
-  onChange: (valor: string, personalizado: boolean) => void;
-  placeholder: string;
-  testando: boolean;
-  onTestar: () => void;
-  teste: string;
+  rotulo: string
+  opcoes: { value: string; label: string }[]
+  valor: string
+  onChange: (valor: string, personalizado: boolean) => void
+  placeholder: string
+  testando: boolean
+  onTestar: () => void
+  teste: string
 }) {
-  const [personalizado, setPersonalizado] = useState(false);
-  const conhecido = opcoes.some((option) => option.value === valor);
+  const [personalizado, setPersonalizado] = useState(false)
+  const conhecido = opcoes.some((option) => option.value === valor)
   // Modelo salvo que não está em nenhuma lista (ID digitado antes): já abre no
   // modo texto, senão o select apareceria vazio.
-  const emTexto = personalizado || (Boolean(valor) && !conhecido);
+  const emTexto = personalizado || (Boolean(valor) && !conhecido)
 
   return (
     <div className="space-y-2">
@@ -154,12 +154,12 @@ function ModeloSelect({
           value={emTexto ? OUTRO_MODELO : valor}
           onValueChange={(novo) => {
             if (novo === OUTRO_MODELO) {
-              setPersonalizado(true);
-              onChange("", true);
-              return;
+              setPersonalizado(true)
+              onChange("", true)
+              return
             }
-            setPersonalizado(false);
-            onChange(novo, false);
+            setPersonalizado(false)
+            onChange(novo, false)
           }}
         >
           <SelectTrigger className="flex-1">
@@ -192,45 +192,42 @@ function ModeloSelect({
         </p>
       )}
     </div>
-  );
+  )
 }
 
 export default function BotConfig({
   open,
   onOpenChange,
 }: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }) {
-  const config = useQuery<BotConfigData>(
-    api.botConfig.get,
-    open ? {} : "skip",
-  );
-  const updateConfig = useMutation(api.botConfig.update);
+  const config = useQuery<BotConfigData>(api.botConfig.get, open ? {} : "skip")
+  const updateConfig = useMutation(api.botConfig.update)
   const testConfig = useMutation<{
-    ok: boolean;
-    resposta?: string;
-    erro?: string;
-    modelo?: string;
-    alvo?: string;
-  }>(api.botConfig.test);
+    ok: boolean
+    resposta?: string
+    erro?: string
+    modelo?: string
+    alvo?: string
+  }>(api.botConfig.test)
 
-  const [provider, setProvider] = useState("");
-  const [apiKey, setApiKey] = useState("");
-  const [baseUrl, setBaseUrl] = useState("");
-  const [modelo, setModelo] = useState("");
-  const [modeloVisao, setModeloVisao] = useState("");
-  const [telegramToken, setTelegramToken] = useState("");
-  const [adminId, setAdminId] = useState("");
-  const [ativo, setAtivo] = useState(false);
-  const [systemPrompt, setSystemPrompt] = useState("");
+  const [provider, setProvider] = useState("")
+  const [apiKey, setApiKey] = useState("")
+  const [baseUrl, setBaseUrl] = useState("")
+  const [modelo, setModelo] = useState("")
+  const [modeloVisao, setModeloVisao] = useState("")
+  const [telegramToken, setTelegramToken] = useState("")
+  const [adminId, setAdminId] = useState("")
+  const [ativo, setAtivo] = useState(false)
+  const [systemPrompt, setSystemPrompt] = useState("")
 
-  const [testando, setTestando] = useState(false);
-  const [resultado, setResultado] = useState("");
-  const [testandoVisao, setTestandoVisao] = useState(false);
-  const [resultadoVisao, setResultadoVisao] = useState("");
-  const [salvando, setSalvando] = useState(false);
-  const [initialized, setInitialized] = useState(false);
+  const [testando, setTestando] = useState(false)
+  const [resultado, setResultado] = useState("")
+  const [testandoVisao, setTestandoVisao] = useState(false)
+  const [resultadoVisao, setResultadoVisao] = useState("")
+  const [salvando, setSalvando] = useState(false)
+  const [initialized, setInitialized] = useState(false)
 
   // Catálogo do provedor selecionado (modelos sugeridos, visão, informações do
   // campo da chave). O `provider` vai na query: trocar no select já recarrega a
@@ -240,49 +237,47 @@ export default function BotConfig({
   const modelsResult = useQuery<BotModelsResult>(
     api.botConfig.models,
     open && provider ? { provider } : "skip",
-  );
+  )
 
   // Ao fechar, libera o formulário para recarregar da API na próxima abertura.
   useEffect(() => {
     if (!open) {
-      setInitialized(false);
-      return;
+      setInitialized(false)
+      return
     }
     if (config && !initialized) {
-      setProvider(config.provider || "nvidia");
-      setApiKey("");
-      setBaseUrl(config.baseUrl ?? "");
-      setTelegramToken("");
-      setAdminId(config.adminId ?? "");
-      setModelo(config.modelo || config.defaultModel);
-      setModeloVisao(config.modeloVisao || config.defaultVisionModel);
-      setAtivo(config.ativo);
-      setSystemPrompt(config.systemPrompt ?? "");
-      setResultado("");
-      setResultadoVisao("");
-      setInitialized(true);
+      setProvider(config.provider || "nvidia")
+      setApiKey("")
+      setBaseUrl(config.baseUrl ?? "")
+      setTelegramToken("")
+      setAdminId(config.adminId ?? "")
+      setModelo(config.modelo || config.defaultModel)
+      setModeloVisao(config.modeloVisao || config.defaultVisionModel)
+      setAtivo(config.ativo)
+      setSystemPrompt(config.systemPrompt ?? "")
+      setResultado("")
+      setResultadoVisao("")
+      setInitialized(true)
     }
-  }, [open, config, initialized]);
+  }, [open, config, initialized])
 
   // O catálogo é do provedor selecionado: quando ele chega, cai no padrão do
   // provedor (campo vazio) e limpa o modelo de visão se o provedor não lê foto.
   useEffect(() => {
-    if (!modelsResult || modelsResult.provider !== provider) return;
+    if (!modelsResult || modelsResult.provider !== provider) return
     if (!modelsResult.supportsVision) {
-      setModeloVisao("");
-      return;
+      setModeloVisao("")
+      return
     }
-    setModelo((atual) => atual || modelsResult.defaultModel || "");
-    setModeloVisao((atual) => atual || modelsResult.defaultVisionModel || "");
-  }, [modelsResult, provider]);
+    setModelo((atual) => atual || modelsResult.defaultModel || "")
+    setModeloVisao((atual) => atual || modelsResult.defaultVisionModel || "")
+  }, [modelsResult, provider])
 
-  const catalogoAtual = modelsResult?.provider === provider ? modelsResult : undefined;
-  const provedorInfo = (modelsResult?.providers ?? []).find(
-    (item) => item.id === provider,
-  );
+  const catalogoAtual = modelsResult?.provider === provider ? modelsResult : undefined
+  const provedorInfo = (modelsResult?.providers ?? []).find((item) => item.id === provider)
   // Provedor "Outro" não traz catálogo: o campo de visão fica disponível para
   // quem aponta para um endpoint multimodal próprio.
-  const permiteVisao = provider === "custom" ? true : (catalogoAtual?.supportsVision ?? true);
+  const permiteVisao = provider === "custom" ? true : (catalogoAtual?.supportsVision ?? true)
 
   // Lista dos dropdowns (texto e visão): padrão → recomendados → catálogo vivo
   // → modelo salvo. Nenhum ID de modelo fica fixo aqui de propósito: quando um
@@ -297,7 +292,7 @@ export default function BotConfig({
         catalogoAtual?.models,
       ),
     [catalogoAtual, config?.defaultModel, modelo],
-  );
+  )
 
   const modelosVisao = useMemo(
     () =>
@@ -308,54 +303,54 @@ export default function BotConfig({
         catalogoAtual?.models,
       ),
     [catalogoAtual, config?.defaultVisionModel, modeloVisao],
-  );
+  )
 
   // Trocar de provedor zera os modelos: o ID que valia na NVIDIA não existe na
   // OpenAI, e o padrão do provedor novo chega junto com o catálogo.
   const trocarProvedor = (novo: string) => {
-    setProvider(novo);
-    setModelo("");
-    setModeloVisao("");
-    setResultado("");
-    setResultadoVisao("");
-  };
+    setProvider(novo)
+    setModelo("")
+    setModeloVisao("")
+    setResultado("")
+    setResultadoVisao("")
+  }
 
   const testarConexao = async () => {
-    setTestando(true);
-    setResultado("Testando a conexão…");
+    setTestando(true)
+    setResultado("Testando a conexão…")
     try {
       const result = await testConfig({
         api_key: apiKey,
         provider,
         base_url: baseUrl,
         modelo,
-      });
+      })
       // A API resolve modelo aposentado para o padrão vivo: reflete no select
       // para o admin ver qual modelo respondeu de fato.
-      const trocou = Boolean(result.modelo && result.modelo !== modelo);
-      if (trocou) setModelo(result.modelo!);
+      const trocou = Boolean(result.modelo && result.modelo !== modelo)
+      if (trocou) setModelo(result.modelo!)
       if (result.ok) {
         setResultado(
           `✅ Conexão OK — resposta: ${result.resposta || "(vazia)"}` +
             (trocou ? `\n(modelo aposentado — testado com ${result.modelo})` : ""),
-        );
+        )
       } else {
-        setResultado(`❌ ${result.erro ?? "Falha ao testar a conexão."}`);
+        setResultado(`❌ ${result.erro ?? "Falha ao testar a conexão."}`)
       }
     } catch (err) {
-      setResultado(`❌ ${err instanceof Error ? err.message : "Falha ao testar."}`);
+      setResultado(`❌ ${err instanceof Error ? err.message : "Falha ao testar."}`)
     } finally {
-      setTestando(false);
+      setTestando(false)
     }
-  };
+  }
 
   // Testa a LEITURA DE IMAGEM: desenha 4 dígitos aleatórios num canvas, manda
   // a imagem para o modelo de visão e confere se ele devolveu os mesmos
   // dígitos. É o único teste que prova que o modelo aceita foto.
   const testarVisao = async () => {
-    const imagem = gerarImagemTeste();
-    setTestandoVisao(true);
-    setResultadoVisao("Testando a leitura de imagem…");
+    const imagem = gerarImagemTeste()
+    setTestandoVisao(true)
+    setResultadoVisao("Testando a leitura de imagem…")
     try {
       const result = await testConfig({
         api_key: apiKey,
@@ -364,52 +359,46 @@ export default function BotConfig({
         modelo_visao: modeloVisao,
         alvo: "visao",
         imagem: imagem?.dataUrl,
-      });
-      if (result.modelo && result.modelo !== modeloVisao) setModeloVisao(result.modelo);
-      const lidos = (result.resposta ?? "").replace(/\D/g, "");
-      const esperado = imagem?.digitos ?? "";
+      })
+      if (result.modelo && result.modelo !== modeloVisao) setModeloVisao(result.modelo)
+      const lidos = (result.resposta ?? "").replace(/\D/g, "")
+      const esperado = imagem?.digitos ?? ""
       if (!result.ok) {
-        setResultadoVisao(`❌ ${result.erro ?? "Falha ao testar a visão."}`);
+        setResultadoVisao(`❌ ${result.erro ?? "Falha ao testar a visão."}`)
       } else if (esperado && lidos.includes(esperado)) {
-        setResultadoVisao(
-          `✅ Visão OK — o modelo leu ${esperado} na imagem de teste.`,
-        );
+        setResultadoVisao(`✅ Visão OK — o modelo leu ${esperado} na imagem de teste.`)
       } else {
         setResultadoVisao(
           `⚠️ O modelo ${result.modelo} aceitou a imagem, mas leu "${
             result.resposta?.trim() || "(vazio)"
           }" (esperado ${esperado}). Tente outro modelo multimodal da lista.`,
-        );
+        )
       }
     } catch (err) {
-      setResultadoVisao(
-        `❌ ${err instanceof Error ? err.message : "Falha ao testar a visão."}`,
-      );
+      setResultadoVisao(`❌ ${err instanceof Error ? err.message : "Falha ao testar a visão."}`)
     } finally {
-      setTestandoVisao(false);
+      setTestandoVisao(false)
     }
-  };
+  }
 
   const salvar = async () => {
     if (ativo && !apiKey && !config?.hasApiKey) {
-      toast.error(
-        `Informe a ${provedorInfo?.apiKeyLabel ?? "API Key"} antes de ativar o bot.`,
-      );
-      return;
+      toast.error(`Informe a ${provedorInfo?.apiKeyLabel ?? "API Key"} antes de ativar o bot.`)
+      return
     }
     if (ativo && !modelo.trim()) {
-      toast.error("Informe o modelo de texto antes de ativar o bot.");
-      return;
+      toast.error("Informe o modelo de texto antes de ativar o bot.")
+      return
     }
     if (provedorInfo?.customBaseUrl && !baseUrl.trim()) {
-      toast.error("Informe a URL base do endpoint compatível com a OpenAI.");
-      return;
+      toast.error("Informe a URL base do endpoint compatível com a OpenAI.")
+      return
     }
     if (ativo && !telegramToken && !config?.hasTelegramToken) {
-      toast.error("Informe o token do Telegram antes de ativar o bot.");
-      return;
+      toast.error("Informe o token do Telegram antes de ativar o bot.")
+      return
     }
-    setSalvando(true);
+    setSalvando(true)
     try {
       const salvo = await updateConfig({
         api_key: apiKey,
@@ -421,23 +410,21 @@ export default function BotConfig({
         modelo_visao: modeloVisao,
         ativo,
         system_prompt: systemPrompt,
-      });
+      })
       // O banco pode ser anterior a alguma coluna nova: aí a API salva o resto e
       // devolve um aviso (em vez de estourar "Unknown column").
-      if (salvo?.aviso) toast.warning(salvo.aviso);
-      else toast.success("Configurações do bot salvas!");
+      if (salvo?.aviso) toast.warning(salvo.aviso)
+      else toast.success("Configurações do bot salvas!")
       // As chaves ficam mascaradas no servidor — limpa os campos após salvar.
-      setApiKey("");
-      setTelegramToken("");
-      onOpenChange(false);
+      setApiKey("")
+      setTelegramToken("")
+      onOpenChange(false)
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Erro ao salvar as configurações.",
-      );
+      toast.error(err instanceof Error ? err.message : "Erro ao salvar as configurações.")
     } finally {
-      setSalvando(false);
+      setSalvando(false)
     }
-  };
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -448,9 +435,9 @@ export default function BotConfig({
             🤖 Bot Ping IA
           </DialogTitle>
           <DialogDescription>
-            Agente administrativo no Telegram. O bot lê esta configuração e usa o
-            provedor de IA escolhido (NVIDIA, OpenAI, Google, Anthropic…) para
-            responder e executar ações nos chamados.
+            Agente administrativo no Telegram. O bot lê esta configuração e usa o provedor de IA
+            escolhido (NVIDIA, OpenAI, Google, Anthropic…) para responder e executar ações nos
+            chamados.
           </DialogDescription>
         </DialogHeader>
 
@@ -465,9 +452,9 @@ export default function BotConfig({
               <Switch checked={ativo} onCheckedChange={setAtivo} />
             </div>
             <p className="text-[11px] text-muted-foreground/70">
-              Desligado, o agente fica fora do ar no Telegram — mesmo com as
-              chaves salvas. Ligue o switch e clique em Salvar para ele entrar
-              no ar (o processo do bot relê esta configuração a cada 15s).
+              Desligado, o agente fica fora do ar no Telegram — mesmo com as chaves salvas. Ligue o
+              switch e clique em Salvar para ele entrar no ar (o processo do bot relê esta
+              configuração a cada 15s).
             </p>
           </div>
 
@@ -486,9 +473,7 @@ export default function BotConfig({
                 ))}
                 {/* Antes do catálogo chegar, mostra pelo menos o provedor salvo. */}
                 {provider && !(modelsResult?.providers ?? []).length && (
-                  <SelectItem value={provider}>
-                    {config?.providerLabel ?? provider}
-                  </SelectItem>
+                  <SelectItem value={provider}>{config?.providerLabel ?? provider}</SelectItem>
                 )}
               </SelectContent>
             </Select>
@@ -500,9 +485,7 @@ export default function BotConfig({
 
           {/* API Key do provedor */}
           <div className="space-y-2">
-            <Label htmlFor="bot-api-key">
-              {provedorInfo?.apiKeyLabel ?? "API Key"}
-            </Label>
+            <Label htmlFor="bot-api-key">{provedorInfo?.apiKeyLabel ?? "API Key"}</Label>
             <Input
               id="bot-api-key"
               type="password"
@@ -516,11 +499,9 @@ export default function BotConfig({
               onChange={(e) => setApiKey(e.target.value)}
             />
             <p className="text-[11px] text-muted-foreground/70">
-              {provedorInfo?.docsUrl
-                ? `Obtenha em ${provedorInfo.docsUrl}. `
-                : ""}
-              Deixe vazio para manter a chave salva. Trocar de provedor exige
-              colar a chave do novo provedor.
+              {provedorInfo?.docsUrl ? `Obtenha em ${provedorInfo.docsUrl}. ` : ""}
+              Deixe vazio para manter a chave salva. Trocar de provedor exige colar a chave do novo
+              provedor.
             </p>
           </div>
 
@@ -536,9 +517,9 @@ export default function BotConfig({
                 onChange={(e) => setBaseUrl(e.target.value)}
               />
               <p className="text-[11px] text-muted-foreground/70">
-                Só para endpoints próprios compatíveis com a OpenAI
-                (<code>/chat/completions</code>). Vazio usa a URL padrão do
-                provedor{provedorInfo?.baseUrl ? ` (${provedorInfo.baseUrl})` : ""}.
+                Só para endpoints próprios compatíveis com a OpenAI (<code>/chat/completions</code>
+                ). Vazio usa a URL padrão do provedor
+                {provedorInfo?.baseUrl ? ` (${provedorInfo.baseUrl})` : ""}.
               </p>
             </div>
           )}
@@ -555,9 +536,9 @@ export default function BotConfig({
             teste={resultado}
           />
           <p className="-mt-2 text-[11px] text-muted-foreground/70">
-            A lista vem do catálogo da sua conta no provedor. Se um modelo for
-            aposentado (a API responde 410 Gone), o Testar acusa e você escolhe
-            outro — ou digite o ID exato na opção “Outro”.
+            A lista vem do catálogo da sua conta no provedor. Se um modelo for aposentado (a API
+            responde 410 Gone), o Testar acusa e você escolhe outro — ou digite o ID exato na opção
+            “Outro”.
           </p>
 
           {/* Modelo de visão (fotos de O.S.) */}
@@ -574,21 +555,19 @@ export default function BotConfig({
                 teste={resultadoVisao}
               />
               <p className="-mt-2 text-[11px] text-muted-foreground/70">
-                Usado só quando alguém manda a <b>foto de uma O.S.</b> no
-                Telegram: o bot lê a imagem, cria o chamado e responde com o
-                resumo. O Testar desenha dígitos numa imagem de verdade e confere
-                se o modelo escolhido consegue lê-los — modelos sem visão recusam
-                a foto.
+                Usado só quando alguém manda a <b>foto de uma O.S.</b> no Telegram: o bot lê a
+                imagem, cria o chamado e responde com o resumo. O Testar desenha dígitos numa imagem
+                de verdade e confere se o modelo escolhido consegue lê-los — modelos sem visão
+                recusam a foto.
               </p>
             </>
           ) : (
             <div className="space-y-2">
               <Label>Modelo de visão (fotos de O.S.)</Label>
               <p className="rounded-md bg-muted/40 px-3 py-2 text-[11px] text-muted-foreground">
-                O provedor {provedorInfo?.label ?? provider} não lê imagens, então
-                a leitura das fotos de O.S. fica indisponível. O agente continua
-                funcionando por texto — escolha um provedor multimodal (NVIDIA,
-                OpenAI, Gemini…) para ter a leitura de fotos.
+                O provedor {provedorInfo?.label ?? provider} não lê imagens, então a leitura das
+                fotos de O.S. fica indisponível. O agente continua funcionando por texto — escolha
+                um provedor multimodal (NVIDIA, OpenAI, Gemini…) para ter a leitura de fotos.
               </p>
             </div>
           )}
@@ -623,9 +602,9 @@ export default function BotConfig({
               onChange={(e) => setAdminId(e.target.value)}
             />
             <p className="text-[11px] text-muted-foreground/70">
-              Só este Id conversa com o agente. Fale com o <b>@userinfobot</b> no
-              Telegram para descobrir o seu — ou mande qualquer mensagem para o
-              bot: sem Id configurado, ele responde justamente com esse número.
+              Só este Id conversa com o agente. Fale com o <b>@userinfobot</b> no Telegram para
+              descobrir o seu — ou mande qualquer mensagem para o bot: sem Id configurado, ele
+              responde justamente com esse número.
             </p>
           </div>
 
@@ -641,8 +620,7 @@ export default function BotConfig({
             />
             <p className="text-[11px] text-muted-foreground/70">
               Instruções base do agente (regras gerais). Usado quando
-              <b>nenhuma</b> personalidade está ativa — se houver uma, o prompt
-              dela manda.
+              <b>nenhuma</b> personalidade está ativa — se houver uma, o prompt dela manda.
             </p>
           </div>
 
@@ -651,29 +629,19 @@ export default function BotConfig({
             <div>
               <Label className="text-sm">Personalidades</Label>
               <p className="text-[11px] text-muted-foreground/70">
-                Quatro estilos de atendimento; apenas um fica ativo por vez. O
-                slot Padrão é fixo — ative-o para voltar ao comportamento
-                padrão do agente.
+                Quatro estilos de atendimento; apenas um fica ativo por vez. O slot Padrão é fixo —
+                ative-o para voltar ao comportamento padrão do agente.
               </p>
             </div>
             <BotPersonalidades />
           </div>
 
-          <Button
-            type="button"
-            className="w-full gap-1.5"
-            onClick={salvar}
-            disabled={salvando}
-          >
-            {salvando ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Save className="size-4" />
-            )}
+          <Button type="button" className="w-full gap-1.5" onClick={salvar} disabled={salvando}>
+            {salvando ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
             {salvando ? "Salvando..." : "Salvar Configurações"}
           </Button>
         </div>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

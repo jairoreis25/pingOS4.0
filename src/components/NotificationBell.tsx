@@ -1,73 +1,68 @@
-import { useMutation, useQuery } from "@/lib/backend/react";
-import { api } from "@/lib/backend/api";
-import type { Id } from "@/lib/backend/types";
-import { Bell, CheckCheck, Inbox } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
-import { formatDistanceToNow } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { toast } from "sonner";
+import { useMutation, useQuery } from "@/lib/backend/react"
+import { api } from "@/lib/backend/api"
+import type { Id } from "@/lib/backend/types"
+import { Bell, CheckCheck, Inbox } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Badge } from "@/components/ui/badge"
+import { formatDistanceToNow } from "date-fns"
+import { ptBR } from "date-fns/locale"
+import { toast } from "sonner"
 
 type BellItem = {
-  _id: Id<"inAppNotifications">;
-  ticketId: Id<"tickets">;
-  title: string;
-  message: string;
-  read: boolean;
-  createdAt: number;
-  ticketNumber: number | null;
-  ticketTitle: string | null;
-};
+  _id: Id<"inAppNotifications">
+  ticketId: Id<"tickets">
+  title: string
+  message: string
+  read: boolean
+  createdAt: number
+  ticketNumber: number | null
+  ticketTitle: string | null
+}
 
 export default function NotificationBell({
   onTicketClick,
 }: {
-  onTicketClick?: (ticketId: Id<"tickets">) => void;
+  onTicketClick?: (ticketId: Id<"tickets">) => void
 }) {
-  const data = useQuery(api.inAppNotifications.listForUser);
-  const markRead = useMutation(api.inAppNotifications.markRead);
-  const markAllRead = useMutation(api.inAppNotifications.markAllRead);
+  const data = useQuery(api.inAppNotifications.listForUser)
+  const markRead = useMutation(api.inAppNotifications.markRead)
+  const markAllRead = useMutation(api.inAppNotifications.markAllRead)
 
-  const items: BellItem[] = data?.items ?? [];
-  const unread = data?.unreadCount ?? 0;
+  const items: BellItem[] = data?.items ?? []
+  const unread = data?.unreadCount ?? 0
 
   const handleClickItem = async (item: BellItem) => {
     if (!item.read) {
       try {
-        await markRead({ notificationId: item._id });
+        await markRead({ notificationId: item._id })
       } catch {
         // continua abrindo o chamado mesmo se falhar a marcação
       }
     }
-    onTicketClick?.(item.ticketId);
-  };
+    onTicketClick?.(item.ticketId)
+  }
 
   const handleMarkAll = async () => {
     try {
-      const count = await markAllRead({});
+      const count = await markAllRead({})
       if (count > 0) {
         toast.success(
           count === 1
             ? "1 notificação marcada como lida."
             : `${count} notificações marcadas como lidas.`,
-        );
+        )
       }
     } catch {
-      toast.error("Erro ao marcar as notificações como lidas.");
+      toast.error("Erro ao marcar as notificações como lidas.")
     }
-  };
+  }
 
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="icon"
-          className="relative size-8"
-          title="Notificações"
-        >
+        <Button variant="outline" size="icon" className="relative size-8" title="Notificações">
           <Bell className="size-4" />
           {unread > 0 && (
             <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white ring-2 ring-background">
@@ -76,10 +71,7 @@ export default function NotificationBell({
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent
-        align="end"
-        className="w-[min(92vw,380px)] overflow-hidden p-0"
-      >
+      <PopoverContent align="end" className="w-[min(92vw,380px)] overflow-hidden p-0">
         <div className="flex items-center justify-between border-b px-4 py-2.5">
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold">Notificações</span>
@@ -105,9 +97,7 @@ export default function NotificationBell({
           {items.length === 0 ? (
             <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
               <Inbox className="size-8 text-muted-foreground/50" />
-              <p className="text-sm text-muted-foreground">
-                Nenhuma notificação por aqui.
-              </p>
+              <p className="text-sm text-muted-foreground">Nenhuma notificação por aqui.</p>
             </div>
           ) : (
             <div className="divide-y divide-border/60">
@@ -145,5 +135,5 @@ export default function NotificationBell({
         </ScrollArea>
       </PopoverContent>
     </Popover>
-  );
+  )
 }
