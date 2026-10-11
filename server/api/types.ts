@@ -52,6 +52,8 @@ export interface TicketRow {
   assignee_type: string | null
   created_at: number
   updated_at: number
+  /** 0 = ninguém abriu o chamado ainda (usado pelo destaque "NOVO" no Kanban). */
+  visualizado: number | null
 }
 
 export interface TechnicianRow {
@@ -171,6 +173,7 @@ export function toPublicTicket(row: TicketRow) {
     assigneeType: row.assignee_type ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    visualizado: toBool(row.visualizado, false),
   }
 }
 

@@ -95,6 +95,13 @@ const ADDED_COLUMNS: { table: string; column: string; ddl: string }[] = [
     column: "base_url",
     ddl: "`base_url` VARCHAR(255) NULL",
   },
+  {
+    // 0 = ninguém abriu o chamado ainda. O Kanban usa para o destaque "NOVO"
+    // (anel pulsante + badge) e o card chama o endpoint ao ser aberto.
+    table: "tickets",
+    column: "visualizado",
+    ddl: "`visualizado` TINYINT(1) NOT NULL DEFAULT 0",
+  },
 ]
 
 /**
@@ -113,6 +120,8 @@ const ADDED_INDEXES: { table: string; name: string; columns: string }[] = [
   { table: "tickets", name: "idx_tickets_updated_at", columns: "`updated_at`" },
   // Busca de chamado pela O.S. impressa (evita cadastrar a mesma foto duas vezes).
   { table: "tickets", name: "idx_tickets_os", columns: "`os`" },
+  // Filtro dos chamados ainda não abertos (destaque "NOVO" no Kanban).
+  { table: "tickets", name: "idx_tickets_visualizado", columns: "`visualizado`" },
 ]
 
 async function ensureWideColumns(): Promise<void> {

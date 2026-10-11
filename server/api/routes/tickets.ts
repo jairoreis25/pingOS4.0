@@ -41,7 +41,7 @@ const LIST_COLUMNS =
   "`id`, `number`, `title`, `description`, `solucao`, `orcamento`, `obs`, " +
   "`status_equipamento`, `categoria`, `status`, `priority`, `creator_id`, `guest_name`, " +
   "`guest_contact`, `valor_total`, `os`, `creator_name`, `location`, " +
-  "`assignee_id`, `assignee_type`, `created_at`, `updated_at`"
+  "`assignee_id`, `assignee_type`, `created_at`, `updated_at`, `visualizado`"
 
 type TicketStatus = (typeof TICKET_STATUSES)[number]
 type Priority = (typeof PRIORITIES)[number]
@@ -575,6 +575,38 @@ ticketsRouter.patch(
     await resetInactivityLogs(row.id)
 
     res.json({ success: true })
+  }),
+)
+
+// ── PATCH /api/tickets/:id/visualizar — marca como visto (Kanban "NOVO") ────
+// Chamado quando alguém abre o card. Não toca em `updated_at`: marcar como visto
+// não é edição do chamado (mexer ali mudaria a ordenação e o SLA calculado).
+ticketsRouter.patch(
+  "/:id/visualizar",
+  asyncHandler(async (req, res) => {
+    const ctx = requirePermission(req, "tickets.view")
+    const body = (req.body ?? {}) as Record<string, unknown>
+    const visualizado = body.visualizado === false ? 0 : 1
+
+    const row = await queryOne<TicketRow>("SELECT * FROM `tickets` WHERE `id` = ?", [req.params.id])
+    if (!row) throw notFound("Chamado não encontrado.")
+
+    // Mesma regra da leitura: não dá para marcar como visto o que não se pode ver.
+    const enrichment = await loadEnrichment()
+    const assignee = assigneeInfo(enrichment, row)
+    const allowed = canViewTicket(
+      ctx.permissions,
+      row.status,
+      row.assignee_id,
+      ctx.user.id,
+      assignee.name,
+      ctx.user.name,
+      isAdmin(ctx.user.role),
+    )
+    if (!allowed) throw forbidden("Sem permissão para ver este chamado.")
+
+    await execute("UPDATE `tickets` SET `visualizado` = ? WHERE `id` = ?", [visualizado, row.id])
+    res.json({ success: true, visualizado: visualizado === 1 })
   }),
 )
 

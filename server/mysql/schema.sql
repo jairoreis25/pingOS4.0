@@ -157,6 +157,9 @@ CREATE TABLE IF NOT EXISTS `tickets` (
   `assignee_type`       ENUM('user','technician') NULL,
   `created_at`          BIGINT       NOT NULL,
   `updated_at`          BIGINT       NOT NULL,
+  -- 0 = ainda não aberto por ninguém: o Kanban usa isso para destacar o chamado
+  -- novo (anel pulsante + badge "NOVO"); vira 1 quando alguém abre o card.
+  `visualizado`         TINYINT(1)   NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   KEY `idx_tickets_status` (`status`),
   KEY `idx_tickets_categoria` (`categoria`),
@@ -164,6 +167,7 @@ CREATE TABLE IF NOT EXISTS `tickets` (
   KEY `idx_tickets_created_at` (`created_at`),
   KEY `idx_tickets_number` (`number`),
   KEY `idx_tickets_assignee` (`assignee_id`),
+  KEY `idx_tickets_visualizado` (`visualizado`),
   -- Número da O.S. impressa (foto no Telegram): é por aqui que o bot procura
   -- chamado duplicado antes de cadastrar de novo.
   KEY `idx_tickets_os` (`os`),

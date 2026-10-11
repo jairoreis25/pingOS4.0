@@ -53,6 +53,8 @@ export interface Ticket {
   assigneeImage: string | null
   createdAt: number
   updatedAt: number
+  /** `false` enquanto ninguém abriu o chamado (destaque "NOVO" no Kanban). */
+  visualizado?: boolean
 }
 
 export interface Technician {

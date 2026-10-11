@@ -178,6 +178,13 @@ export const api = {
       (args) => ({ status: args?.status }),
     ),
     remove: mBody("tickets.remove", "DELETE", "/api/tickets"),
+    /** Marca o chamado como visto (tira o destaque "NOVO" do Kanban). */
+    markViewed: m(
+      "tickets.markViewed",
+      "PATCH",
+      (args) => `/api/tickets/${pickId(args)}/visualizar`,
+      (args) => ({ visualizado: args?.visualizado ?? true }),
+    ),
     dashboardMetrics: q<DashboardMetrics>(
       "tickets.dashboardMetrics",
       () => "/api/metrics/dashboard",
