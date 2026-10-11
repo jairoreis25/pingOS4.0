@@ -9,7 +9,15 @@
  * pela pill, com avatar/nome, título, descrição, valor, data e ações preservados.
  */
 import { memo, useRef, useState } from "react"
-import { ChevronDown, CopyPlus, GripVertical, MoreVertical, Ticket } from "lucide-react"
+import {
+  AlertTriangle,
+  ChevronDown,
+  Clock,
+  CopyPlus,
+  GripVertical,
+  MoreVertical,
+  Ticket,
+} from "lucide-react"
 import type { Id } from "@/lib/backend/types"
 import type { TicketPriority } from "@/lib/ticket-utils"
 import { usePermissions } from "@/hooks/use-permissions"
@@ -17,6 +25,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import StatusChangeConfirmDialog from "@/components/StatusChangeConfirmDialog"
 import CloneTicketDialog from "@/components/CloneTicketDialog"
 import { formatBRL, resolveItemsTotal } from "@/lib/currency"
+import { isSlaOverdue, isUnseenTicket, slaLabel, slaOverdueLabel } from "@/lib/sla"
 import {
   COLUMNS,
   DRAG_TICKET_MIME,
@@ -27,6 +36,18 @@ import {
   type DraggedTicketInfo,
   type TicketStatus,
 } from "@/lib/ticket-ui"
+
+/**
+ * Borda lateral do card nas cores do iOS (a paleta do redesign). Fica separada do
+ * `PRIORITY_CONFIG` de propósito: aquele objeto é a fonte semântica usada em
+ * vários componentes (pill, dot, relatórios) e não deve mudar por causa do card.
+ */
+const PRIORITY_IOS_BORDER: Record<TicketPriority, string> = {
+  critica: "border-l-[#FF3B30]",
+  alta: "border-l-[#FF9500]",
+  media: "border-l-[#FFCC00]",
+  baixa: "border-l-[#34C759]",
+}
 
 export const KanbanCard = memo(
   function KanbanCard({
@@ -56,6 +77,10 @@ export const KanbanCard = memo(
       creatorName: string
       creatorImage?: string
       createdAt: number
+      /** Necessário para o cálculo de atraso (resolvido/fechado nunca atrasa). */
+      status?: TicketStatus
+      /** `false` enquanto ninguém abriu o chamado → destaque "NOVO". */
+      visualizado?: boolean
     }
     onDragStart: (e: React.DragEvent, ticketId: Id<"tickets">) => void
     onTicketClick: (ticketId: Id<"tickets">) => void
@@ -75,6 +100,12 @@ export const KanbanCard = memo(
     const valorDerivado = savedTotal == null && cardValorTotal != null
 
     const createdAt = new Date(ticket.createdAt)
+
+    // Regras visuais derivadas do dado (src/lib/sla.ts): nada é calculado no JSX.
+    const novo = isUnseenTicket(ticket)
+    const atrasado = isSlaOverdue(ticket)
+    const atrasoLabel = slaOverdueLabel(ticket)
+    const prazoLabel = slaLabel(ticket)
 
     return (
       <div
@@ -107,15 +138,39 @@ export const KanbanCard = memo(
           }
         }}
         onClick={() => onTicketClick(ticket._id)}
-        className={`group relative w-full min-w-0 cursor-pointer rounded-lg border border-l-4 border-slate-300 bg-white p-3 transition-all duration-150 hover:border-slate-400 hover:shadow-md focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:hover:border-slate-600 ${priorityConfig.leftBorder}`}
+        className={`group press lift ios-card relative w-full min-w-0 cursor-pointer border-l-4 p-4 focus-visible:ring-2 focus-visible:ring-ios-blue focus-visible:outline-none ${
+          PRIORITY_IOS_BORDER[ticket.priority]
+        } ${atrasado ? "card-atrasado" : novo ? "card-novo" : ""} ${
+          novo ? "border-ios-blue/40" : "hover:border-ios-blue/30"
+        }`}
       >
+        {/* Selos do topo: atraso (tremor leve) e chamado ainda não aberto. */}
+        {(novo || atrasado) && (
+          <div className="mb-2 flex flex-wrap items-center gap-1.5">
+            {atrasado && (
+              <span className="badge-atrasado bg-ios-red inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide text-white uppercase">
+                <AlertTriangle className="size-3" strokeWidth={2.5} aria-hidden="true" />
+                Atrasado
+              </span>
+            )}
+            {novo && (
+              <span
+                className="animate-pop-in bg-ios-blue inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide text-white uppercase"
+                title="Ninguém abriu este chamado ainda"
+              >
+                <span className="size-1.5 animate-pulse rounded-full bg-white" aria-hidden="true" />
+                Novo
+              </span>
+            )}
+          </div>
+        )}
         {/* Cabeçalho: solicitante + ações (clonar, menu e alça de arraste). */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
-            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-slate-200 text-[10px] font-semibold text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+            <span className="bg-ios-bg text-ios-gray flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold">
               {getInitials(ticket.creatorName)}
             </span>
-            <span className="min-w-0 flex-1 truncate text-xs font-medium uppercase text-slate-600 dark:text-slate-400">
+            <span className="text-ios-gray min-w-0 flex-1 truncate text-xs font-medium uppercase">
               {ticket.creatorName}
             </span>
           </div>
@@ -170,12 +225,12 @@ export const KanbanCard = memo(
         </div>
 
         {ticket.title && (
-          <h4 className="mb-1 mt-2 line-clamp-2 break-words text-sm font-semibold text-slate-900 dark:text-slate-100">
+          <h4 className="text-ios-label mb-1 mt-2 line-clamp-2 text-[15px] font-semibold break-words tracking-[-0.01em]">
             {ticket.title}
           </h4>
         )}
         {ticket.description && (
-          <p className="mb-3 line-clamp-2 break-words text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+          <p className="text-ios-gray mb-3 line-clamp-2 text-[13px] leading-relaxed break-words">
             {ticket.description}
           </p>
         )}
@@ -205,7 +260,10 @@ export const KanbanCard = memo(
               {formatBRL(cardValorTotal)}
             </span>
           )}
-          <span className="ml-auto shrink-0 tabular-nums text-slate-400 dark:text-slate-500">
+          <span className="text-ios-gray ml-auto flex shrink-0 items-center gap-1 tabular-nums">
+            {atrasado && (
+              <Clock className="text-ios-red size-3" strokeWidth={2.5} aria-hidden="true" />
+            )}
             {createdAt.toLocaleDateString("pt-BR", {
               day: "2-digit",
               month: "2-digit",
@@ -215,6 +273,16 @@ export const KanbanCard = memo(
               minute: "2-digit",
             })}
           </span>
+          {prazoLabel && (
+            <span
+              className={`shrink-0 font-medium ${atrasado ? "text-ios-red" : "text-ios-gray"}`}
+              title={
+                atrasado ? `${atrasoLabel ?? ""} — prazo por prioridade` : "Prazo por prioridade"
+              }
+            >
+              {prazoLabel}
+            </span>
+          )}
         </div>
 
         {/* O diálogo é portado para o body, então não ocupa espaço no card. */}
@@ -288,6 +356,11 @@ export const KanbanColumn = memo(
       creatorName: string
       creatorImage?: string
       createdAt: number
+      /** Status do chamado (a coluna já é um status, mas o card precisa dele
+       * para o cálculo de atraso: resolvido/fechado nunca atrasa). */
+      status?: TicketStatus
+      /** `false` enquanto ninguém abriu o chamado → destaque "NOVO". */
+      visualizado?: boolean
     }>
     onDragStart: (e: React.DragEvent, ticketId: Id<"tickets">) => void
     onDrop: (e: React.DragEvent, status: TicketStatus) => void
@@ -300,6 +373,10 @@ export const KanbanColumn = memo(
     // Clonar é abrir chamado: a permissão decide se o botão aparece no card.
     const { can } = usePermissions()
     const canClone = can("tickets.create")
+
+    // Chamados que ninguém abriu ainda: o ponto do cabeçalho pulsa e o contador
+    // azul aparece. É o mesmo dado que faz o card ganhar o selo "NOVO".
+    const naoVistos = tickets.filter(isUnseenTicket).length
 
     // Movimento aguardando a confirmação do usuário.
     const [pendingMove, setPendingMove] = useState<{
@@ -369,13 +446,9 @@ export const KanbanColumn = memo(
         onDragOver={(e) => onDragOver(e, column.id)}
         onDragLeave={onDragLeave}
         onDrop={(e) => handleDropRequest(e, column.id)}
-        className={`flex min-w-[260px] flex-1 flex-col overflow-hidden rounded-xl border bg-white shadow-sm transition-all duration-150 dark:bg-slate-900 ${
+        className={`ios-column flex min-w-[260px] flex-1 flex-col overflow-hidden ${
           collapsed ? "self-start" : ""
-        } ${
-          isDragOver
-            ? `${column.borderColor} ${column.bgColor} shadow-md`
-            : "border-slate-300 dark:border-slate-700"
-        }`}
+        } ${isDragOver ? `${column.borderColor} ${column.bgColor} shadow-ios-lift` : ""}`}
       >
         <StatusChangeConfirmDialog
           open={pendingMove !== null}
@@ -398,15 +471,27 @@ export const KanbanColumn = memo(
         />
         {/* Barra colorida de 4px identifica o status da coluna. */}
         <div className={`h-1 w-full shrink-0 ${column.barColor}`} />
-        <div className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-900">
+        <div className="flex items-center justify-between border-b border-[rgb(60_60_67_/_0.08)] px-4 py-3 dark:border-white/10">
           <div className="flex items-center gap-2">
-            <span className={`size-1.5 rounded-full ${column.barColor}`} />
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+            {/* Ponto do status; pulsa quando há chamado que ninguém abriu. */}
+            <span
+              className={`size-2 rounded-full ${naoVistos > 0 ? "bg-ios-blue animate-pulse" : column.barColor}`}
+              aria-hidden="true"
+            />
+            <h3 className="text-ios-label text-[15px] font-semibold tracking-[-0.01em]">
               {column.label}
             </h3>
           </div>
-          <div className="flex items-center gap-0.5">
-            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+          <div className="flex items-center gap-1">
+            {naoVistos > 0 && (
+              <span
+                className="bg-ios-blue/10 text-ios-blue inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                title={`${naoVistos} chamado(s) que ninguém abriu ainda`}
+              >
+                {naoVistos} novo{naoVistos > 1 ? "s" : ""}
+              </span>
+            )}
+            <span className="bg-ios-bg text-ios-gray rounded-full px-2 py-0.5 text-xs font-medium tabular-nums">
               {tickets.length}
             </span>
             <button
@@ -429,7 +514,7 @@ export const KanbanColumn = memo(
           conteúdo do ScrollArea (ver `index.css`), para os cards respeitarem a
           largura da coluna em vez de crescerem até o tamanho do texto. */}
         <ScrollArea data-scroll-fit className={collapsed ? "hidden" : "flex-1"}>
-          <div className="space-y-2 p-3">
+          <div className="stagger space-y-2.5 p-4">
             {tickets.length === 0 ? (
               <div className="flex min-h-[200px] flex-col items-center justify-center text-slate-400 dark:text-slate-600">
                 <Ticket className="mb-1 size-5" />

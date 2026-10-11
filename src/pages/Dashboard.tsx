@@ -69,6 +69,7 @@ import {
   type TicketStatus,
 } from "@/lib/ticket-ui"
 import { KanbanColumn } from "@/components/KanbanColumn"
+import { Logo } from "@/components/Logo"
 import { QueryErrorBanner } from "@/components/QueryErrorBanner"
 import GuestNewTicketDialog from "@/components/GuestNewTicketDialog"
 import CameraTicketButton from "@/components/CameraTicketButton"
@@ -1077,15 +1078,23 @@ export default function Dashboard() {
   // na tela, sem esperar o SSE/poll — antes o card voltava para a coluna antiga
   // por alguns segundos, parecendo perda de dado.
   const [pendingMoves, setPendingMoves] = useState<Record<string, TicketStatus>>({})
+  // Chamados que este navegador já abriu: some com o selo "NOVO" na hora, sem
+  // esperar o refetch (o servidor confirma em seguida).
+  const [viewedIds, setViewedIds] = useState<Id<"tickets">[]>([])
   const tickets = useMemo(() => {
     const list = ticketsPage.items
     if (!list) return list
-    return list.map((ticket) =>
-      pendingMoves[ticket._id] ? { ...ticket, status: pendingMoves[ticket._id] } : ticket,
-    )
-  }, [ticketsPage.items, pendingMoves])
+    return list.map((ticket) => {
+      // Update otimista do arraste e do "já abri este chamado" (selo NOVO).
+      const comStatus = pendingMoves[ticket._id]
+        ? { ...ticket, status: pendingMoves[ticket._id] }
+        : ticket
+      return viewedIds.includes(ticket._id) ? { ...comStatus, visualizado: true } : comStatus
+    })
+  }, [ticketsPage.items, pendingMoves, viewedIds])
   useTicketAlerts(tickets)
   const updateStatus = useMutation(api.tickets.updateStatus)
+  const markViewed = useMutation(api.tickets.markViewed)
 
   const [newTicketOpen, setNewTicketOpen] = useState(false)
   const [guestTicketOpen, setGuestTicketOpen] = useState(false)
@@ -1109,6 +1118,29 @@ export default function Dashboard() {
     await signOut()
     navigate("/")
   }
+
+  /**
+   * Abre o chamado e marca como visto.
+   *
+   * O `visualizado` só vai ao servidor quando o chamado ainda estava como novo —
+   * evita uma escrita por abertura. O estado local entra antes da resposta para o
+   * selo "NOVO" e o anel pulsante sumirem na hora.
+   */
+  const openTicket = useCallback(
+    (id: Id<"tickets">) => {
+      setSelectedTicketId(id)
+      const alvo = tickets?.find((t) => t._id === id)
+      if (alvo?.visualizado === false) {
+        setViewedIds((prev) => (prev.includes(id) ? prev : [...prev, id]))
+        void markViewed({ ticketId: id }).catch(() => {
+          // Falhou? O próximo refetch devolve o estado real do servidor.
+        })
+      }
+    },
+    // Os setters de estado são estáveis, mas entram na lista para o React
+    // Compiler conseguir preservar a memoização (regra preserve-manual-memoization).
+    [tickets, markViewed, setSelectedTicketId, setViewedIds],
+  )
 
   const handleDragStart = useCallback((e: React.DragEvent, ticketId: Id<"tickets">) => {
     dragTicketRef.current = ticketId
@@ -1216,24 +1248,19 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-page-glow">
-      <header className="sticky top-0 z-40 border-b border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900">
-        <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-3 px-4 py-3 sm:flex-nowrap sm:gap-4">
+      <header className="ios-header sticky top-0 z-40">
+        <div className="mx-auto flex min-h-[60px] max-w-[1600px] flex-wrap items-center gap-3 px-4 py-2 sm:flex-nowrap sm:gap-4">
           <div className="order-2 flex w-full items-center gap-3 sm:order-1 sm:w-auto sm:flex-1">
             <div className="flex shrink-0 items-center gap-2">
-              <div className="flex size-8 items-center justify-center rounded-lg bg-blue-600 shadow-sm">
-                <span className="text-sm font-semibold text-white">P</span>
-              </div>
-              <span className="text-base font-semibold tracking-tight text-slate-900 dark:text-slate-100">
-                PingOS
-              </span>
+              <Logo withText />
             </div>
-            <div className="hidden items-center gap-2 rounded-lg bg-slate-100 px-3 py-1.5 md:flex dark:bg-slate-800">
+            <div className="bg-ios-bg hidden items-center gap-2 rounded-xl px-3 py-1.5 md:flex">
               <span className="flex items-center gap-1.5">
                 <span className="size-1.5 rounded-full bg-slate-400" />
-                <span className="font-semibold text-slate-900 tabular-nums dark:text-slate-100">
+                <span className="text-ios-label font-semibold tabular-nums">
                   {String(totalTickets)}
                 </span>
-                <span className="text-xs text-slate-500 dark:text-slate-400">chamados</span>
+                <span className="text-ios-gray text-xs">chamados</span>
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="size-1.5 rounded-full bg-blue-500" />
@@ -1316,7 +1343,7 @@ export default function Dashboard() {
                 <VolumeX className="size-4" strokeWidth={1.5} />
               )}
             </Button>
-            <NotificationBell onTicketClick={(id) => setSelectedTicketId(id)} />
+            <NotificationBell onTicketClick={openTicket} />
             {can("settings.manage") && (
               <Button
                 variant="ghost"
@@ -1470,7 +1497,7 @@ export default function Dashboard() {
                   onDragOver={(e) => handleDragOver(e, column.id)}
                   onDragLeave={handleDragLeave}
                   isDragOver={dragOverColumn === column.id}
-                  onTicketClick={(id) => setSelectedTicketId(id)}
+                  onTicketClick={openTicket}
                   canDrag={canDrag}
                 />
               ))}
@@ -1487,7 +1514,7 @@ export default function Dashboard() {
                 onDragOver={(e) => handleDragOver(e, column.id)}
                 onDragLeave={handleDragLeave}
                 isDragOver={dragOverColumn === column.id}
-                onTicketClick={(id) => setSelectedTicketId(id)}
+                onTicketClick={openTicket}
                 canDrag={canDrag}
               />
             ))}

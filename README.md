@@ -658,6 +658,62 @@ Regras:
 - Imagens anexadas aos chamados são data URLs no campo `image_url`
   (`MEDIUMTEXT`) — nunca as corte como texto comum.
 
+## Design system — redesign iOS
+
+O visual segue a linguagem do iOS: superfícies translúcidas, cantos generosos,
+sombras suaves e animações com o easing da Apple. Nada de informação foi
+removida — só a apresentação mudou.
+
+### Onde ficam os tokens
+
+Este projeto usa **Tailwind v4**, onde o tema é _CSS-first_: **não existe
+`tailwind.config.js`** para editar. Tudo mora em [`src/index.css`](src/index.css),
+num bloco `@theme`, e vira utilitário automaticamente:
+
+| Token            | Utilitários gerados                                                                                    | Uso                                                                                        |
+| ---------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| `--color-ios-*`  | `bg-ios-blue`, `text-ios-gray`, `border-ios-red`…                                                      | paleta (`#007AFF`, `#34C759`, `#FF9500`, `#FF3B30`, `#AF52DE`, `#8E8E93`, fundo `#F2F2F7`) |
+| `--radius-ios-*` | `rounded-ios-btn` (12px), `rounded-ios-card` (16px), `rounded-ios-column` / `rounded-ios-modal` (20px) | cantos                                                                                     |
+| `--shadow-ios-*` | `shadow-ios-card`, `shadow-ios-lift`                                                                   | profundidade                                                                               |
+| `--ease-ios*`    | `ease-ios`, `ease-ios-spring`, `ease-ios-quick`                                                        | 250ms / spring / 150ms                                                                     |
+| `--animate-*`    | `animate-pulse-ring`, `animate-shake-warning`, `animate-fade-in-up`, `animate-pop-in`                  | animações nomeadas                                                                         |
+
+Classes utilitárias próprias: `.ios-card`, `.ios-header` (blur de 20px),
+`.ios-column` (blur de 12px), `.card-novo` (anel azul pulsante), `.card-atrasado`
+(fundo avermelhado + borda que respira), `.badge-atrasado` (tremor a cada 5s),
+`.press` (scale no toque), `.lift` (elevação no hover) e `.stagger` (entrada
+escalonada de 50ms entre irmãos).
+
+### Regras seguidas
+
+- animação só com `transform`/`opacity`/`box-shadow` — nunca `width`/`height`;
+- `@media (prefers-reduced-motion: reduce)` desliga animações e transições;
+- nenhuma informação existente foi removida dos cards/colunas;
+- tudo com Tailwind (sem CSS-in-JS).
+
+### Novo × atrasado
+
+- **NOVO**: o chamado tem `visualizado = 0` (coluna nova em `tickets`, criada pelo
+  `migrate.ts` em bancos existentes). O card ganha selo azul, anel pulsante e o
+  ponto do cabeçalho da coluna pulsa. Ao abrir o card, o app chama
+  `PATCH /api/tickets/:id/visualizar` e o selo sai na hora (otimista).
+- **ATRASADO**: o banco **não tem campo de SLA**, então o atraso é derivado de
+  prioridade + criação em [`src/lib/sla.ts`](src/lib/sla.ts) — crítica 4h, alta
+  24h, média 72h, baixa 168h. Resolvido/fechado nunca atrasa. Quem quiser prazo
+  real no futuro só precisa preencher `dueAt`, que a tela não muda.
+
+### Ver o redesign sem subir o backend
+
+```bash
+bun run dev
+# abra http://localhost:5173/preview-ios.html
+```
+
+[`preview-ios.html`](preview-ios.html) importa o CSS real do projeto e mostra
+header, colunas e os três estados de card (normal, novo, atrasado) — é uma página
+estática de inspeção visual, não fala com a API. O app completo continua em
+`http://localhost:5173/`.
+
 ## Deploy
 
 `DOKPLOY.md` (Docker Compose: `app` + `api` + `whatsapp` + o MySQL do painel).
