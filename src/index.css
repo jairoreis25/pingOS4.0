@@ -180,3 +180,265 @@
     transition-timing-function: ease;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Redesign iOS — tokens, keyframes e utilitários
+   ═══════════════════════════════════════════════════════════════════════════
+   O projeto usa Tailwind v4, onde o tema é CSS-first: não existe
+   `tailwind.config.js` para editar. O que aqui está em `@theme` vira utilitário
+   automaticamente:
+
+     --color-ios-blue  → bg-ios-blue / text-ios-blue / border-ios-blue
+     --radius-ios-card → rounded-ios-card
+     --shadow-ios-card → shadow-ios-card
+     --animate-pulse-ring → animate-pulse-ring
+     --ease-ios        → ease-ios
+
+   Regras seguidas: animação só com transform/opacity/box-shadow (nunca
+   width/height), e tudo desligado em `prefers-reduced-motion`.
+   ------------------------------------------------------------------------- */
+@theme {
+  /* Paleta iOS */
+  --color-ios-bg: #f2f2f7;
+  --color-ios-card: #ffffff;
+  --color-ios-label: #1c1c1e;
+  --color-ios-blue: #007aff;
+  --color-ios-blue-dark: #0066dd;
+  --color-ios-green: #34c759;
+  --color-ios-orange: #ff9500;
+  --color-ios-yellow: #ffcc00;
+  --color-ios-red: #ff3b30;
+  --color-ios-purple: #af52de;
+  --color-ios-gray: #8e8e93;
+  --color-ios-gray-light: #c7c7cc;
+  --color-ios-separator: rgb(60 60 67 / 0.12);
+
+  /* Inter com a pilha da Apple como fallback (offline cai no sistema) */
+  --font-sans:
+    Inter, -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+
+  /* Easing iOS */
+  --ease-ios: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-ios-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-ios-quick: cubic-bezier(0.4, 0, 0.6, 1);
+
+  /* Profundidade */
+  --shadow-ios-card: 0 1px 3px rgb(0 0 0 / 0.04), 0 8px 24px rgb(0 0 0 / 0.06);
+  --shadow-ios-lift: 0 2px 8px rgb(0 0 0 / 0.06), 0 16px 32px rgb(0 0 0 / 0.1);
+
+  /* Cantos */
+  --radius-ios-btn: 12px;
+  --radius-ios-card: 16px;
+  --radius-ios-column: 20px;
+  --radius-ios-modal: 20px;
+
+  /* Animações nomeadas */
+  --animate-pulse-ring: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-shake-warning: shake-warning 5s ease-in-out infinite;
+  --animate-fade-in-up: fade-in-up 400ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  --animate-pop-in: pop-in 350ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  --animate-pulse-red: pulse-red 2s ease-in-out infinite;
+}
+
+/* Anel pulsante do chamado novo: as sombras do card + um halo azul que expande. */
+@keyframes pulse-ring {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 0 rgb(0 122 255 / 0.4),
+      0 1px 3px rgb(0 0 0 / 0.04),
+      0 8px 24px rgb(0 0 0 / 0.06);
+  }
+  50% {
+    box-shadow:
+      0 0 0 8px rgb(0 122 255 / 0),
+      0 1px 3px rgb(0 0 0 / 0.04),
+      0 8px 24px rgb(0 0 0 / 0.06);
+  }
+}
+
+/* Borda vermelha "respirando" no chamado atrasado. */
+@keyframes pulse-red {
+  0%,
+  100% {
+    border-color: rgb(255 59 48 / 0.3);
+  }
+  50% {
+    border-color: rgb(255 59 48 / 0.8);
+  }
+}
+
+/* Badge "ATRASADO": tremor curto a cada 5s (92%-98% do ciclo). */
+@keyframes shake-warning {
+  0%,
+  90%,
+  100% {
+    transform: rotate(0deg);
+  }
+  92% {
+    transform: rotate(-2deg);
+  }
+  94% {
+    transform: rotate(2deg);
+  }
+  96% {
+    transform: rotate(-1deg);
+  }
+  98% {
+    transform: rotate(1deg);
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@layer utilities {
+  /* Superfície de card iOS (branco, borda sutil, canto 16px, sombra suave) */
+  .ios-card {
+    background-color: var(--color-ios-card);
+    border: 1px solid rgb(60 60 67 / 0.08);
+    border-radius: var(--radius-ios-card);
+    box-shadow: var(--shadow-ios-card);
+  }
+  .dark .ios-card {
+    background-color: rgb(255 255 255 / 0.04);
+    border-color: rgb(255 255 255 / 0.08);
+  }
+
+  /* Barra superior translúcida (blur iOS) */
+  .ios-header {
+    background-color: rgb(255 255 255 / 0.8);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: 1px solid var(--color-ios-separator);
+  }
+  .dark .ios-header {
+    background-color: rgb(15 15 18 / 0.8);
+    border-bottom-color: rgb(255 255 255 / 0.08);
+  }
+
+  /* Coluna do Kanban translúcida */
+  .ios-column {
+    background-color: rgb(255 255 255 / 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgb(60 60 67 / 0.08);
+    border-radius: var(--radius-ios-column);
+  }
+  .dark .ios-column {
+    background-color: rgb(255 255 255 / 0.03);
+    border-color: rgb(255 255 255 / 0.06);
+  }
+
+  /* Chamado ainda não aberto: anel azul pulsante (+ o tremor do badge) */
+  .card-novo {
+    animation: var(--animate-pulse-ring);
+  }
+
+  /* Chamado com atraso: fundo levemente avermelhado e borda que respira */
+  .card-atrasado {
+    background-image: linear-gradient(135deg, #ffffff 0%, #fff5f5 100%);
+    border-color: rgb(255 59 48 / 0.5);
+    animation: var(--animate-pulse-red);
+  }
+  .dark .card-atrasado {
+    background-image: linear-gradient(
+      135deg,
+      rgb(255 255 255 / 0.04) 0%,
+      rgb(255 59 48 / 0.12) 100%
+    );
+  }
+
+  .badge-atrasado {
+    animation: var(--animate-shake-warning);
+  }
+
+  /* Toque/clique: feedback "háptico" visual */
+  .press {
+    transition:
+      transform 150ms var(--ease-ios-quick),
+      box-shadow 250ms var(--ease-ios);
+  }
+  .press:active {
+    transform: scale(0.98);
+  }
+
+  /* Hover com elevação (usado em botões e cards) */
+  .lift {
+    transition:
+      transform 250ms var(--ease-ios),
+      box-shadow 250ms var(--ease-ios),
+      border-color 250ms var(--ease-ios);
+  }
+  .lift:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-ios-lift);
+  }
+
+  /* Entrada escalonada: filhos aparecem 50ms depois do anterior */
+  .stagger > * {
+    animation: var(--animate-fade-in-up);
+  }
+  .stagger > *:nth-child(1) {
+    animation-delay: 0ms;
+  }
+  .stagger > *:nth-child(2) {
+    animation-delay: 50ms;
+  }
+  .stagger > *:nth-child(3) {
+    animation-delay: 100ms;
+  }
+  .stagger > *:nth-child(4) {
+    animation-delay: 150ms;
+  }
+  .stagger > *:nth-child(5) {
+    animation-delay: 200ms;
+  }
+  .stagger > *:nth-child(6) {
+    animation-delay: 250ms;
+  }
+  .stagger > *:nth-child(7) {
+    animation-delay: 300ms;
+  }
+  .stagger > *:nth-child(8) {
+    animation-delay: 350ms;
+  }
+}
+
+/* Acessibilidade: quem pediu menos movimento no sistema não recebe animação. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .lift:hover {
+    transform: none;
+  }
+  .press:active {
+    transform: none;
+  }
+}
